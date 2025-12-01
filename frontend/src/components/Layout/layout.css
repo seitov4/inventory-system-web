@@ -1,0 +1,118 @@
+/* ===== APP SHELL ===== */
+
+.app-shell {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    min-height: calc(100vh - 120px); /* с учётом Header+Footer */
+    background: #f8fafc;
+}
+
+/* ===== SIDEBAR ===== */
+
+.app-sidebar {
+    background: #020617;
+    border-right: 1px solid rgba(15, 23, 42, 0.9);
+    color: #e5e7eb;
+}
+
+.app-sidebar-inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 16px 14px 14px;
+}
+
+.app-sidebar-section-top {
+    flex: 1;
+}
+
+.app-sidebar-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.app-sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.app-sidebar-link {
+    display: block;
+    padding: 8px 10px;
+    border-radius: 8px;
+
+    font-size: 14px;
+    color: #e5e7eb;
+    text-decoration: none;
+
+    transition: 0.15s ease;
+}
+
+.app-sidebar-link:hover {
+    background: rgba(148, 163, 184, 0.18);
+}
+
+.app-sidebar-link.active {
+    background: linear-gradient(90deg, #0ea5e9, #22c55e);
+    color: #0f172a;
+    font-weight: 600;
+}
+
+/* нижняя часть */
+
+.app-sidebar-section-bottom {
+    margin-top: 12px;
+}
+
+.app-sidebar-footnote {
+    font-size: 11px;
+    color: #6b7280;
+}
+
+/* ===== MAIN AREA ===== */
+
+.app-shell-main {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+.app-shell-header {
+    padding: 16px 20px 8px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f9fafb;
+}
+
+.app-shell-title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.app-shell-content {
+    padding: 18px 20px 24px;
+    flex: 1;
+}
+
+/* адаптив — на очень узких экранах sidebar можно упростить */
+
+@media (max-width: 900px) {
+    .app-shell {
+        grid-template-columns: 200px minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 720px) {
+    .app-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .app-sidebar {
+        display: none; /* на телефоне можно скрыть */
+    }
+}
