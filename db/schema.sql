@@ -1,10 +1,15 @@
 CREATE TABLE IF NOT EXISTS users (
-                                     id SERIAL PRIMARY KEY,
-                                     email VARCHAR(255) UNIQUE NOT NULL,
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE,
+    phone VARCHAR(50) UNIQUE,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    store_name VARCHAR(255),
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL DEFAULT 'cashier', -- cashier | manager | owner | admin
-    created_at TIMESTAMP DEFAULT NOW()
-    );
+    created_at TIMESTAMP DEFAULT NOW(),
+    CONSTRAINT users_email_or_phone_chk CHECK (email IS NOT NULL OR phone IS NOT NULL)
+);
 
 CREATE TABLE IF NOT EXISTS products (
                                         id SERIAL PRIMARY KEY,

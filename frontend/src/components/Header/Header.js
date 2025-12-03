@@ -20,6 +20,24 @@ export default function Header() {
                 <Link to="/" className="ui-logo">
                     RetailSystem
                 </Link>
+
+                {/* ПРАВАЯ ЧАСТЬ */}
+                <div className="ui-right">
+                    {logged ? (
+                        <Link to="/settings" className="ui-btn-profile">
+                            Профиль
+                        </Link>
+                    ) : (
+                        <>
+                            <Link to="/login" className="ui-btn-login">
+                                Войти
+                            </Link>
+                            <Link to="/register" className="ui-btn-register">
+                                Зарегистрироваться
+                            </Link>
+                        </>
+                    )}
+                </div>
             </div>
         </header>
     );

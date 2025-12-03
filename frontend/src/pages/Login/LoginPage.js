@@ -4,7 +4,7 @@ import authApi from "../../api/authApi";
 import "./login.css";
 
 const LoginPage = () => {
-    const [email, setEmail] = useState("");
+    const [loginValue, setLoginValue] = useState("");
     const [pass, setPass] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -13,19 +13,15 @@ const LoginPage = () => {
     const handleLogin = async () => {
         setError("");
 
-        if (!email || !pass) {
-            setError("Введите email и пароль");
+        if (!loginValue || !pass) {
+            setError("Введите логин (email или телефон) и пароль");
             return;
         }
 
         try {
             setLoading(true);
-            // authApi.login возвращает Axios-response
-            const res = await authApi.login(email, pass);
+            const res = await authApi.login(loginValue, pass);
             const data = res.data || {};
-
-            // подстрой под свой backend:
-            // например, data.token или data.accessToken
             const token = data.token || data.accessToken;
             if (!token) {
                 throw new Error("Токен не получен от сервера");
@@ -35,7 +31,10 @@ const LoginPage = () => {
             navigate("/dashboard");
         } catch (e) {
             console.error(e);
-            setError("Не удалось войти. Проверьте логин и пароль.");
+            const msg =
+                e?.response?.data?.message ||
+                "Не удалось войти. Проверьте логин и пароль.";
+            setError(msg);
         } finally {
             setLoading(false);
         }
@@ -51,20 +50,23 @@ const LoginPage = () => {
             <div className="login-card">
                 <h1 className="login-title">Вход в систему</h1>
                 <p className="login-subtitle">
-                    Введите учетные данные сотрудника, чтобы продолжить.
+                    Введите логин и пароль сотрудника, чтобы продолжить.
                 </p>
 
                 {error && <div className="login-error">{error}</div>}
 
                 <form className="login-form" onSubmit={handleSubmit}>
                     <label className="login-label">
-                        Email
+                        Логин (email или телефон)
                         <input
-                            type="email"
+                            type="text"
                             className="login-input"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="you@example.com"
+                            value={loginValue}
+                            onChange={(e) => setLoginValue(e.target.value)}
+                            placeholder="+7... или you@example.com"
+                            autoFocus
+                            disabled={loading}
+                            required
                         />
                     </label>
 
@@ -76,24 +78,32 @@ const LoginPage = () => {
                             value={pass}
                             onChange={(e) => setPass(e.target.value)}
                             placeholder="Введите пароль"
+                            disabled={loading}
+                            required
                         />
                     </label>
 
                     <button
                         type="submit"
                         className="login-btn-main"
-                        disabled={loading}
+                        disabled={loading || !loginValue || !pass}
                     >
                         {loading ? "Вход..." : "Войти"}
                     </button>
                 </form>
 
-                <Link className="back-btn" to="/">
-                    ← Вернуться на сайт
-                </Link>
+                <div className="login-links">
+                    <Link className="primary-link" to="/register">
+                        Нет аккаунта? Зарегистрировать магазин
+                    </Link>
+                    <Link className="back-btn" to="/">
+                        ← Вернуться на сайт
+                    </Link>
+                </div>
             </div>
         </div>
     );
 };
 
 export default LoginPage;
+
