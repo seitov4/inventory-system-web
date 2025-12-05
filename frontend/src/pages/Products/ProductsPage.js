@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Layout from "../../components/Layout/Layout";
 import productsApi from "../../api/productsApi";
+import "./products.css";
 
 export default function ProductsPage() {
     // Список номенклатуры (чистые товары)

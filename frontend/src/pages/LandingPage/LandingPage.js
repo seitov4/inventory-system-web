@@ -40,10 +40,10 @@ export default function LandingPage() {
 
                         <div className="lp-hero-actions">
                             <Link to="/login" className="lp-btn lp-btn-primary">
-                                Войти в систему
+                                Войти
                             </Link>
-                            <Link to="/dashboard" className="lp-btn lp-btn-secondary">
-                                Открыть дашборд (демо)
+                            <Link to="/register" className="lp-btn lp-btn-secondary">
+                                Зарегистрировать магазин
                             </Link>
                         </div>
 
@@ -51,6 +51,8 @@ export default function LandingPage() {
                             После авторизации доступны модули: <strong>Товары</strong>,{" "}
                             <strong>Склад</strong>, <strong>Продажи</strong> и{" "}
                             <strong>Отчёты</strong>.
+                            {" "}Для демонстрации можно открыть дашборд по прямой ссылке
+                            без авторизации: <Link to="/dashboard">демо-дашборд</Link>.
                         </p>
                     </div>
 

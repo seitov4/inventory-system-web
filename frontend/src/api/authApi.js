@@ -1,22 +1,21 @@
 import apiClient from "./apiClient";
 
 const authApi = {
-    login: (email, password) =>
-        apiClient.post("/auth/login", { email, password }),
+    login: (login, password) =>
+        apiClient.post("/auth/login", { login, password }),
 
-    register: (data) =>
-        apiClient.post("/auth/register", data),
+    register: (data) => apiClient.post("/auth/register", data),
 
-    me: () =>
-        apiClient.get("/auth/me"),
+    me: () => apiClient.get("/auth/me"),
 
-    logout: () =>
-        apiClient.post("/auth/logout")
+    logout: () => apiClient.post("/auth/logout"),
 };
 
 export const register = (data) => apiClient.post("/auth/register", data);
-export const login = (data) => apiClient.post("/auth/login", data);
+export const login = (login, password) =>
+    apiClient.post("/auth/login", { login, password });
 export const me = () => apiClient.get("/auth/me");
 export const logout = () => apiClient.post("/auth/logout");
 
 export default authApi;
+
