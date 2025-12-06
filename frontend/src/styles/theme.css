@@ -1,0 +1,103 @@
+/* ===== CSS VARIABLES FOR THEMES ===== */
+
+/* Light Theme (Default) */
+:root,
+.theme-light {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f1f5f9;
+    --bg-hover: #f8fafc;
+    
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-tertiary: #64748b;
+    --text-inverse: #ffffff;
+    
+    --border-color: #e2e8f0;
+    --border-color-light: rgba(148, 163, 184, 0.2);
+    
+    --shadow-sm: 0 2px 4px rgba(15, 23, 42, 0.05);
+    --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.05);
+    --shadow-lg: 0 6px 20px rgba(15, 23, 42, 0.06);
+    
+    --primary-color: #0ea5e9;
+    --primary-hover: #0284c7;
+    --primary-light: #eff6ff;
+    
+    --success-color: #10b981;
+    --success-bg: #ecfdf3;
+    
+    --error-color: #ef4444;
+    --error-bg: #fef2f2;
+    
+    --warning-color: #f59e0b;
+    --warning-bg: #fef3c7;
+}
+
+/* Dark Theme */
+.theme-dark {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+    --bg-hover: #1e293b;
+    
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-tertiary: #94a3b8;
+    --text-inverse: #0f172a;
+    
+    --border-color: #334155;
+    --border-color-light: rgba(148, 163, 184, 0.15);
+    
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 6px 20px rgba(0, 0, 0, 0.5);
+    
+    --primary-color: #38bdf8;
+    --primary-hover: #0ea5e9;
+    --primary-light: #1e3a5f;
+    
+    --success-color: #34d399;
+    --success-bg: #064e3b;
+    
+    --error-color: #f87171;
+    --error-bg: #7f1d1d;
+    
+    --warning-color: #fbbf24;
+    --warning-bg: #78350f;
+}
+
+/* Apply theme variables globally */
+* {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.app-root {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+}
+
+/* Update common components to use theme variables */
+.card {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color-light);
+    color: var(--text-primary);
+}
+
+.input {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
