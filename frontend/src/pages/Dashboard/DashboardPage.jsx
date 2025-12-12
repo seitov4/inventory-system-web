@@ -1,39 +1,91 @@
 import React, { useEffect, useState } from "react";
+import styled from "styled-components";
 import Layout from "../../components/Layout/Layout";
 import salesApi from "../../api/salesApi";
 import productsApi from "../../api/productsApi";
 
+// ===== STYLED COMPONENTS =====
+const LoadingText = styled.div`
+    padding: 16px;
+    color: #64748b;
+    font-size: 14px;
+`;
+
+const StatsGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+
+    @media (max-width: 1024px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+    }
+`;
+
+const StatCardWrapper = styled.div`
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 14px;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+`;
+
+const StatLabel = styled.div`
+    font-size: 13px;
+    color: #64748b;
+`;
+
+const StatValue = styled.div`
+    font-size: 22px;
+    font-weight: 800;
+    margin-top: 4px;
+    color: #0f172a;
+`;
+
+const StatHint = styled.div`
+    font-size: 11px;
+    margin-top: 4px;
+    color: #94a3b8;
+`;
+
+const InfoCard = styled.div`
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    font-size: 14px;
+    color: #475569;
+`;
+
+const InfoTitle = styled.h2`
+    margin: 0 0 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #0f172a;
+`;
+
+const InfoText = styled.p`
+    margin: 0;
+    line-height: 1.5;
+`;
+
+// ===== STAT CARD COMPONENT =====
 function StatCard({ label, value, hint }) {
     return (
-        <div
-            style={{
-                background: "#ffffff",
-                borderRadius: 16,
-                padding: 14,
-                boxShadow: "0 6px 16px rgba(15,23,42,0.04)",
-                border: "1px solid rgba(148,163,184,0.25)",
-            }}
-        >
-            <div style={{ fontSize: 13, color: "#64748b" }}>{label}</div>
-            <div
-                style={{
-                    fontSize: 22,
-                    fontWeight: 800,
-                    marginTop: 4,
-                    color: "#0f172a",
-                }}
-            >
-                {value}
-            </div>
-            {hint && (
-                <div style={{ fontSize: 11, marginTop: 4, color: "#94a3b8" }}>
-                    {hint}
-                </div>
-            )}
-        </div>
+        <StatCardWrapper>
+            <StatLabel>{label}</StatLabel>
+            <StatValue>{value}</StatValue>
+            {hint && <StatHint>{hint}</StatHint>}
+        </StatCardWrapper>
     );
 }
 
+// ===== MAIN COMPONENT =====
 export default function DashboardPage() {
     const [stats, setStats] = useState({
         dailySales: 0,
@@ -47,7 +99,6 @@ export default function DashboardPage() {
         async function load() {
             try {
                 setLoading(true);
-                // временная заглушка — потом подключишь реальные методы
                 const [products] = await Promise.all([
                     productsApi.getProductsLeft().catch(() => []),
                     salesApi.getDaily?.().catch?.(() => null) ?? null,
@@ -68,16 +119,9 @@ export default function DashboardPage() {
 
     return (
         <Layout title="Дашборд">
-            {loading && <div>Загрузка...</div>}
+            {loading && <LoadingText>Загрузка...</LoadingText>}
 
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                    gap: 14,
-                    marginBottom: 20,
-                }}
-            >
+            <StatsGrid>
                 <StatCard
                     label="Продажи за день"
                     value={`${stats.dailySales} ₸`}
@@ -98,37 +142,19 @@ export default function DashboardPage() {
                     value={stats.productsCount}
                     hint="Количество записей в номенклатуре"
                 />
-            </div>
+            </StatsGrid>
 
-            <div
-                style={{
-                    background: "#ffffff",
-                    borderRadius: 16,
-                    padding: 16,
-                    boxShadow: "0 6px 18px rgba(15,23,42,0.04)",
-                    border: "1px solid rgba(148,163,184,0.25)",
-                    fontSize: 14,
-                    color: "#475569",
-                }}
-            >
-                <h2
-                    style={{
-                        margin: "0 0 8px",
-                        fontSize: 16,
-                        fontWeight: 600,
-                        color: "#0f172a",
-                    }}
-                >
-                    О системе
-                </h2>
-                <p style={{ margin: 0, lineHeight: 1.5 }}>
+            <InfoCard>
+                <InfoTitle>О системе</InfoTitle>
+                <InfoText>
                     На дашборде отображаются ключевые показатели работы магазина:
                     выручка за день и месяц, количество товаров с низким остатком
                     и общий размер номенклатуры. Все данные формируются на основе
                     модулей <strong>Продажи</strong>, <strong>Склад</strong> и{" "}
                     <strong>Журнал движений</strong>.
-                </p>
-            </div>
+                </InfoText>
+            </InfoCard>
         </Layout>
     );
 }
+

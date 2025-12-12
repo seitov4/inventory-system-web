@@ -1,8 +1,153 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import styled from "styled-components";
 import authApi from "../../api/authApi";
-import "./register.css";
+import { usePage } from "../../context/PageContext";
 
+// ===== STYLED COMPONENTS =====
+const PageWrapper = styled.div`
+    background: #f7f8ff;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px 16px;
+`;
+
+const Card = styled.div`
+    width: 100%;
+    max-width: 640px;
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 28px 28px 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+
+    @media (max-width: 640px) {
+        padding: 22px 18px 18px;
+    }
+`;
+
+const Title = styled.h1`
+    margin: 0 0 8px;
+    font-size: 26px;
+    font-weight: 800;
+    color: #0f172a;
+`;
+
+const Subtitle = styled.p`
+    margin: 0 0 20px;
+    font-size: 14px;
+    color: #64748b;
+`;
+
+const Form = styled.form`
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+`;
+
+const Label = styled.label`
+    display: flex;
+    flex-direction: column;
+    font-size: 13px;
+    color: #475569;
+    gap: 4px;
+`;
+
+const Input = styled.input`
+    border-radius: 10px;
+    border: 1px solid #d4d4dd;
+    padding: 10px 12px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:focus {
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.18);
+    }
+`;
+
+const Select = styled.select`
+    border-radius: 10px;
+    border: 1px solid #d4d4dd;
+    padding: 10px 12px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    cursor: pointer;
+
+    &:focus {
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.18);
+    }
+`;
+
+const FormRow = styled.div`
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+
+    @media (max-width: 640px) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+`;
+
+const SubmitButton = styled.button`
+    margin-top: 8px;
+    width: 100%;
+    border: none;
+    border-radius: 999px;
+    padding: 11px 16px;
+    font-size: 15px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #4f46e5, #6366f1);
+    color: #ffffff;
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
+
+    &:disabled {
+        opacity: 0.7;
+        cursor: default;
+        box-shadow: none;
+    }
+
+    &:not(:disabled):hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 22px rgba(79, 70, 229, 0.3);
+    }
+`;
+
+const ErrorMessage = styled.div`
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #b91c1c;
+    font-size: 13px;
+`;
+
+const FooterLinks = styled.div`
+    margin-top: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    font-size: 13px;
+`;
+
+const FooterLink = styled.button`
+    color: ${props => props.$muted ? '#6b7280' : '#4f46e5'};
+    text-decoration: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+
+    &:hover {
+        text-decoration: underline;
+    }
+`;
+
+// ===== INITIAL STATE =====
 const initialState = {
     storeName: "",
     firstName: "",
@@ -13,11 +158,12 @@ const initialState = {
     passwordConfirm: "",
 };
 
+// ===== COMPONENT =====
 const RegisterPage = () => {
     const [form, setForm] = useState(initialState);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    const navigate = useNavigate();
+    const { setActivePage } = usePage();
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -64,7 +210,7 @@ const RegisterPage = () => {
             const token = data.token;
             if (token) {
                 localStorage.setItem("token", token);
-                navigate("/dashboard");
+                setActivePage("dashboard");
             } else {
                 setError("Не удалось получить токен после регистрации");
             }
@@ -79,123 +225,113 @@ const RegisterPage = () => {
     };
 
     return (
-        <div className="register-page">
-            <div className="register-card">
-                <h1 className="register-title">Регистрация магазина</h1>
-                <p className="register-subtitle">
+        <PageWrapper>
+            <Card>
+                <Title>Регистрация магазина</Title>
+                <Subtitle>
                     Создайте магазин и первого администратора в один шаг.
-                </p>
+                </Subtitle>
 
-                {error && <div className="register-error">{error}</div>}
+                {error && <ErrorMessage>{error}</ErrorMessage>}
 
-                <form className="register-form" onSubmit={handleSubmit}>
-                    <label className="register-label">
+                <Form onSubmit={handleSubmit}>
+                    <Label>
                         Название магазина
-                        <input
+                        <Input
                             type="text"
                             name="storeName"
-                            className="register-input"
                             value={form.storeName}
                             onChange={handleChange}
                             placeholder="Например, Магазин у дома"
                         />
-                    </label>
+                    </Label>
 
-                    <div className="register-row">
-                        <label className="register-label">
+                    <FormRow>
+                        <Label>
                             Имя администратора
-                            <input
+                            <Input
                                 type="text"
                                 name="firstName"
-                                className="register-input"
                                 value={form.firstName}
                                 onChange={handleChange}
                                 placeholder="Имя"
                             />
-                        </label>
-                        <label className="register-label">
+                        </Label>
+                        <Label>
                             Фамилия администратора
-                            <input
+                            <Input
                                 type="text"
                                 name="lastName"
-                                className="register-input"
                                 value={form.lastName}
                                 onChange={handleChange}
                                 placeholder="Фамилия"
                             />
-                        </label>
-                    </div>
+                        </Label>
+                    </FormRow>
 
-                    <label className="register-label">
+                    <Label>
                         Телефон или Email
-                        <input
+                        <Input
                             type="text"
                             name="contact"
-                            className="register-input"
                             value={form.contact}
                             onChange={handleChange}
                             placeholder="+7... или you@example.com"
                         />
-                    </label>
+                    </Label>
 
-                    <label className="register-label">
+                    <Label>
                         Роль владельца
-                        <select
+                        <Select
                             name="role"
-                            className="register-input"
                             value={form.role}
                             onChange={handleChange}
                         >
                             <option value="owner">Владелец (owner)</option>
                             <option value="admin">Администратор (admin)</option>
-                        </select>
-                    </label>
+                        </Select>
+                    </Label>
 
-                    <div className="register-row">
-                        <label className="register-label">
+                    <FormRow>
+                        <Label>
                             Пароль
-                            <input
+                            <Input
                                 type="password"
                                 name="password"
-                                className="register-input"
                                 value={form.password}
                                 onChange={handleChange}
                                 placeholder="Придумайте пароль"
                             />
-                        </label>
-                        <label className="register-label">
+                        </Label>
+                        <Label>
                             Подтверждение пароля
-                            <input
+                            <Input
                                 type="password"
                                 name="passwordConfirm"
-                                className="register-input"
                                 value={form.passwordConfirm}
                                 onChange={handleChange}
                                 placeholder="Повторите пароль"
                             />
-                        </label>
-                    </div>
+                        </Label>
+                    </FormRow>
 
-                    <button
-                        type="submit"
-                        className="register-btn-main"
-                        disabled={loading}
-                    >
+                    <SubmitButton type="submit" disabled={loading}>
                         {loading ? "Создание..." : "Зарегистрировать магазин"}
-                    </button>
-                </form>
+                    </SubmitButton>
+                </Form>
 
-                <div className="register-footer-links">
-                    <Link to="/login" className="register-link">
+                <FooterLinks>
+                    <FooterLink onClick={() => setActivePage("login")}>
                         Уже есть аккаунт? Войти
-                    </Link>
-                    <Link to="/" className="register-link muted">
+                    </FooterLink>
+                    <FooterLink $muted onClick={() => setActivePage("landing")}>
                         ← На главную
-                    </Link>
-                </div>
-            </div>
-        </div>
+                    </FooterLink>
+                </FooterLinks>
+            </Card>
+        </PageWrapper>
     );
 };
 
 export default RegisterPage;
+
