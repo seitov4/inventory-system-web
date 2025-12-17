@@ -206,8 +206,7 @@ const RegisterPage = () => {
                 passwordConfirm,
             });
 
-            const data = res.data || {};
-            const token = data.token;
+            const token = res?.token;
             if (token) {
                 localStorage.setItem("token", token);
                 setActivePage("dashboard");
@@ -217,7 +216,10 @@ const RegisterPage = () => {
         } catch (e) {
             console.error(e);
             const msg =
-                e?.response?.data?.message || "Ошибка при регистрации магазина";
+                e?.response?.data?.error ||
+                e?.response?.data?.message ||
+                e?.message ||
+                "Ошибка при регистрации магазина";
             setError(msg);
         } finally {
             setLoading(false);

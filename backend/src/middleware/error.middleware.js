@@ -4,8 +4,15 @@ export function errorHandler(err, req, res, next) {
     if (res.headersSent) {
         return next(err);
     }
-    res.status(500).json({
-        message: "Внутренняя ошибка сервера",
-        error: process.env.NODE_ENV === "development" ? String(err) : undefined
+
+    // Use unified error format
+    const status = err.status || err.statusCode || 500;
+    const message =
+        err.message || "Внутренняя ошибка сервера";
+
+    res.status(status).json({
+        success: false,
+        data: null,
+        error: message,
     });
 }

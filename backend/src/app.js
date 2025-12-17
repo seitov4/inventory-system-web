@@ -4,11 +4,14 @@ import morgan from "morgan";
 import "dotenv/config";
 
 import { errorHandler } from "./middleware/error.middleware.js";
+import { success, error } from "./utils/response.js";
 import productsRouter from "./routes/products.routs.js";
 import salesRouter from "./routes/sales.routes.js";
 import usersRouter from "./routes/users.routes.js";
 import authRouter from "./routes/auth.routes.js";
 import movementsRouter from "./routes/movements.routes.js";
+import notificationsRouter from "./routes/notifications.routes.js";
+import { setupFrontend } from "./routes/frontend.js";
 
 const app = express();
 
@@ -48,7 +51,7 @@ app.use((req, res, next) => {
 
 // health-check
 app.get("/api/health", (req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
+    return success(res, { status: "ok", timestamp: new Date().toISOString() });
 });
 
 // API routes
@@ -57,16 +60,16 @@ app.use("/api/users", usersRouter);
 app.use("/api/products", productsRouter);
 app.use("/api/sales", salesRouter);
 app.use("/api/movements", movementsRouter);
+app.use("/api/notifications", notificationsRouter);
 
 // 404 handler for unknown API routes
 app.use("/api/*", (req, res) => {
     console.log(`[404] Route not found: ${req.method} ${req.originalUrl}`);
-    res.status(404).json({ 
-        message: "API endpoint not found",
-        path: req.originalUrl,
-        method: req.method
-    });
+    return error(res, "API endpoint not found", 404);
 });
+
+// Frontend serving (must be after all API routes to avoid intercepting /api/*)
+setupFrontend(app);
 
 // Error handler
 app.use(errorHandler);

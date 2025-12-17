@@ -6,29 +6,35 @@ import productsApi from "../../api/productsApi";
 // ===== STYLED COMPONENTS =====
 const FormSection = styled.section`
     margin-bottom: 20px;
-    background: #fff;
+    background: var(--bg-secondary);
     border-radius: 16px;
     padding: 16px;
-    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
-    border: 1px solid rgba(148, 163, 184, 0.25);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
 `;
 
 const FormTitle = styled.h2`
     margin: 0 0 12px;
     font-size: 16px;
     font-weight: 600;
-    color: #0f172a;
+    color: var(--text-primary);
 `;
 
 const ErrorText = styled.div`
-    color: #b91c1c;
+    color: var(--error-color);
     margin-bottom: 8px;
+    padding: 12px;
+    background: var(--error-bg);
+    border-radius: 8px;
     font-size: 14px;
 `;
 
 const SuccessText = styled.div`
-    color: #15803d;
+    color: var(--success-color);
     margin-bottom: 8px;
+    padding: 12px;
+    background: var(--success-bg);
+    border-radius: 8px;
     font-size: 13px;
 `;
 
@@ -57,21 +63,32 @@ const FormLabel = styled.label`
     display: block;
     font-size: 13px;
     margin-bottom: 4px;
-    color: #475569;
+    color: var(--text-secondary);
 `;
 
 const FormInput = styled.input`
     width: 100%;
     padding: 8px 10px;
-    border-radius: 10px;
-    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
     font-size: 14px;
     box-sizing: border-box;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+
+    &::placeholder {
+        color: var(--text-tertiary);
+    }
 
     &:focus {
         outline: none;
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.1);
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    &:disabled {
+        background: var(--bg-tertiary);
+        cursor: not-allowed;
     }
 `;
 
@@ -83,17 +100,17 @@ const ButtonGroup = styled.div`
 
 const BtnPrimary = styled.button`
     padding: 9px 16px;
-    border-radius: 999px;
+    border-radius: 8px;
     border: none;
-    background: #0ea5e9;
-    color: #0f172a;
+    background: var(--primary-color);
+    color: white;
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
-    transition: 0.2s ease;
+    transition: background-color 0.2s;
 
     &:hover:not(:disabled) {
-        background: #0284c7;
+        background: var(--primary-hover);
     }
 
     &:disabled {
@@ -104,16 +121,17 @@ const BtnPrimary = styled.button`
 
 const BtnSecondary = styled.button`
     padding: 9px 14px;
-    border-radius: 999px;
-    border: 1px solid #cbd5e1;
-    background: #fff;
-    color: #475569;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
     font-size: 13px;
     cursor: pointer;
-    transition: 0.2s ease;
+    transition: background-color 0.2s, border-color 0.2s;
 
     &:hover {
-        background: #f8fafc;
+        background: var(--bg-tertiary);
+        border-color: var(--text-tertiary);
     }
 `;
 
@@ -139,19 +157,26 @@ const SectionTitle = styled.h2`
     margin: 0;
     font-size: 16px;
     font-weight: 600;
-    color: #0f172a;
+    color: var(--text-primary);
 `;
 
 const SearchInput = styled.input`
     width: 260px;
     padding: 8px 10px;
-    border-radius: 999px;
-    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
     font-size: 13px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+
+    &::placeholder {
+        color: var(--text-tertiary);
+    }
 
     &:focus {
         outline: none;
-        border-color: #0ea5e9;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
 
     @media (max-width: 640px) {
@@ -162,14 +187,22 @@ const SearchInput = styled.input`
 const TableContainer = styled.div`
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
-    background: #fff;
+    box-shadow: var(--shadow-md);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
 `;
 
 const Table = styled.table`
     width: 100%;
     border-collapse: collapse;
     font-size: 14px;
+
+    tbody tr {
+        transition: background-color 0.2s;
+        &:hover {
+            background: var(--bg-tertiary);
+        }
+    }
 
     @media (max-width: 640px) {
         font-size: 12px;
@@ -179,15 +212,15 @@ const Table = styled.table`
 `;
 
 const TableHead = styled.thead`
-    background: #f8fafc;
+    background: var(--bg-tertiary);
 `;
 
 const Th = styled.th`
     text-align: left;
     padding: 10px 12px;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border-color);
     font-weight: 600;
-    color: #475569;
+    color: var(--text-primary);
 
     @media (max-width: 640px) {
         padding: 8px 10px;
@@ -197,8 +230,8 @@ const Th = styled.th`
 
 const Td = styled.td`
     padding: 8px 12px;
-    border-bottom: 1px solid #e2e8f0;
-    color: #0f172a;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
     font-size: 14px;
 
     @media (max-width: 640px) {
@@ -214,21 +247,22 @@ const TdActions = styled(Td)`
 const LinkButton = styled.button`
     border: none;
     background: none;
-    color: ${props => props.$danger ? '#b91c1c' : '#0ea5e9'};
+    color: ${props => props.$danger ? 'var(--error-color)' : 'var(--primary-color)'};
     cursor: pointer;
     font-size: 13px;
     padding: 0;
     margin-right: 10px;
+    transition: opacity 0.2s;
 
     &:hover {
-        color: ${props => props.$danger ? '#991b1b' : '#0284c7'};
+        opacity: 0.8;
     }
 `;
 
 const EmptyState = styled.div`
     padding: 16px;
     text-align: center;
-    color: #64748b;
+    color: var(--text-tertiary);
     font-size: 14px;
 `;
 
@@ -492,7 +526,7 @@ export default function ProductsPage() {
                         </TableHead>
                         <tbody>
                             {filteredProducts.map((p) => (
-                                <tr key={p.id}>
+                                <tr key={p.id} style={{ transition: 'background-color 0.2s' }}>
                                     <Td>{p.name}</Td>
                                     <Td>{p.sku}</Td>
                                     <Td>{p.barcode}</Td>

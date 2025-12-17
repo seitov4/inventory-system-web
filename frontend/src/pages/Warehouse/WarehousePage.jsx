@@ -6,27 +6,38 @@ import productsApi from "../../api/productsApi";
 // ===== STYLED COMPONENTS =====
 const LoadingText = styled.div`
     padding: 16px;
-    color: #64748b;
+    color: var(--text-tertiary);
     font-size: 14px;
 `;
 
 const ErrorText = styled.div`
-    color: #b91c1c;
+    color: var(--error-color);
     margin-bottom: 12px;
+    padding: 12px;
+    background: var(--error-bg);
+    border-radius: 8px;
     font-size: 14px;
 `;
 
 const TableContainer = styled.div`
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
-    background: #fff;
+    box-shadow: var(--shadow-md);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
 `;
 
 const Table = styled.table`
     width: 100%;
     border-collapse: collapse;
     font-size: 14px;
+
+    tbody tr {
+        transition: background-color 0.2s;
+        &:hover {
+            background: var(--bg-tertiary);
+        }
+    }
 
     @media (max-width: 640px) {
         font-size: 12px;
@@ -36,15 +47,15 @@ const Table = styled.table`
 `;
 
 const TableHead = styled.thead`
-    background: #f8fafc;
+    background: var(--bg-tertiary);
 `;
 
 const Th = styled.th`
     text-align: left;
     padding: 10px 12px;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border-color);
     font-weight: 600;
-    color: #475569;
+    color: var(--text-primary);
 
     @media (max-width: 640px) {
         padding: 8px 10px;
@@ -54,8 +65,8 @@ const Th = styled.th`
 
 const Td = styled.td`
     padding: 8px 12px;
-    border-bottom: 1px solid #e2e8f0;
-    color: #0f172a;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
     font-size: 14px;
 
     @media (max-width: 640px) {
@@ -67,7 +78,7 @@ const Td = styled.td`
 const EmptyState = styled.div`
     padding: 18px;
     text-align: center;
-    color: #64748b;
+    color: var(--text-tertiary);
 `;
 
 // ===== MAIN COMPONENT =====
@@ -94,7 +105,7 @@ export default function WarehousePage() {
     }, []);
 
     return (
-        <Layout title="Склад и остатки по магазинам">
+        <Layout title="Склад (Stock)">
             {loading && <LoadingText>Загрузка...</LoadingText>}
             {error && <ErrorText>{error}</ErrorText>}
 
@@ -107,17 +118,37 @@ export default function WarehousePage() {
                                 <Th>Товар</Th>
                                 <Th>SKU</Th>
                                 <Th>Остаток</Th>
+                                <Th>Мин. остаток</Th>
+                                <Th>Статус</Th>
                             </tr>
                         </TableHead>
                         <tbody>
-                            {rows.map((r, i) => (
-                                <tr key={i}>
-                                    <Td>{r.warehouse_name || r.store_name || "—"}</Td>
-                                    <Td>{r.name}</Td>
-                                    <Td>{r.sku}</Td>
-                                    <Td>{r.quantity ?? r.qty ?? 0}</Td>
-                                </tr>
-                            ))}
+                            {rows.map((r, i) => {
+                                const quantity = r.quantity ?? r.qty ?? 0;
+                                const minStock = r.min_stock ?? 0;
+                                const isLow = quantity <= minStock && minStock > 0;
+                                return (
+                                    <tr key={i}>
+                                        <Td>{r.warehouse_name || r.store_name || "—"}</Td>
+                                        <Td>{r.name}</Td>
+                                        <Td>{r.sku}</Td>
+                                        <Td>{quantity}</Td>
+                                        <Td>{minStock}</Td>
+                                        <Td>
+                                            <span style={{
+                                                padding: '4px 8px',
+                                                borderRadius: '4px',
+                                                fontSize: '12px',
+                                                fontWeight: '600',
+                                                background: isLow ? 'var(--error-bg)' : 'var(--success-bg)',
+                                                color: isLow ? 'var(--error-color)' : 'var(--success-color)',
+                                            }}>
+                                                {isLow ? 'LOW' : 'OK'}
+                                            </span>
+                                        </Td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </Table>
 

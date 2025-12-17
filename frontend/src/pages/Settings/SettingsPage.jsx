@@ -549,7 +549,7 @@ export default function SettingsPage() {
     const loadCurrentUser = async () => {
         try {
             const res = await authApi.me();
-            setCurrentUser(res.data.user);
+            setCurrentUser(res?.user || null);
         } catch (e) {
             console.error(e);
         } finally {
@@ -777,7 +777,7 @@ function EmployeesTab() {
         try {
             setLoading(true);
             const res = await usersApi.getAll();
-            setEmployees(res.data || []);
+            setEmployees(Array.isArray(res) ? res : []);
         } catch (e) {
             console.error(e);
             setError("Не удалось загрузить список сотрудников");
@@ -793,7 +793,7 @@ function EmployeesTab() {
             await loadEmployees();
         } catch (e) {
             console.error(e);
-            const msg = e?.response?.data?.message || "Не удалось удалить сотрудника";
+            const msg = e?.response?.data?.error || e?.response?.data?.message || e?.message || "Не удалось удалить сотрудника";
             alert(msg);
         }
     };
@@ -947,7 +947,7 @@ function AddEmployeeForm({ onSuccess }) {
         } catch (e) {
             console.error(e);
             const msg =
-                e?.response?.data?.message || "Ошибка при добавлении сотрудника";
+                e?.response?.data?.error || e?.response?.data?.message || e?.message || "Ошибка при добавлении сотрудника";
             setError(msg);
         } finally {
             setSaving(false);
@@ -1119,7 +1119,7 @@ function EmployeeEditModal({ employee, onClose, onSuccess }) {
             }, 1000);
         } catch (e) {
             console.error(e);
-            const msg = e?.response?.data?.message || "Ошибка при обновлении сотрудника";
+            const msg = e?.response?.data?.error || e?.response?.data?.message || e?.message || "Ошибка при обновлении сотрудника";
             setError(msg);
         } finally {
             setSaving(false);

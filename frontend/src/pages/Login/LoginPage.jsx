@@ -178,8 +178,7 @@ const LoginPage = () => {
         try {
             setLoading(true);
             const res = await authApi.login(loginValue, pass);
-            const data = res.data || {};
-            const token = data.token || data.accessToken;
+            const token = res?.token || res?.accessToken;
             if (!token) {
                 throw new Error("Токен не получен от сервера");
             }
@@ -189,7 +188,9 @@ const LoginPage = () => {
         } catch (e) {
             console.error(e);
             const msg =
+                e?.response?.data?.error ||
                 e?.response?.data?.message ||
+                e?.message ||
                 "Не удалось войти. Проверьте логин и пароль.";
             setError(msg);
         } finally {

@@ -7,7 +7,7 @@ import productsApi from "../../api/productsApi";
 // ===== STYLED COMPONENTS =====
 const LoadingText = styled.div`
     padding: 16px;
-    color: #64748b;
+    color: var(--text-tertiary);
     font-size: 14px;
 `;
 
@@ -27,46 +27,46 @@ const StatsGrid = styled.div`
 `;
 
 const StatCardWrapper = styled.div`
-    background: #ffffff;
+    background: var(--bg-secondary);
     border-radius: 16px;
     padding: 14px;
-    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
-    border: 1px solid rgba(148, 163, 184, 0.25);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
 `;
 
 const StatLabel = styled.div`
     font-size: 13px;
-    color: #64748b;
+    color: var(--text-tertiary);
 `;
 
 const StatValue = styled.div`
     font-size: 22px;
     font-weight: 800;
     margin-top: 4px;
-    color: #0f172a;
+    color: var(--text-primary);
 `;
 
 const StatHint = styled.div`
     font-size: 11px;
     margin-top: 4px;
-    color: #94a3b8;
+    color: var(--text-secondary);
 `;
 
 const InfoCard = styled.div`
-    background: #ffffff;
+    background: var(--bg-secondary);
     border-radius: 16px;
     padding: 16px;
-    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
-    border: 1px solid rgba(148, 163, 184, 0.25);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
     font-size: 14px;
-    color: #475569;
+    color: var(--text-secondary);
 `;
 
 const InfoTitle = styled.h2`
     margin: 0 0 8px;
     font-size: 16px;
     font-weight: 600;
-    color: #0f172a;
+    color: var(--text-primary);
 `;
 
 const InfoText = styled.p`
@@ -99,15 +99,27 @@ export default function DashboardPage() {
         async function load() {
             try {
                 setLoading(true);
-                const [products] = await Promise.all([
+                const [products, dailySales, monthlySales] = await Promise.all([
                     productsApi.getProductsLeft().catch(() => []),
                     salesApi.getDaily?.().catch?.(() => null) ?? null,
+                    salesApi.getMonthly?.().catch?.(() => null) ?? null,
                 ]);
 
-                setStats((prev) => ({
-                    ...prev,
-                    productsCount: Array.isArray(products) ? products.length : 0,
-                }));
+                const productsArray = Array.isArray(products) ? products : [];
+                const minStock = productsArray.filter(p => {
+                    const qty = p.quantity ?? p.qty ?? 0;
+                    const min = p.min_stock ?? 0;
+                    return qty <= min && min > 0;
+                });
+
+                setStats({
+                    dailySales: dailySales?.totalRevenue || 0,
+                    monthlySales: Array.isArray(monthlySales) 
+                        ? monthlySales.reduce((sum, item) => sum + (item.total || 0), 0)
+                        : 0,
+                    lowStockCount: minStock.length,
+                    productsCount: productsArray.length,
+                });
             } catch (e) {
                 console.error(e);
             } finally {

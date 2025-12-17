@@ -14,10 +14,13 @@ import LoginPage from "./pages/Login/LoginPage";
 import RegisterPage from "./pages/Register/RegisterPage";
 import DashboardPage from "./pages/Dashboard/DashboardPage";
 import ProductsPage from "./pages/Products/ProductsPage";
+import StockInPage from "./pages/StockIn/StockInPage";
 import SalesPage from "./pages/Sales/SalesPage";
 import WarehousePage from "./pages/Warehouse/WarehousePage";
 import SettingsPage from "./pages/Settings/SettingsPage";
 import AddEmployeePage from "./pages/AddEmployee/AddEmployeePage";
+import POSPage from "./pages/POS/POSPage";
+import NotificationsPage from "./pages/Notifications/NotificationsPage";
 
 // ---------------- GLOBAL STYLES ----------------
 const GlobalStyle = createGlobalStyle`
@@ -35,71 +38,90 @@ const GlobalStyle = createGlobalStyle`
         color: var(--text-primary);
     }
 
-    /* Light Theme (Default) */
-    :root,
-    .theme-light {
-        --bg-primary: #f8fafc;
-        --bg-secondary: #ffffff;
-        --bg-tertiary: #f1f5f9;
-        --bg-hover: #f8fafc;
+    /* Light Theme */
+    :root[data-theme="light"],
+    body[data-theme="light"] {
+        /* Backgrounds */
+        --bg-primary: #F9FAFB;
+        --bg-secondary: #FFFFFF;
+        --bg-tertiary: #F3F4F6;
+        --bg-hover: #F9FAFB;
         
-        --text-primary: #0f172a;
-        --text-secondary: #475569;
-        --text-tertiary: #64748b;
-        --text-inverse: #ffffff;
+        /* Text */
+        --text-primary: #111827;
+        --text-secondary: #4B5563;
+        --text-tertiary: #6B7280;
+        --text-inverse: #FFFFFF;
         
-        --border-color: #e2e8f0;
-        --border-color-light: rgba(148, 163, 184, 0.2);
+        /* Borders */
+        --border-color: #E5E7EB;
+        --border-color-light: rgba(107, 114, 128, 0.2);
         
-        --shadow-sm: 0 2px 4px rgba(15, 23, 42, 0.05);
-        --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.05);
-        --shadow-lg: 0 6px 20px rgba(15, 23, 42, 0.06);
+        /* Shadows */
+        --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+        --shadow-lg: 0 6px 20px rgba(0, 0, 0, 0.1);
         
-        --primary-color: #0ea5e9;
-        --primary-hover: #0284c7;
-        --primary-light: #eff6ff;
+        /* Primary */
+        --primary-color: #3B82F6;
+        --primary-hover: #2563EB;
+        --primary-light: #DBEAFE;
         
-        --success-color: #10b981;
-        --success-bg: #ecfdf3;
+        /* Success */
+        --success-color: #10B981;
+        --success-bg: rgba(16, 185, 129, 0.1);
         
-        --error-color: #ef4444;
-        --error-bg: #fef2f2;
+        /* Error */
+        --error-color: #EF4444;
+        --error-bg: rgba(239, 68, 68, 0.1);
         
-        --warning-color: #f59e0b;
-        --warning-bg: #fef3c7;
+        /* Warning */
+        --warning-color: #F59E0B;
+        --warning-bg: rgba(245, 158, 11, 0.1);
     }
 
-    /* Dark Theme */
-    .theme-dark {
-        --bg-primary: #0f172a;
-        --bg-secondary: #1e293b;
-        --bg-tertiary: #334155;
-        --bg-hover: #1e293b;
+    /* Dark Theme (Default) */
+    :root[data-theme="dark"],
+    body[data-theme="dark"],
+    :root:not([data-theme]),
+    body:not([data-theme]) {
+        /* Backgrounds */
+        --bg-primary: #0B1220;
+        --bg-secondary: #111827;
+        --bg-tertiary: #1F2937;
+        --bg-hover: #1F2937;
         
-        --text-primary: #f1f5f9;
-        --text-secondary: #cbd5e1;
-        --text-tertiary: #94a3b8;
-        --text-inverse: #0f172a;
+        /* Text */
+        --text-primary: #E5E7EB;
+        --text-secondary: #9CA3AF;
+        --text-tertiary: #6B7280;
+        --text-inverse: #0B1220;
         
-        --border-color: #334155;
-        --border-color-light: rgba(148, 163, 184, 0.15);
+        /* Borders */
+        --border-color: #374151;
+        --border-color-light: rgba(156, 163, 175, 0.2);
         
-        --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
-        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-        --shadow-lg: 0 6px 20px rgba(0, 0, 0, 0.5);
+        /* Shadows */
+        --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.5);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
+        --shadow-lg: 0 6px 20px rgba(0, 0, 0, 0.7);
         
-        --primary-color: #38bdf8;
-        --primary-hover: #0ea5e9;
-        --primary-light: #1e3a5f;
+        /* Primary */
+        --primary-color: #3B82F6;
+        --primary-hover: #2563EB;
+        --primary-light: #1E3A8A;
         
-        --success-color: #34d399;
-        --success-bg: #064e3b;
+        /* Success */
+        --success-color: #10B981;
+        --success-bg: rgba(16, 185, 129, 0.1);
         
-        --error-color: #f87171;
-        --error-bg: #7f1d1d;
+        /* Error */
+        --error-color: #EF4444;
+        --error-bg: rgba(239, 68, 68, 0.1);
         
-        --warning-color: #fbbf24;
-        --warning-bg: #78350f;
+        /* Warning */
+        --warning-color: #F59E0B;
+        --warning-bg: rgba(245, 158, 11, 0.1);
     }
 
     code {
@@ -154,6 +176,8 @@ function PageRenderer() {
             return <DashboardPage />;
         case "products":
             return <ProductsPage />;
+        case "stockIn":
+            return <StockInPage />;
         case "sales":
             return <SalesPage />;
         case "warehouse":
@@ -162,6 +186,10 @@ function PageRenderer() {
             return <AddEmployeePage />;
         case "settings":
             return <SettingsPage />;
+        case "pos":
+            return <POSPage />;
+        case "notifications":
+            return <NotificationsPage />;
         default:
             return <LandingPage />;
     }

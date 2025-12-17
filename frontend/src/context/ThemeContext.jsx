@@ -10,51 +10,68 @@ export const useTheme = () => {
     return context;
 };
 
+// Helper function to get system theme
+const getSystemTheme = () => {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+};
+
+// Helper function to resolve theme (system -> actual theme)
+const resolveTheme = (theme) => {
+    return theme === 'system' ? getSystemTheme() : theme;
+};
+
 export const ThemeProvider = ({ children }) => {
+    // Initialize theme from localStorage or default to 'dark'
     const [theme, setTheme] = useState(() => {
         const saved = localStorage.getItem('theme');
-        if (saved) return saved;
-
-        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            return 'dark';
-        }
-        return 'light';
+        return saved || 'dark';
     });
 
-    const [systemTheme, setSystemTheme] = useState(() =>
-        window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-    );
+    const [systemTheme, setSystemTheme] = useState(() => getSystemTheme());
 
-    useEffect(() => {
-        localStorage.setItem('theme', theme);
-    }, [theme]);
-
+    // Apply theme to document
     useEffect(() => {
         const root = document.documentElement;
         const body = document.body;
+        const resolvedTheme = resolveTheme(theme);
 
+        // Set data-theme attribute (source of truth)
+        root.setAttribute('data-theme', resolvedTheme);
+        body.setAttribute('data-theme', resolvedTheme);
+
+        // Remove old classes (if any)
         root.classList.remove('theme-light', 'theme-dark', 'theme-system');
         body.classList.remove('theme-light', 'theme-dark', 'theme-system');
+    }, [theme]);
 
-        const effectiveTheme = theme === 'system' ? systemTheme : theme;
-
-        root.classList.add(`theme-${effectiveTheme}`);
-        body.classList.add(`theme-${effectiveTheme}`);
-        root.setAttribute('data-theme', effectiveTheme);
-    }, [theme, systemTheme]);
-
+    // Listen to system theme changes
     useEffect(() => {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
         const handleChange = (event) => {
             setSystemTheme(event.matches ? 'dark' : 'light');
+            // If current theme is 'system', re-apply
+            if (theme === 'system') {
+                const root = document.documentElement;
+                const body = document.body;
+                const resolvedTheme = event.matches ? 'dark' : 'light';
+                root.setAttribute('data-theme', resolvedTheme);
+                body.setAttribute('data-theme', resolvedTheme);
+            }
         };
 
         mediaQuery.addEventListener('change', handleChange);
         return () => mediaQuery.removeEventListener('change', handleChange);
-    }, []);
+    }, [theme]);
 
-    const changeTheme = (newTheme) => setTheme(newTheme);
+    // Save theme to localStorage when it changes
+    useEffect(() => {
+        localStorage.setItem('theme', theme);
+    }, [theme]);
+
+    const changeTheme = (newTheme) => {
+        setTheme(newTheme);
+    };
 
     const value = {
         theme,

@@ -1,114 +1,119 @@
-// backend/src/services/sales.service.js
 import pool from "../utils/db.js";
+import { applyMovement } from "./movements.service.js";
 
+/**
+ * Create sale - atomic transaction
+ */
 export async function createSale({
-                                     cashier_id,
-                                     store_id,
-                                     warehouse_id,
-                                     items,
-                                     discount = 0,
-                                     payment_type = "cash",
-                                 }) {
+    cashier_id,
+    store_id,
+    warehouse_id,
+    items,
+    discount = 0,
+    payment_type = "CASH",
+}) {
+    // Validation
     if (!items || !Array.isArray(items) || items.length === 0) {
         throw new Error("Список позиций продажи пуст");
     }
+
+    for (const item of items) {
+        if (!item.product_id) {
+            throw new Error("product_id обязателен для каждой позиции");
+        }
+        const qty = item.qty || item.quantity;
+        if (!qty || qty <= 0) {
+            throw new Error("qty должен быть положительным числом");
+        }
+        if (!item.price || item.price < 0) {
+            throw new Error("price обязателен и должен быть неотрицательным");
+        }
+    }
+
+    if (!warehouse_id && !store_id) {
+        throw new Error("warehouse_id или store_id обязателен");
+    }
+
+    // Use warehouse_id if provided, otherwise use store_id
+    const effectiveWarehouseId = warehouse_id || store_id;
 
     const client = await pool.connect();
     try {
         await client.query("BEGIN");
 
-        // проверка остатков
+        // Check stock availability for all items (validation before creating sale)
         for (const item of items) {
-            const { product_id, quantity } = item;
+            const { product_id } = item;
+            const qty = item.qty || item.quantity;
+
             const stockRes = await client.query(
                 `SELECT quantity
                  FROM stock
                  WHERE product_id = $1 AND warehouse_id = $2
                  FOR UPDATE`,
-                [product_id, warehouse_id]
+                [product_id, effectiveWarehouseId]
             );
+
             const currentQty = stockRes.rows[0]?.quantity || 0;
-            if (currentQty < quantity) {
+            if (currentQty < qty) {
                 throw new Error(
-                    `Недостаточно товара (product_id=${product_id}) на складе`
+                    `Недостаточно товара (product_id=${product_id}) на складе. Доступно: ${currentQty}, требуется: ${qty}`
                 );
             }
         }
 
+        // Calculate total
         let totalWithoutGlobalDiscount = 0;
         for (const item of items) {
+            const qty = item.qty || item.quantity;
             const linePrice = Number(item.price) || 0;
             const lineDiscount = Number(item.discount || 0);
-            totalWithoutGlobalDiscount +=
-                (linePrice - lineDiscount) * Number(item.quantity);
+            totalWithoutGlobalDiscount += (linePrice - lineDiscount) * qty;
         }
-        const total = totalWithoutGlobalDiscount - Number(discount || 0);
+        const total = Math.max(0, totalWithoutGlobalDiscount - Number(discount || 0));
 
+        // Create sale record
         const saleRes = await client.query(
             `INSERT INTO sales
                  (cashier_id, store_id, total, discount, payment_type, status)
              VALUES ($1, $2, $3, $4, $5, 'COMPLETED')
              RETURNING id, cashier_id, store_id, total, discount, payment_type, status, created_at`,
-            [cashier_id, store_id, total, discount, payment_type]
+            [cashier_id, store_id || effectiveWarehouseId, total, discount, payment_type]
         );
         const sale = saleRes.rows[0];
 
+        // Create sale items and apply movements
         for (const item of items) {
-            const { product_id, quantity, price, discount: itemDiscount = 0 } =
-                item;
+            const { product_id } = item;
+            const qty = item.qty || item.quantity;
+            const price = Number(item.price) || 0;
+            const itemDiscount = Number(item.discount || 0);
 
+            // Insert sale item
             await client.query(
                 `INSERT INTO sale_items
                      (sale_id, product_id, quantity, price, discount)
                  VALUES ($1, $2, $3, $4, $5)`,
-                [sale.id, product_id, quantity, price, itemDiscount]
+                [sale.id, product_id, qty, price, itemDiscount]
             );
 
-            await client.query(
-                `UPDATE stock
-                 SET quantity = quantity - $3
-                 WHERE product_id = $1 AND warehouse_id = $2`,
-                [product_id, warehouse_id, quantity]
-            );
-
-            await client.query(
-                `INSERT INTO movements
-                     (product_id, type, warehouse_from, quantity, reason, created_by)
-                 VALUES ($1, 'SALE', $2, $3, $4, $5)`,
-                [
-                    product_id,
-                    warehouse_id,
-                    quantity,
-                    `Sale #${sale.id}`,
-                    cashier_id || null,
-                ]
-            );
-
-            // low stock → уведомление
-            await client.query(
-                `INSERT INTO notifications (type, user_id, payload)
-                 SELECT 'LOW_STOCK',
-                        u.id,
-                        jsonb_build_object(
-                            'product_id', p.id,
-                            'product_name', p.name,
-                            'quantity', s.quantity,
-                            'min_stock', p.min_stock
-                        )
-                 FROM products p
-                 JOIN stock s
-                   ON s.product_id = p.id
-                  AND s.warehouse_id = $2
-                 JOIN users u
-                   ON u.role IN ('manager','owner')
-                 WHERE p.id = $1
-                   AND s.quantity <= p.min_stock`,
-                [product_id, warehouse_id]
-            );
+            // Apply SALE movement (updates stock, creates movement, checks min_stock)
+            await applyMovement({
+                type: "SALE",
+                product_id,
+                warehouse_from: effectiveWarehouseId,
+                qty: qty,
+                reason: `Sale #${sale.id}`,
+                user_id: cashier_id || null,
+                client, // Use existing transaction
+            });
         }
 
         await client.query("COMMIT");
-        return sale;
+        return {
+            sale_id: sale.id,
+            total: sale.total,
+        };
     } catch (err) {
         await client.query("ROLLBACK");
         throw err;
@@ -117,18 +122,21 @@ export async function createSale({
     }
 }
 
+/**
+ * Get sale by ID with items
+ */
 export async function getSaleById(id) {
     const saleRes = await pool.query(
-        `SELECT id,
-                cashier_id,
-                store_id,
-                total,
-                discount,
-                payment_type,
-                status,
-                created_at
-         FROM sales
-         WHERE id = $1`,
+        `SELECT s.id,
+                s.status,
+                s.payment_type,
+                s.total,
+                s.discount,
+                s.created_at,
+                s.cashier_id,
+                s.store_id
+         FROM sales s
+         WHERE s.id = $1`,
         [id]
     );
 
@@ -136,73 +144,98 @@ export async function getSaleById(id) {
     if (!sale) return null;
 
     const itemsRes = await pool.query(
-        `SELECT si.id,
-                si.product_id,
-                p.name AS product_name,
-                si.quantity,
+        `SELECT si.product_id,
+                si.quantity AS qty,
                 si.price,
-                si.discount
+                si.discount,
+                p.name,
+                p.sku,
+                p.barcode
          FROM sale_items si
          JOIN products p ON p.id = si.product_id
-         WHERE si.sale_id = $1`,
+         WHERE si.sale_id = $1
+         ORDER BY si.id`,
         [id]
     );
 
-    sale.items = itemsRes.rows;
-    return sale;
+    return {
+        id: sale.id,
+        status: sale.status,
+        payment_type: sale.payment_type,
+        total: sale.total,
+        discount: sale.discount,
+        created_at: sale.created_at,
+        items: itemsRes.rows.map((item) => ({
+            product_id: item.product_id,
+            qty: item.qty,
+            price: item.price,
+            discount: item.discount,
+            name: item.name,
+            sku: item.sku,
+            barcode: item.barcode,
+        })),
+    };
 }
 
+/**
+ * Return sale - atomic transaction
+ */
 export async function returnSale({ sale_id, user_id, warehouse_id }) {
+    if (!warehouse_id) {
+        throw new Error("warehouse_id обязателен для возврата");
+    }
+
     const client = await pool.connect();
     try {
         await client.query("BEGIN");
 
+        // Read sale with lock
         const saleRes = await client.query(
-            `SELECT id, status
+            `SELECT id, status, store_id
              FROM sales
              WHERE id = $1
              FOR UPDATE`,
             [sale_id]
         );
+
         const sale = saleRes.rows[0];
-        if (!sale) throw new Error("Продажа не найдена");
+        if (!sale) {
+            throw new Error("Продажа не найдена");
+        }
+
         if (sale.status === "RETURNED") {
             throw new Error("Продажа уже возвращена");
         }
 
+        // Get sale items
         const itemsRes = await client.query(
-            `SELECT product_id, quantity, price, discount
+            `SELECT product_id, quantity
              FROM sale_items
              WHERE sale_id = $1`,
             [sale_id]
         );
         const items = itemsRes.rows;
 
+        if (items.length === 0) {
+            throw new Error("Продажа не содержит позиций");
+        }
+
+        // Return items: increase stock and create movements
         for (const item of items) {
             const { product_id, quantity } = item;
 
-            await client.query(
-                `INSERT INTO stock (product_id, warehouse_id, quantity)
-                 VALUES ($1, $2, $3)
-                 ON CONFLICT (product_id, warehouse_id)
-                 DO UPDATE SET quantity = stock.quantity + EXCLUDED.quantity`,
-                [product_id, warehouse_id, quantity]
-            );
-
-            await client.query(
-                `INSERT INTO movements
-                     (product_id, type, warehouse_to, quantity, reason, created_by)
-                 VALUES ($1, 'RETURN', $2, $3, $4, $5)`,
-                [
-                    product_id,
-                    warehouse_id,
-                    quantity,
-                    `Return of sale #${sale_id}`,
-                    user_id || null,
-                ]
-            );
+            await applyMovement({
+                type: "RETURN",
+                product_id,
+                warehouse_to: warehouse_id,
+                qty: quantity,
+                reason: `Return of sale #${sale_id}`,
+                user_id: user_id || null,
+                client, // Use existing transaction
+            });
         }
 
+        // Update sale status
         await client.query(
             `UPDATE sales
              SET status = 'RETURNED'
@@ -211,6 +244,10 @@ export async function returnSale({ sale_id, user_id, warehouse_id }) {
         );
 
         await client.query("COMMIT");
+        return {
+            sale_id: sale.id,
+            status: "RETURNED",
+        };
     } catch (err) {
         await client.query("ROLLBACK");
         throw err;
@@ -219,50 +256,10 @@ export async function returnSale({ sale_id, user_id, warehouse_id }) {
     }
 }
 
-export async function getDailySales() {
-    const res = await pool.query(
-        `SELECT DATE(created_at) AS date,
-                SUM(total)       AS total
-         FROM sales
-         WHERE status = 'COMPLETED'
-         GROUP BY DATE(created_at)
-         ORDER BY DATE(created_at)`
-    );
-    return res.rows;
-}
-
-export async function getWeeklySales() {
-    const res = await pool.query(
-        `SELECT date_trunc('week', created_at)::date AS week,
-                SUM(total)                        AS total
-         FROM sales
-         WHERE status = 'COMPLETED'
-         GROUP BY date_trunc('week', created_at)
-         ORDER BY week`
-    );
-    return res.rows;
-}
-
-export async function getMonthlySales() {
-    const res = await pool.query(
-        `SELECT date_trunc('month', created_at)::date AS month,
-                SUM(total)                           AS total
-         FROM sales
-         WHERE status = 'COMPLETED'
-         GROUP BY date_trunc('month', created_at)
-         ORDER BY month`
-    );
-    return res.rows;
-}
-
-export async function getSalesChart() {
-    const res = await pool.query(
-        `SELECT created_at::date AS date,
-                SUM(total)       AS total
-         FROM sales
-         WHERE status = 'COMPLETED'
-         GROUP BY created_at::date
-         ORDER BY created_at::date`
-    );
-    return res.rows;
-}
+// Re-export analytics functions from analytics service
+export {
+    getDailySales,
+    getWeeklySales,
+    getMonthlySales,
+    getSalesChart,
+} from "./sales.analytics.service.js";

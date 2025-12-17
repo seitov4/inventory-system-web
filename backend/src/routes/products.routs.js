@@ -14,9 +14,9 @@ import { authRequired, requireRole } from "../middleware/auth.middleware.js";
 const router = Router();
 
 router.get("/", authRequired, listProducts);
-router.get("/:id", authRequired, getProduct);
-router.get("/barcode/:code", authRequired, getProductByBarcodeController);
 router.get("/left", authRequired, getProductsLeftController);
+router.get("/barcode/:code", authRequired, getProductByBarcodeController);
+router.get("/:id", authRequired, getProduct);
 
 router.get(
     "/low-stock",

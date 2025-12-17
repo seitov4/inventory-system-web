@@ -11,8 +11,11 @@ export const PageProvider = ({ children }) => {
         const pagesWithSidebar = [
             "dashboard",
             "products",
+            "stockIn",
+            "pos",
             "sales",
             "warehouse",
+            "notifications",
             "addEmployee",
             "settings",
         ];

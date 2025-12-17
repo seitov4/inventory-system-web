@@ -112,3 +112,14 @@ export async function deleteUser(id) {
     );
     return result.rows[0] || null;
 }
+
+/**
+ * Check if any users exist in the database (for bootstrap registration)
+ * @returns {Promise<boolean>} True if at least one user exists
+ */
+export async function hasAnyUsers() {
+    const result = await pool.query(
+        `SELECT COUNT(*) as count FROM users`
+    );
+    return parseInt(result.rows[0].count) > 0;
+}

@@ -10,11 +10,11 @@ const PageWrapper = styled.div`
 `;
 
 const Card = styled.section`
-    background: #ffffff;
+    background: var(--bg-secondary);
     border-radius: 16px;
     padding: 32px;
-    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
-    border: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
     width: 100%;
     box-sizing: border-box;
 
@@ -35,13 +35,13 @@ const Title = styled.h2`
     margin: 0 0 8px;
     font-size: 24px;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--text-primary);
 `;
 
 const Subtitle = styled.p`
     margin: 0;
     font-size: 14px;
-    color: #64748b;
+    color: var(--text-secondary);
     line-height: 1.5;
 `;
 
@@ -49,20 +49,20 @@ const ErrorMessage = styled.div`
     margin-bottom: 16px;
     padding: 12px 16px;
     border-radius: 10px;
-    background: #fef2f2;
-    color: #b91c1c;
+    background: var(--error-bg);
+    color: var(--error-color);
     font-size: 14px;
-    border: 1px solid #fecaca;
+    border: 1px solid var(--error-color);
 `;
 
 const SuccessMessage = styled.div`
     margin-bottom: 16px;
     padding: 12px 16px;
     border-radius: 10px;
-    background: #ecfdf3;
-    color: #166534;
+    background: var(--success-bg);
+    color: var(--success-color);
     font-size: 14px;
-    border: 1px solid #bbf7d0;
+    border: 1px solid var(--success-color);
 `;
 
 const Form = styled.form`
@@ -103,33 +103,37 @@ const FormGroupAction = styled(FormGroup)`
 const FormLabel = styled.label`
     font-size: 13px;
     font-weight: 600;
-    color: #475569;
+    color: var(--text-secondary);
 `;
 
 const Required = styled.span`
-    color: #b91c1c;
+    color: var(--error-color);
 `;
 
 const FormInput = styled.input`
     width: 100%;
     min-width: 0;
     padding: 10px 14px;
-    border-radius: 10px;
-    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
     font-size: 14px;
-    color: #0f172a;
+    color: var(--text-primary);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    background: #ffffff;
+    background: var(--bg-primary);
     box-sizing: border-box;
+
+    &::placeholder {
+        color: var(--text-tertiary);
+    }
 
     &:focus {
         outline: none;
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
 
     &:disabled {
-        background: #f1f5f9;
+        background: var(--bg-tertiary);
         cursor: not-allowed;
     }
 
@@ -142,19 +146,19 @@ const FormSelect = styled.select`
     width: 100%;
     min-width: 0;
     padding: 10px 14px;
-    border-radius: 10px;
-    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
     font-size: 14px;
-    color: #0f172a;
+    color: var(--text-primary);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    background: #ffffff;
+    background: var(--bg-primary);
     box-sizing: border-box;
     cursor: pointer;
 
     &:focus {
         outline: none;
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
 
     @media (max-width: 640px) {
@@ -170,42 +174,39 @@ const FormActions = styled.div`
 
 const BtnPrimary = styled.button`
     padding: 11px 24px;
-    border-radius: 10px;
+    border-radius: 8px;
     border: none;
-    background: linear-gradient(135deg, #0ea5e9, #3b82f6);
-    color: #ffffff;
+    background: var(--primary-color);
+    color: white;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+    transition: background-color 0.2s;
 
     &:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(14, 165, 233, 0.4);
+        background: var(--primary-hover);
     }
 
     &:disabled {
         opacity: 0.6;
         cursor: not-allowed;
-        transform: none;
     }
 `;
 
 const BtnSecondary = styled.button`
     padding: 10px 18px;
-    border-radius: 10px;
-    border: 1px solid #cbd5e1;
-    background: #ffffff;
-    color: #475569;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease;
+    transition: background-color 0.2s, border-color 0.2s;
 
     &:hover {
-        background: #f8fafc;
-        border-color: #94a3b8;
+        background: var(--bg-tertiary);
+        border-color: var(--text-tertiary);
     }
 `;
 
@@ -263,7 +264,7 @@ export default function AddEmployeePage() {
         } catch (e) {
             console.error(e);
             const msg =
-                e?.response?.data?.message || "Ошибка при добавлении сотрудника";
+                e?.response?.data?.error || e?.response?.data?.message || e?.message || "Ошибка при добавлении сотрудника";
             setError(msg);
         } finally {
             setSaving(false);

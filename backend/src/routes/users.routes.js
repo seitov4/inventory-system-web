@@ -7,29 +7,30 @@ import {
     updateUser,
     deleteUser,
 } from "../services/users.service.js";
+import { success, error } from "../utils/response.js";
 
 const router = Router();
 
-// GET /api/users
+// GET /api/users - admin only
 router.get(
     "/",
     authRequired,
-    requireRole("owner", "admin"),
+    requireRole("admin"),
     async (req, res, next) => {
         try {
             const users = await getAllUsers();
-            res.json(users);
+            return success(res, users);
         } catch (err) {
             next(err);
         }
     }
 );
 
-// POST /api/users  — добавление сотрудника
+// POST /api/users — добавление сотрудника - admin only
 router.post(
     "/",
     authRequired,
-    requireRole("owner", "admin"),
+    requireRole("admin"),
     async (req, res, next) => {
         try {
             const {
@@ -41,20 +42,21 @@ router.post(
             } = req.body;
 
             if (!firstName || !lastName || !contact || !password) {
-                return res.status(400).json({
-                    message:
-                        "Имя, фамилия, контакт и пароль сотрудника обязательны",
-                });
+                return error(
+                    res,
+                    "Имя, фамилия, контакт и пароль сотрудника обязательны",
+                    400
+                );
             }
 
             if (!["cashier", "manager", "admin"].includes(role)) {
-                return res.status(400).json({
-                    message:
-                        "Роль сотрудника должна быть одной из: cashier, manager, admin",
-                });
+                return error(
+                    res,
+                    "Роль сотрудника должна быть одной из: cashier, manager, admin",
+                    400
+                );
             }
 
-            // Берём магазин из текущего пользователя через его store_name
             const current = await findUserById(req.user.id);
             const store_name = current?.store_name || null;
 
@@ -72,33 +74,34 @@ router.post(
                 role,
             });
 
-            res.status(201).json(user);
+            return success(res, user, 201);
         } catch (err) {
             next(err);
         }
     }
 );
 
-// PUT /api/users/:id — обновление сотрудника
+// PUT /api/users/:id — обновление сотрудника - admin only
 router.put(
     "/:id",
     authRequired,
-    requireRole("owner", "admin"),
+    requireRole("admin"),
     async (req, res, next) => {
         try {
             const { id } = req.params;
             const { firstName, lastName, contact, role } = req.body;
 
             if (!["cashier", "manager", "admin"].includes(role)) {
-                return res.status(400).json({
-                    message:
-                        "Роль сотрудника должна быть одной из: cashier, manager, admin",
-                });
+                return error(
+                    res,
+                    "Роль сотрудника должна быть одной из: cashier, manager, admin",
+                    400
+                );
             }
 
             const user = await findUserById(parseInt(id));
             if (!user) {
-                return res.status(404).json({ message: "Сотрудник не найден" });
+                return error(res, "Сотрудник не найден", 404);
             }
 
             const updated = await updateUser(parseInt(id), {
@@ -108,37 +111,34 @@ router.put(
                 role,
             });
 
-            res.json(updated);
+            return success(res, updated);
         } catch (err) {
             next(err);
         }
     }
 );
 
-// DELETE /api/users/:id — удаление сотрудника
+// DELETE /api/users/:id — удаление сотрудника - admin only
 router.delete(
     "/:id",
     authRequired,
-    requireRole("owner", "admin"),
+    requireRole("admin"),
     async (req, res, next) => {
         try {
             const { id } = req.params;
 
             const user = await findUserById(parseInt(id));
             if (!user) {
-                return res.status(404).json({ message: "Сотрудник не найден" });
+                return error(res, "Сотрудник не найден", 404);
             }
 
-            // Нельзя удалить самого себя
             if (user.id === req.user.id) {
-                return res.status(400).json({
-                    message: "Нельзя удалить самого себя",
-                });
+                return error(res, "Нельзя удалить самого себя", 400);
             }
 
             await deleteUser(parseInt(id));
 
-            res.json({ message: "Сотрудник успешно удалён" });
+            return success(res, { message: "Сотрудник успешно удалён" });
         } catch (err) {
             next(err);
         }

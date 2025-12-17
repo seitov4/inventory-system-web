@@ -6,8 +6,11 @@ import { usePage } from "../../context/PageContext";
 const navItems = [
     { key: "dashboard", label: "Дашборд", icon: "📊" },
     { key: "products", label: "Товары", icon: "📦" },
-    { key: "sales", label: "Продажи", icon: "💵" },
     { key: "warehouse", label: "Склад", icon: "🏭" },
+    { key: "stockIn", label: "Приход товара", icon: "📥" },
+    { key: "pos", label: "POS", icon: "🛒" },
+    { key: "sales", label: "Аналитика", icon: "📈" },
+    { key: "notifications", label: "Уведомления", icon: "🔔" },
     { key: "addEmployee", label: "Добавить сотрудника", icon: "👤" },
     { key: "settings", label: "Настройки", icon: "⚙️" },
 ];

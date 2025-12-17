@@ -45,6 +45,24 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
     (response) => {
         console.log(`[API Response] ${response.status}`, response.data);
+        
+        // Check if response has unified format with success field
+        if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+            if (!response.data.success && response.data.error) {
+                // Transform unified error format to standard axios error
+                const err = new Error(response.data.error);
+                err.response = {
+                    ...response,
+                    data: {
+                        message: response.data.error,
+                        error: response.data.error
+                    }
+                };
+                err.response.status = response.status >= 400 ? response.status : 400;
+                return Promise.reject(err);
+            }
+        }
+        
         return response;
     },
     (error) => {
@@ -52,7 +70,11 @@ apiClient.interceptors.response.use(
             console.error("[API] Network error - backend may not be running on", API_BASE_URL);
             console.error("[API] Error details:", error.message);
         } else {
-            console.error("[API Error]", error.response?.status, error.response?.data?.message || error.message);
+            // Handle unified error format
+            const errorMessage = error.response?.data?.error || 
+                                error.response?.data?.message || 
+                                error.message;
+            console.error("[API Error]", error.response?.status, errorMessage);
         }
         return Promise.reject(error);
     }
