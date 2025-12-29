@@ -1,14 +1,7 @@
 import axios from "axios";
 
-/**
- * API Client Configuration
- * 
- * The API URL can be configured via environment variable:
- * - REACT_APP_API_URL: Full API URL (e.g., "http://localhost:5001/api")
- * 
- * Default: http://localhost:5001/api (backend default port when 5000 is in use)
- */
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5001/api";
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
 // Always log the API URL to help debugging
 console.log("[API Client] Connecting to:", API_BASE_URL);

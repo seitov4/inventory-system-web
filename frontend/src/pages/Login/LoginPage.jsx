@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import styled from "styled-components";
-import authApi from "../../api/authApi";
 import { usePage } from "../../context/PageContext";
+import { useAuth } from "../../context/AuthContext";
 
 // ===== STYLED COMPONENTS =====
 const PageWrapper = styled.div`
@@ -164,35 +164,39 @@ const LoginPage = () => {
     const [loginValue, setLoginValue] = useState("");
     const [pass, setPass] = useState("");
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
+    const [localError, setLocalError] = useState("");
     const { setActivePage } = usePage();
+    const { login, error: authError } = useAuth();
 
     const handleLogin = async () => {
-        setError("");
+        setLocalError("");
 
         if (!loginValue || !pass) {
-            setError("Введите логин (email или телефон) и пароль");
+            setLocalError("Enter login (email or phone) and password");
             return;
         }
 
         try {
             setLoading(true);
-            const res = await authApi.login(loginValue, pass);
-            const token = res?.token || res?.accessToken;
-            if (!token) {
-                throw new Error("Токен не получен от сервера");
-            }
+            const result = await login(loginValue, pass);
+            const role = result?.user?.role;
 
-            localStorage.setItem("token", token);
-            setActivePage("dashboard");
+            // Role-based home routing
+            if (role === "cashier") {
+                setActivePage("pos");
+            } else {
+                setActivePage("dashboard");
+            }
         } catch (e) {
             console.error(e);
-            const msg =
-                e?.response?.data?.error ||
-                e?.response?.data?.message ||
-                e?.message ||
-                "Не удалось войти. Проверьте логин и пароль.";
-            setError(msg);
+            if (!authError) {
+                const msg =
+                    e?.response?.data?.error ||
+                    e?.response?.data?.message ||
+                    e?.message ||
+                    "Login failed. Please check your credentials.";
+                setLocalError(msg);
+            }
         } finally {
             setLoading(false);
         }
@@ -206,21 +210,23 @@ const LoginPage = () => {
     return (
         <PageWrapper>
             <Card>
-                <Title>Вход в систему</Title>
+                <Title>Sign in</Title>
                 <Subtitle>
-                    Введите логин и пароль сотрудника, чтобы продолжить.
+                    Enter employee login and password to continue.
                 </Subtitle>
 
-                {error && <ErrorMessage>{error}</ErrorMessage>}
+                {(localError || authError) && (
+                    <ErrorMessage>{localError || authError}</ErrorMessage>
+                )}
 
                 <Form onSubmit={handleSubmit}>
                     <Label>
-                        Логин (email или телефон)
+                        Login (email or phone)
                         <Input
                             type="text"
                             value={loginValue}
                             onChange={(e) => setLoginValue(e.target.value)}
-                            placeholder="+7... или you@example.com"
+                            placeholder="+1... or you@example.com"
                             autoFocus
                             disabled={loading}
                             required
@@ -228,12 +234,12 @@ const LoginPage = () => {
                     </Label>
 
                     <Label>
-                        Пароль
+                        Password
                         <Input
                             type="password"
                             value={pass}
                             onChange={(e) => setPass(e.target.value)}
-                            placeholder="Введите пароль"
+                            placeholder="Enter password"
                             disabled={loading}
                             required
                         />
@@ -243,16 +249,16 @@ const LoginPage = () => {
                         type="submit"
                         disabled={loading || !loginValue || !pass}
                     >
-                        {loading ? "Вход..." : "Войти"}
+                        {loading ? "Signing in..." : "Sign in"}
                     </SubmitButton>
                 </Form>
 
                 <LinksSection>
                     <PrimaryLink onClick={() => setActivePage("register")}>
-                        Нет аккаунта? Зарегистрировать магазин
+                        No account yet? Register a store
                     </PrimaryLink>
                     <BackButton onClick={() => setActivePage("landing")}>
-                        ← Вернуться на сайт
+                        ← Back to landing
                     </BackButton>
                 </LinksSection>
             </Card>

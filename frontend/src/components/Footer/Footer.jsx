@@ -59,7 +59,7 @@ export default function Footer() {
     return (
         <FooterWrapper>
             <FooterInner>
-                <FooterText>Дипломный проект</FooterText>
+                <FooterText>Diploma project</FooterText>
                 <FooterSeparator>•</FooterSeparator>
                 <FooterProjectName>Inventory Management System</FooterProjectName>
                 <FooterSeparator>•</FooterSeparator>

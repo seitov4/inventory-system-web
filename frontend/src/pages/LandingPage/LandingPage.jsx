@@ -5,20 +5,20 @@ import { usePage } from "../../context/PageContext";
 // ---------- DATA ----------
 const features = [
     {
-        title: "Учёт товаров",
-        text: "Единая база товаров с ценами, штрих-кодами и категориями. Минимальные остатки и контроль прихода."
+        title: "Inventory management",
+        text: "Unified catalog with prices, barcodes and categories. Minimum stock levels and controlled stock intake."
     },
     {
-        title: "Быстрые продажи (POS)",
-        text: "Рабочее место кассира: поиск или сканирование товара, формирование чека и проведение оплаты."
+        title: "Fast sales (POS)",
+        text: "Cashier workspace: search or scan items, build a receipt and complete payment in a few steps."
     },
     {
-        title: "Контроль остатков",
-        text: "Актуальные остатки по каждому складу и магазину. Движения фиксируются в журнале операций."
+        title: "Stock control",
+        text: "Up-to-date stock levels per warehouse and store. All movements are recorded in an audit trail."
     },
     {
-        title: "Аналитика для владельца",
-        text: "Отчёты по продажам за день, неделю и месяц. Видно, что продаётся лучше всего и где возникают дефициты."
+        title: "Owner analytics",
+        text: "Sales reports by day, week and month. See top-performing items and where stockouts appear."
     }
 ];
 
@@ -273,28 +273,28 @@ export default function LandingPage() {
                     {/* LEFT */}
                     <HeroMain>
                         <HeroTitle>
-                            Информационная система<br />
-                            <span>учёта товаров для розницы</span>
+                            Inventory information system<br />
+                            <span>for retail stock and sales</span>
                         </HeroTitle>
 
                         <HeroSubtitle>
-                            В одном интерфейсе — товары, склады, продажи и аналитика.
-                            Система разработана как дипломный проект и отражает реальные процессы.
+                            One interface for products, warehouses, sales and analytics.
+                            The system was initially built as a diploma project and models real retail processes.
                         </HeroSubtitle>
 
                         <Actions>
                             <BtnPrimary onClick={() => setActivePage("login")}>
-                                Войти
+                                Sign in
                             </BtnPrimary>
 
                             <BtnSecondary onClick={() => setActivePage("register")}>
-                                Зарегистрировать магазин
+                                Register a store
                             </BtnSecondary>
                         </Actions>
 
                         <HeroNote>
-                            После авторизации доступны модули: <b>Товары</b>, <b>Склад</b>,{" "}
-                            <b>Продажи</b> и <b>Отчёты</b>.
+                            After signing in you'll get access to <b>Products</b>, <b>Warehouse</b>,{" "}
+                            <b>Sales</b> and <b>Reports</b> modules.
                         </HeroNote>
                     </HeroMain>
 
@@ -302,27 +302,27 @@ export default function LandingPage() {
                     <HeroPanel>
                         <PanelCard>
                             <PanelHeader>
-                                <PanelLabel>Сегодня</PanelLabel>
+                                <PanelLabel>Today</PanelLabel>
                                 <PanelValue>₸ 0</PanelValue>
                             </PanelHeader>
 
                             <PanelRow>
-                                <span>Продаж за день</span>
-                                <Pill>ожидает backend</Pill>
+                                <span>Sales today</span>
+                                <Pill>awaiting backend</Pill>
                             </PanelRow>
 
                             <PanelRow>
-                                <span>Товаров в базе</span>
+                                <span>Products in catalog</span>
                                 <span>—</span>
                             </PanelRow>
 
                             <PanelRow>
-                                <span>Позиции с низким остатком</span>
+                                <span>Low stock items</span>
                                 <span>—</span>
                             </PanelRow>
 
                             <PanelRow>
-                                <span>Обновление аналитики</span>
+                                <span>Analytics refresh</span>
                                 <span>—</span>
                             </PanelRow>
                         </PanelCard>
@@ -333,9 +333,9 @@ export default function LandingPage() {
             {/* FEATURES */}
             <Section>
                 <SectionHeader>
-                    <SectionTitle>Что умеет система</SectionTitle>
+                    <SectionTitle>What the system can do</SectionTitle>
                     <SectionSubtitle>
-                        Архитектура построена вокруг ядра учёта: номенклатура, движения, продажи, аналитика.
+                        The architecture is built around a core of inventory: catalog, stock movements, sales and analytics.
                     </SectionSubtitle>
                 </SectionHeader>
 
@@ -352,10 +352,11 @@ export default function LandingPage() {
             {/* FOOTNOTE */}
             <SectionMuted>
                 <Footnote>
-                    <h3>О проекте</h3>
+                    <h3>About the project</h3>
                     <p>
-                        Данная система разработана как дипломный проект. Реализованы интерфейсы для товаров,
-                        склада и продаж. Следующий шаг — серверная часть (REST API, авторизация, аналитика).
+                        This system was created as a diploma project. Interfaces for products,
+                        warehouse and sales are implemented. The next step is a full backend
+                        (REST API, authentication, analytics).
                     </p>
                 </Footnote>
             </SectionMuted>

@@ -1,16 +1,8 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { usePage } from "../../context/PageContext";
-import authApi from "../../api/authApi";
-
-// ===== NAVIGATION ITEMS =====
-const mainNavItems = [
-    { key: "products", label: "Товары" },
-    { key: "warehouse", label: "Склад" },
-    { key: "pos", label: "POS" },
-    { key: "sales", label: "Аналитика" },
-    { key: "notifications", label: "Уведомления" },
-];
+import { useAuth } from "../../context/AuthContext";
+import notificationsApi from "../../api/notificationsApi";
 
 // ===== STYLED COMPONENTS =====
 const HeaderWrapper = styled.header`
@@ -62,7 +54,7 @@ const Logo = styled.button`
     }
 `;
 
-// Center block: Navigation
+// Center block: Global search (navigation handled by sidebar)
 const NavBlock = styled.nav`
     display: flex;
     align-items: center;
@@ -72,32 +64,6 @@ const NavBlock = styled.nav`
     @media (max-width: 768px) {
         display: none;
     }
-`;
-
-const NavLink = styled.button`
-    padding: 8px 16px;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    background: none;
-    border: none;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: all 0.15s ease;
-    min-height: 40px;
-    display: flex;
-    align-items: center;
-
-    &:hover {
-        color: var(--text-primary);
-        background: var(--bg-hover);
-    }
-
-    ${props => props.$active && `
-        color: var(--primary-color);
-        background: var(--bg-hover);
-        font-weight: 600;
-    `}
 `;
 
 // Right block: User Info
@@ -200,55 +166,108 @@ const BtnLogout = styled(ActionButton)`
     }
 `;
 
+const NotificationsButton = styled.button`
+    position: relative;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    &:hover {
+        background: var(--bg-hover);
+    }
+`;
+
+const BellIcon = styled.span`
+    font-size: 16px;
+`;
+
+const Badge = styled.span`
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: var(--error-color);
+    color: #fff;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+`;
+
 // ===== COMPONENT =====
 export default function Header() {
     const { setActivePage } = usePage();
-    const token = localStorage.getItem("token");
-    const logged = Boolean(token);
-    const [user, setUser] = useState(null);
+    const { user, isAuthenticated, logout } = useAuth();
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [searchValue, setSearchValue] = useState("");
 
+    // Load unread notifications count
     useEffect(() => {
-        if (logged) {
-            loadUser();
+        let cancelled = false;
+        async function loadNotifications() {
+            if (!isAuthenticated) {
+                setUnreadCount(0);
+                return;
+            }
+            try {
+                const data = await notificationsApi.getAll();
+                if (cancelled) return;
+                const list = Array.isArray(data) ? data : [];
+                const count = list.filter(
+                    (n) => n.status === "UNREAD" || n.is_read === false
+                ).length;
+                setUnreadCount(count);
+            } catch (e) {
+                console.error("[Header] Failed to load notifications", e);
+            }
         }
-    }, [logged]);
+        loadNotifications();
 
-    const loadUser = async () => {
-        try {
-            const res = await authApi.me();
-            setUser(res?.user || res || null);
-        } catch (e) {
-            console.error(e);
-        }
-    };
-
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        setUser(null);
-        setActivePage("login");
-    };
-
-    const getRoleLabel = (role) => {
-        const labels = {
-            owner: "Владелец",
-            admin: "Администратор",
-            manager: "Менеджер",
-            cashier: "Кассир",
+        const interval = setInterval(loadNotifications, 60000);
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
         };
-        return labels[role] || role;
+    }, [isAuthenticated]);
+
+    const handleGlobalSearch = (e) => {
+        e.preventDefault();
+        const q = searchValue.trim();
+        if (!q) return;
+        // Simple strategy: jump to products section, refine search inside.
+        sessionStorage.setItem("globalSearchQuery", q);
+        setActivePage("products");
+    };
+
+    const getRoleLabel = (roleValue) => {
+        const labels = {
+            owner: "Owner",
+            admin: "Administrator",
+            manager: "Manager",
+            cashier: "Cashier",
+        };
+        return labels[roleValue] || roleValue;
     };
 
     const getUserDisplayName = () => {
-        if (!user) return "Пользователь";
+        if (!user) return "User";
         if (user.first_name || user.last_name) {
             return `${user.first_name || ""} ${user.last_name || ""}`.trim();
         }
         if (user.email) return user.email;
         if (user.phone) return user.phone;
-        return "Пользователь";
+        return "User";
     };
-
-    const { activePage } = usePage();
 
     const getUserInitials = () => {
         if (!user) return "U";
@@ -266,30 +285,40 @@ export default function Header() {
             <HeaderInner>
                 {/* Left: Logo / Title */}
                 <LogoBlock>
-                    <Logo onClick={() => setActivePage(logged ? "dashboard" : "landing")}>
+                    <Logo onClick={() => setActivePage(isAuthenticated ? "dashboard" : "landing")}>
                         Inventory System
                     </Logo>
                 </LogoBlock>
 
-                {/* Center: Navigation */}
-                {logged && (
+                {/* Center: global search only (main navigation in sidebar) */}
+                {isAuthenticated && (
                     <NavBlock>
-                        {mainNavItems.map((item) => (
-                            <NavLink
-                                key={item.key}
-                                $active={activePage === item.key}
-                                onClick={() => setActivePage(item.key)}
-                            >
-                                {item.label}
-                            </NavLink>
-                        ))}
+                        <form onSubmit={handleGlobalSearch} style={{ marginLeft: 8 }}>
+                            <input
+                                type="search"
+                                placeholder="Search (products, receipts, movements)"
+                                value={searchValue}
+                                onChange={(e) => setSearchValue(e.target.value)}
+                                style={{
+                                    padding: "6px 10px",
+                                    borderRadius: 999,
+                                    border: "1px solid var(--border-color)",
+                                    fontSize: 12,
+                                    minWidth: 180,
+                                }}
+                            />
+                        </form>
                     </NavBlock>
                 )}
 
                 {/* Right: User Info */}
                 <UserBlock>
-                    {logged ? (
+                    {isAuthenticated ? (
                         <>
+                            <NotificationsButton onClick={() => setActivePage("notifications")}>
+                                <BellIcon>🔔</BellIcon>
+                                {unreadCount > 0 && <Badge>{unreadCount}</Badge>}
+                            </NotificationsButton>
                             {user && (
                                 <UserInfo>
                                     <UserIcon>{getUserInitials()}</UserIcon>
@@ -302,16 +331,23 @@ export default function Header() {
                                 </UserInfo>
                             )}
                             <ActionButton onClick={() => setActivePage("settings")}>
-                                Настройки
+                                Settings
                             </ActionButton>
-                            <BtnLogout onClick={handleLogout}>Выйти</BtnLogout>
+                            <BtnLogout
+                                onClick={() => {
+                                    logout();
+                                    setActivePage("login");
+                                }}
+                            >
+                                Logout
+                            </BtnLogout>
                         </>
                     ) : (
                         <>
                             <ActionButton onClick={() => setActivePage("register")}>
-                                Регистрация
+                                Register
                             </ActionButton>
-                            <BtnLogin onClick={() => setActivePage("login")}>Войти</BtnLogin>
+                            <BtnLogin onClick={() => setActivePage("login")}>Login</BtnLogin>
                         </>
                     )}
                 </UserBlock>

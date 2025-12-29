@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import Layout from "../../components/Layout/Layout";
 import notificationsApi from "../../api/notificationsApi";
+import { usePage } from "../../context/PageContext";
 
 // ===== STYLED COMPONENTS =====
 const LoadingText = styled.div`
@@ -82,6 +83,27 @@ const MarkReadButton = styled.button`
     }
 `;
 
+const ActionRow = styled.div`
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+`;
+
+const SecondaryButton = styled.button`
+    padding: 6px 12px;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+
+    &:hover {
+        background: var(--bg-hover);
+    }
+`;
+
 const EmptyState = styled.div`
     padding: 48px 24px;
     text-align: center;
@@ -94,6 +116,7 @@ export default function NotificationsPage() {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const { setActivePage } = usePage();
 
     useEffect(() => {
         loadNotifications();
@@ -107,7 +130,7 @@ export default function NotificationsPage() {
             setNotifications(Array.isArray(data) ? data : []);
         } catch (e) {
             console.error(e);
-            setError("Не удалось загрузить уведомления.");
+            setError("Failed to load notifications.");
         } finally {
             setLoading(false);
         }
@@ -122,22 +145,33 @@ export default function NotificationsPage() {
             );
         } catch (e) {
             console.error(e);
-            alert("Не удалось отметить уведомление как прочитанное");
+            alert("Failed to mark notification as read");
         }
+    };
+
+    const handleGoToProduct = (notification) => {
+        const productId = notification?.payload?.product_id;
+        if (!productId) {
+            setActivePage("products");
+            return;
+        }
+        // Simple navigation to products; additional filtering by ID can be added later
+        sessionStorage.setItem("lastNotificationProductId", String(productId));
+        setActivePage("products");
     };
 
     const formatNotificationMessage = (notification) => {
         if (notification.type === 'LOW_STOCK') {
             const payload = notification.payload || {};
-            return `Низкий остаток: ${payload.product_name || 'Товар'} (${payload.quantity || 0} шт., минимум: ${payload.min_stock || 0})`;
+            return `Low stock: ${payload.product_name || 'Product'} (${payload.quantity || 0} pcs, min: ${payload.min_stock || 0})`;
         }
-        return notification.message || 'Уведомление';
+        return notification.message || 'Notification';
     };
 
     const formatDate = (dateString) => {
         if (!dateString) return '';
         const date = new Date(dateString);
-        return date.toLocaleString('ru-RU', {
+        return date.toLocaleString('en-US', {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',
@@ -147,18 +181,18 @@ export default function NotificationsPage() {
     };
 
     return (
-        <Layout title="Уведомления">
-            {loading && <LoadingText>Загрузка...</LoadingText>}
+        <Layout title="Notifications">
+            {loading && <LoadingText>Loading...</LoadingText>}
             {error && <ErrorText>{error}</ErrorText>}
 
             {!loading && notifications.length === 0 && !error && (
-                <EmptyState>Нет уведомлений</EmptyState>
+                <EmptyState>No notifications</EmptyState>
             )}
 
             {!loading && notifications.length > 0 && (
                 <NotificationsList>
                     {notifications.map((notification) => {
-                        const isUnread = notification.status === 'UNREAD';
+                        const isUnread = notification.status === 'UNREAD' || notification.is_read === false;
                         return (
                             <NotificationCard key={notification.id} $unread={isUnread}>
                                 <NotificationContent>
@@ -168,16 +202,26 @@ export default function NotificationsPage() {
                                     <NotificationDate>
                                         {formatDate(notification.created_at)}
                                     </NotificationDate>
+                                    {notification.type === 'LOW_STOCK' && (
+                                        <ActionRow>
+                                            <SecondaryButton
+                                                type="button"
+                                                onClick={() => handleGoToProduct(notification)}
+                                            >
+                                                Go to product
+                                            </SecondaryButton>
+                                        </ActionRow>
+                                    )}
                                 </NotificationContent>
                                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                     <NotificationStatus $unread={isUnread}>
-                                        {isUnread ? 'Новое' : 'Прочитано'}
+                                        {isUnread ? 'New' : 'Read'}
                                     </NotificationStatus>
                                     {isUnread && (
                                         <MarkReadButton
                                             onClick={() => handleMarkAsRead(notification.id)}
                                         >
-                                            Прочитать
+                                            Mark as read
                                         </MarkReadButton>
                                     )}
                                 </div>

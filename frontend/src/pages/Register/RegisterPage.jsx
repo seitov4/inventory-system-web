@@ -185,12 +185,12 @@ const RegisterPage = () => {
         } = form;
 
         if (!storeName || !firstName || !lastName || !contact || !password) {
-            setError("Заполните все обязательные поля");
+            setError("Please fill in all required fields");
             return;
         }
 
         if (password !== passwordConfirm) {
-            setError("Пароль и подтверждение не совпадают");
+            setError("Password and confirmation do not match");
             return;
         }
 
@@ -211,7 +211,7 @@ const RegisterPage = () => {
                 localStorage.setItem("token", token);
                 setActivePage("dashboard");
             } else {
-                setError("Не удалось получить токен после регистрации");
+                setError("Failed to obtain token after registration");
             }
         } catch (e) {
             console.error(e);
@@ -219,7 +219,7 @@ const RegisterPage = () => {
                 e?.response?.data?.error ||
                 e?.response?.data?.message ||
                 e?.message ||
-                "Ошибка при регистрации магазина";
+                "Store registration failed";
             setError(msg);
         } finally {
             setLoading(false);
@@ -229,105 +229,105 @@ const RegisterPage = () => {
     return (
         <PageWrapper>
             <Card>
-                <Title>Регистрация магазина</Title>
+                <Title>Store registration</Title>
                 <Subtitle>
-                    Создайте магазин и первого администратора в один шаг.
+                    Create a store and the first administrator in one step.
                 </Subtitle>
 
                 {error && <ErrorMessage>{error}</ErrorMessage>}
 
                 <Form onSubmit={handleSubmit}>
                     <Label>
-                        Название магазина
+                        Store name
                         <Input
                             type="text"
                             name="storeName"
                             value={form.storeName}
                             onChange={handleChange}
-                            placeholder="Например, Магазин у дома"
+                            placeholder="For example, Corner Store"
                         />
                     </Label>
 
                     <FormRow>
                         <Label>
-                            Имя администратора
+                            Admin first name
                             <Input
                                 type="text"
                                 name="firstName"
                                 value={form.firstName}
                                 onChange={handleChange}
-                                placeholder="Имя"
+                                placeholder="First name"
                             />
                         </Label>
                         <Label>
-                            Фамилия администратора
+                            Admin last name
                             <Input
                                 type="text"
                                 name="lastName"
                                 value={form.lastName}
                                 onChange={handleChange}
-                                placeholder="Фамилия"
+                                placeholder="Last name"
                             />
                         </Label>
                     </FormRow>
 
                     <Label>
-                        Телефон или Email
+                        Phone or email
                         <Input
                             type="text"
                             name="contact"
                             value={form.contact}
                             onChange={handleChange}
-                            placeholder="+7... или you@example.com"
+                            placeholder="+1... or you@example.com"
                         />
                     </Label>
 
                     <Label>
-                        Роль владельца
+                        Owner role
                         <Select
                             name="role"
                             value={form.role}
                             onChange={handleChange}
                         >
-                            <option value="owner">Владелец (owner)</option>
-                            <option value="admin">Администратор (admin)</option>
+                            <option value="owner">Owner (owner)</option>
+                            <option value="admin">Administrator (admin)</option>
                         </Select>
                     </Label>
 
                     <FormRow>
                         <Label>
-                            Пароль
+                            Password
                             <Input
                                 type="password"
                                 name="password"
                                 value={form.password}
                                 onChange={handleChange}
-                                placeholder="Придумайте пароль"
+                                placeholder="Create a password"
                             />
                         </Label>
                         <Label>
-                            Подтверждение пароля
+                            Confirm password
                             <Input
                                 type="password"
                                 name="passwordConfirm"
                                 value={form.passwordConfirm}
                                 onChange={handleChange}
-                                placeholder="Повторите пароль"
+                                placeholder="Repeat password"
                             />
                         </Label>
                     </FormRow>
 
                     <SubmitButton type="submit" disabled={loading}>
-                        {loading ? "Создание..." : "Зарегистрировать магазин"}
+                        {loading ? "Creating..." : "Register store"}
                     </SubmitButton>
                 </Form>
 
                 <FooterLinks>
                     <FooterLink onClick={() => setActivePage("login")}>
-                        Уже есть аккаунт? Войти
+                        Already have an account? Sign in
                     </FooterLink>
                     <FooterLink $muted onClick={() => setActivePage("landing")}>
-                        ← На главную
+                        ← Back to landing
                     </FooterLink>
                 </FooterLinks>
             </Card>

@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { usePage } from "../../context/PageContext";
+import { useAuth } from "../../context/AuthContext";
 
 // ===== NAV ITEMS DATA =====
 const navItems = [
-    { key: "dashboard", label: "Дашборд", icon: "📊" },
-    { key: "products", label: "Товары", icon: "📦" },
-    { key: "warehouse", label: "Склад", icon: "🏭" },
-    { key: "stockIn", label: "Приход товара", icon: "📥" },
-    { key: "pos", label: "POS", icon: "🛒" },
-    { key: "sales", label: "Аналитика", icon: "📈" },
-    { key: "notifications", label: "Уведомления", icon: "🔔" },
-    { key: "addEmployee", label: "Добавить сотрудника", icon: "👤" },
-    { key: "settings", label: "Настройки", icon: "⚙️" },
+    { key: "dashboard", label: "Dashboard", icon: "📊", roles: ["cashier", "manager", "owner", "admin"] },
+    { key: "products", label: "Products", icon: "📦", roles: ["cashier", "manager", "owner", "admin"] },
+    { key: "warehouse", label: "Warehouse", icon: "🏭", roles: ["manager", "owner", "admin"] },
+    { key: "stockIn", label: "Stock intake", icon: "📥", roles: ["manager", "owner", "admin"] },
+    { key: "pos", label: "POS", icon: "🛒", roles: ["cashier", "manager", "owner", "admin"] },
+    { key: "sales", label: "Analytics", icon: "📈", roles: ["owner", "admin"] },
+    { key: "movements", label: "Movements", icon: "📜", roles: ["manager", "owner", "admin"] },
+    { key: "notifications", label: "Notifications", icon: "🔔", roles: ["cashier", "manager", "owner", "admin"] },
+    { key: "addEmployee", label: "Staff", icon: "👤", roles: ["owner", "admin"] },
+    { key: "settings", label: "Settings", icon: "⚙️", roles: ["owner", "admin"] },
 ];
 
 // ===== STYLED COMPONENTS =====
@@ -129,6 +131,7 @@ const SidebarFootnote = styled.div`
 // ===== COMPONENT =====
 export default function Sidebar({ onCollapseChange }) {
     const { activePage, setActivePage } = usePage();
+    const { role } = useAuth();
     const [collapsed, setCollapsed] = useState(() => {
         const saved = localStorage.getItem("sidebarCollapsed");
         return saved === "true";
@@ -151,28 +154,30 @@ export default function Sidebar({ onCollapseChange }) {
                 <SidebarSectionTop>
                     <SidebarHeader $collapsed={collapsed}>
                         {!collapsed && (
-                            <SidebarLabel>Навигация</SidebarLabel>
+                            <SidebarLabel>Navigation</SidebarLabel>
                         )}
                         <ToggleButton
                             onClick={toggleCollapse}
-                            title={collapsed ? "Развернуть меню" : "Свернуть меню"}
+                            title={collapsed ? "Expand menu" : "Collapse menu"}
                         >
                             {collapsed ? "→" : "←"}
                         </ToggleButton>
                     </SidebarHeader>
                     <Nav>
-                        {navItems.map((item) => (
-                            <NavLink
-                                key={item.key}
-                                onClick={() => setActivePage(item.key)}
-                                $active={activePage === item.key}
-                                $collapsed={collapsed}
-                                title={collapsed ? item.label : undefined}
-                            >
-                                <NavIcon>{item.icon}</NavIcon>
-                                <NavText $collapsed={collapsed}>{item.label}</NavText>
-                            </NavLink>
-                        ))}
+                        {navItems
+                            .filter((item) => !item.roles || item.roles.includes(role))
+                            .map((item) => (
+                                <NavLink
+                                    key={item.key}
+                                    onClick={() => setActivePage(item.key)}
+                                    $active={activePage === item.key}
+                                    $collapsed={collapsed}
+                                    title={collapsed ? item.label : undefined}
+                                >
+                                    <NavIcon>{item.icon}</NavIcon>
+                                    <NavText $collapsed={collapsed}>{item.label}</NavText>
+                                </NavLink>
+                            ))}
                     </Nav>
                 </SidebarSectionTop>
 

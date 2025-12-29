@@ -564,8 +564,8 @@ export default function SettingsPage() {
 
     if (loading) {
         return (
-            <Layout title="Настройки">
-                <LoadingText>Загрузка...</LoadingText>
+            <Layout title="Settings">
+                <LoadingText>Loading...</LoadingText>
             </Layout>
         );
     }
@@ -573,34 +573,34 @@ export default function SettingsPage() {
     const isAdmin = currentUser?.role === "admin" || currentUser?.role === "owner";
 
     return (
-        <Layout title="Настройки">
+        <Layout title="Settings">
             <SettingsPageWrapper>
                 <TabsContainer>
                     <Tab
                         $active={activeTab === TABS.PROFILE}
                         onClick={() => setActiveTab(TABS.PROFILE)}
                     >
-                        Профиль
+                        Profile
                     </Tab>
                     <Tab
                         $active={activeTab === TABS.APPEARANCE}
                         onClick={() => setActiveTab(TABS.APPEARANCE)}
                     >
-                        Внешний вид
+                        Appearance
                     </Tab>
                     {isAdmin && (
                         <Tab
                             $active={activeTab === TABS.EMPLOYEES}
                             onClick={() => setActiveTab(TABS.EMPLOYEES)}
                         >
-                            Сотрудники
+                            Employees
                         </Tab>
                     )}
                     <Tab
                         $active={activeTab === TABS.SYSTEM}
                         onClick={() => setActiveTab(TABS.SYSTEM)}
                     >
-                        Система
+                        System
                     </Tab>
                 </TabsContainer>
 
@@ -638,23 +638,23 @@ function ProfileTab({ user, onUpdate }) {
         setSaving(true);
         setMessage("");
         setTimeout(() => {
-            setMessage("Профиль обновлён (функция будет реализована)");
+            setMessage("Profile updated (feature will be implemented)");
             setSaving(false);
         }, 500);
     };
 
     return (
         <TabContent>
-            <SectionTitle>Профиль</SectionTitle>
+            <SectionTitle>Profile</SectionTitle>
             <SectionSubtitle>
-                Управление личными данными и контактами
+                Manage personal data and contacts
             </SectionSubtitle>
 
             <Form onSubmit={handleSubmit}>
                 <FormRow>
                     <FormGroup>
                         <FormLabel>
-                            Имя <Required>*</Required>
+                            First name <Required>*</Required>
                         </FormLabel>
                         <FormInput
                             type="text"
@@ -666,7 +666,7 @@ function ProfileTab({ user, onUpdate }) {
                     </FormGroup>
                     <FormGroup>
                         <FormLabel>
-                            Фамилия <Required>*</Required>
+                            Last name <Required>*</Required>
                         </FormLabel>
                         <FormInput
                             type="text"
@@ -690,27 +690,27 @@ function ProfileTab({ user, onUpdate }) {
                         />
                     </FormGroup>
                     <FormGroup>
-                        <FormLabel>Телефон</FormLabel>
+                        <FormLabel>Phone</FormLabel>
                         <FormInput
                             type="tel"
                             name="phone"
                             value={form.phone}
                             onChange={handleChange}
-                            placeholder="+7..."
+                            placeholder="+1..."
                         />
                     </FormGroup>
                 </FormRow>
 
                 <FormInfo>
-                    <strong>Роль:</strong> {user?.role || "—"} <br />
-                    <strong>Магазин:</strong> {user?.store_name || "—"}
+                    <strong>Role:</strong> {user?.role || "—"} <br />
+                    <strong>Store:</strong> {user?.store_name || "—"}
                 </FormInfo>
 
                 {message && <FormMessage>{message}</FormMessage>}
 
                 <FormActions>
                     <BtnPrimary type="submit" disabled={saving}>
-                        {saving ? "Сохранение..." : "Сохранить изменения"}
+                        {saving ? "Saving..." : "Save changes"}
                     </BtnPrimary>
                 </FormActions>
             </Form>
@@ -724,9 +724,9 @@ function AppearanceTab() {
 
     return (
         <TabContent>
-            <SectionTitle>Внешний вид</SectionTitle>
+            <SectionTitle>Appearance</SectionTitle>
             <SectionSubtitle>
-                Настройка цветовой темы интерфейса. Изменения применяются мгновенно.
+                Configure interface color theme. Changes are applied instantly.
             </SectionSubtitle>
 
             <SettingsCard>
@@ -736,25 +736,25 @@ function AppearanceTab() {
                         onClick={() => changeTheme("light")}
                     >
                         <ThemePreview $theme="light" />
-                        <span>Светлая тема</span>
+                        <span>Light theme</span>
                     </ThemeOption>
                     <ThemeOption
                         $active={theme === "dark"}
                         onClick={() => changeTheme("dark")}
                     >
                         <ThemePreview $theme="dark" />
-                        <span>Тёмная тема</span>
+                        <span>Dark theme</span>
                     </ThemeOption>
                     <ThemeOption
                         $active={theme === "system"}
                         onClick={() => changeTheme("system")}
                     >
                         <ThemePreview $theme="system" />
-                        <span>Системная тема</span>
+                        <span>System theme</span>
                     </ThemeOption>
                 </ThemeOptions>
                 <SettingsNote>
-                    Тема применяется моментально и сохраняется для следующего визита
+                    Theme is applied instantly and saved for your next visit
                 </SettingsNote>
             </SettingsCard>
         </TabContent>
@@ -780,20 +780,20 @@ function EmployeesTab() {
             setEmployees(Array.isArray(res) ? res : []);
         } catch (e) {
             console.error(e);
-            setError("Не удалось загрузить список сотрудников");
+            setError("Failed to load employees list");
         } finally {
             setLoading(false);
         }
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Удалить этого сотрудника? Это действие нельзя отменить.")) return;
+        if (!window.confirm("Delete this employee? This action cannot be undone.")) return;
         try {
             await usersApi.deleteUser(id);
             await loadEmployees();
         } catch (e) {
             console.error(e);
-            const msg = e?.response?.data?.error || e?.response?.data?.message || e?.message || "Не удалось удалить сотрудника";
+            const msg = e?.response?.data?.error || e?.response?.data?.message || e?.message || "Failed to delete employee";
             alert(msg);
         }
     };
@@ -815,13 +815,13 @@ function EmployeesTab() {
         <TabContent>
             <SectionHeader>
                 <div>
-                    <SectionTitle>Сотрудники</SectionTitle>
+                    <SectionTitle>Employees</SectionTitle>
                     <SectionSubtitle>
-                        Управление сотрудниками магазина
+                        Manage store employees
                     </SectionSubtitle>
                 </div>
                 <BtnPrimary onClick={() => setShowAddForm(!showAddForm)}>
-                    {showAddForm ? "Скрыть форму" : "Добавить сотрудника"}
+                    {showAddForm ? "Hide form" : "Add employee"}
                 </BtnPrimary>
             </SectionHeader>
 
@@ -843,7 +843,7 @@ function EmployeesTab() {
             )}
 
             {loading ? (
-                <LoadingText>Загрузка сотрудников...</LoadingText>
+                <LoadingText>Loading employees...</LoadingText>
             ) : error ? (
                 <ErrorText>{error}</ErrorText>
             ) : (
@@ -851,11 +851,11 @@ function EmployeesTab() {
                     <EmployeesTable>
                         <thead>
                             <tr>
-                                <th>Имя</th>
-                                <th>Фамилия</th>
-                                <th>Роль</th>
-                                <th>Email / Телефон</th>
-                                <th>Действия</th>
+                                <th>First name</th>
+                                <th>Last name</th>
+                                <th>Role</th>
+                                <th>Email / Phone</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -869,10 +869,10 @@ function EmployeesTab() {
                                     <td>{emp.email || emp.phone || "—"}</td>
                                     <td>
                                         <BtnLink onClick={() => handleEdit(emp)}>
-                                            Изменить
+                                            Edit
                                         </BtnLink>
                                         <BtnLink $danger onClick={() => handleDelete(emp.id)}>
-                                            Удалить
+                                            Delete
                                         </BtnLink>
                                     </td>
                                 </tr>
@@ -881,7 +881,7 @@ function EmployeesTab() {
                     </EmployeesTable>
                     {employees.length === 0 && (
                         <EmptyState>
-                            Сотрудники не найдены. Добавьте первого сотрудника.
+                            No employees found. Add the first employee.
                         </EmptyState>
                     )}
                 </SettingsCard>
@@ -920,7 +920,7 @@ function AddEmployeeForm({ onSuccess }) {
 
         const { firstName, lastName, contact, role, password } = form;
         if (!firstName || !lastName || !contact || !password) {
-            setError("Заполните все обязательные поля");
+            setError("Fill in all required fields");
             return;
         }
 
@@ -933,7 +933,7 @@ function AddEmployeeForm({ onSuccess }) {
                 role,
                 password,
             });
-            setSuccess("Сотрудник успешно добавлен");
+            setSuccess("Employee successfully added");
             setForm({
                 firstName: "",
                 lastName: "",
@@ -947,7 +947,7 @@ function AddEmployeeForm({ onSuccess }) {
         } catch (e) {
             console.error(e);
             const msg =
-                e?.response?.data?.error || e?.response?.data?.message || e?.message || "Ошибка при добавлении сотрудника";
+                e?.response?.data?.error || e?.response?.data?.message || e?.message || "Error adding employee";
             setError(msg);
         } finally {
             setSaving(false);
@@ -956,7 +956,7 @@ function AddEmployeeForm({ onSuccess }) {
 
     return (
         <SettingsCard $marginBottom={24}>
-            <CardTitle>Добавить сотрудника</CardTitle>
+            <CardTitle>Add employee</CardTitle>
             {error && <FormError>{error}</FormError>}
             {success && <FormMessage>{success}</FormMessage>}
 
@@ -964,7 +964,7 @@ function AddEmployeeForm({ onSuccess }) {
                 <FormRow>
                     <FormGroup>
                         <FormLabel>
-                            Имя <Required>*</Required>
+                            First name <Required>*</Required>
                         </FormLabel>
                         <FormInput
                             type="text"
@@ -976,7 +976,7 @@ function AddEmployeeForm({ onSuccess }) {
                     </FormGroup>
                     <FormGroup>
                         <FormLabel>
-                            Фамилия <Required>*</Required>
+                            Last name <Required>*</Required>
                         </FormLabel>
                         <FormInput
                             type="text"
@@ -991,7 +991,7 @@ function AddEmployeeForm({ onSuccess }) {
                 <FormRow>
                     <FormGroup>
                         <FormLabel>
-                            Телефон или Email <Required>*</Required>
+                            Phone or Email <Required>*</Required>
                         </FormLabel>
                         <FormInput
                             type="text"
@@ -1003,7 +1003,7 @@ function AddEmployeeForm({ onSuccess }) {
                     </FormGroup>
                     <FormGroup>
                         <FormLabel>
-                            Роль <Required>*</Required>
+                            Role <Required>*</Required>
                         </FormLabel>
                         <FormSelect
                             name="role"
@@ -1011,9 +1011,9 @@ function AddEmployeeForm({ onSuccess }) {
                             onChange={handleChange}
                             required
                         >
-                            <option value="cashier">Кассир</option>
-                            <option value="manager">Менеджер</option>
-                            <option value="admin">Администратор</option>
+                            <option value="cashier">Cashier</option>
+                            <option value="manager">Manager</option>
+                            <option value="admin">Administrator</option>
                         </FormSelect>
                     </FormGroup>
                 </FormRow>
@@ -1021,7 +1021,7 @@ function AddEmployeeForm({ onSuccess }) {
                 <FormRow>
                     <FormGroup>
                         <FormLabel>
-                            Пароль <Required>*</Required>
+                            Password <Required>*</Required>
                         </FormLabel>
                         <FormInput
                             type="text"
@@ -1034,14 +1034,14 @@ function AddEmployeeForm({ onSuccess }) {
                     <FormGroup>
                         <FormLabel>&nbsp;</FormLabel>
                         <BtnSecondary type="button" onClick={generatePassword}>
-                            Сгенерировать пароль
+                            Generate password
                         </BtnSecondary>
                     </FormGroup>
                 </FormRow>
 
                 <FormActions>
                     <BtnPrimary type="submit" disabled={saving}>
-                        {saving ? "Сохранение..." : "Добавить сотрудника"}
+                        {saving ? "Saving..." : "Add employee"}
                     </BtnPrimary>
                 </FormActions>
             </Form>
@@ -1053,22 +1053,22 @@ function AddEmployeeForm({ onSuccess }) {
 function SystemTab({ onLogout }) {
     return (
         <TabContent>
-            <SectionTitle>Система</SectionTitle>
+            <SectionTitle>System</SectionTitle>
             <SectionSubtitle>
-                Системные настройки и безопасность
+                System settings and security
             </SectionSubtitle>
 
             <SettingsCard>
                 <SystemActions>
                     <SystemActionItem>
                         <div>
-                            <SystemActionTitle>Выход из аккаунта</SystemActionTitle>
+                            <SystemActionTitle>Logout</SystemActionTitle>
                             <SystemActionDescription>
-                                Завершите текущий сеанс и выйдите из системы
+                                End current session and log out of the system
                             </SystemActionDescription>
                         </div>
                         <BtnDanger onClick={onLogout}>
-                            Выйти
+                            Logout
                         </BtnDanger>
                     </SystemActionItem>
                 </SystemActions>
@@ -1101,7 +1101,7 @@ function EmployeeEditModal({ employee, onClose, onSuccess }) {
 
         const { firstName, lastName, contact, role } = form;
         if (!firstName || !lastName || !contact) {
-            setError("Заполните все обязательные поля");
+            setError("Fill in all required fields");
             return;
         }
 
@@ -1113,13 +1113,13 @@ function EmployeeEditModal({ employee, onClose, onSuccess }) {
                 contact,
                 role,
             });
-            setSuccess("Сотрудник успешно обновлён");
+            setSuccess("Employee successfully updated");
             setTimeout(() => {
                 if (onSuccess) onSuccess();
             }, 1000);
         } catch (e) {
             console.error(e);
-            const msg = e?.response?.data?.error || e?.response?.data?.message || e?.message || "Ошибка при обновлении сотрудника";
+            const msg = e?.response?.data?.error || e?.response?.data?.message || e?.message || "Error updating employee";
             setError(msg);
         } finally {
             setSaving(false);
@@ -1130,7 +1130,7 @@ function EmployeeEditModal({ employee, onClose, onSuccess }) {
         <ModalOverlay onClick={onClose}>
             <ModalContent onClick={(e) => e.stopPropagation()}>
                 <ModalHeader>
-                    <ModalTitle>Редактировать сотрудника</ModalTitle>
+                    <ModalTitle>Edit employee</ModalTitle>
                     <ModalClose onClick={onClose}>×</ModalClose>
                 </ModalHeader>
 
@@ -1141,7 +1141,7 @@ function EmployeeEditModal({ employee, onClose, onSuccess }) {
                     <FormRow>
                         <FormGroup>
                             <FormLabel>
-                                Имя <Required>*</Required>
+                                First name <Required>*</Required>
                             </FormLabel>
                             <FormInput
                                 type="text"
@@ -1153,7 +1153,7 @@ function EmployeeEditModal({ employee, onClose, onSuccess }) {
                         </FormGroup>
                         <FormGroup>
                             <FormLabel>
-                                Фамилия <Required>*</Required>
+                                Last name <Required>*</Required>
                             </FormLabel>
                             <FormInput
                                 type="text"
@@ -1168,7 +1168,7 @@ function EmployeeEditModal({ employee, onClose, onSuccess }) {
                     <FormRow>
                         <FormGroup>
                             <FormLabel>
-                                Телефон или Email <Required>*</Required>
+                                Phone or Email <Required>*</Required>
                             </FormLabel>
                             <FormInput
                                 type="text"
@@ -1180,7 +1180,7 @@ function EmployeeEditModal({ employee, onClose, onSuccess }) {
                         </FormGroup>
                         <FormGroup>
                             <FormLabel>
-                                Роль <Required>*</Required>
+                                Role <Required>*</Required>
                             </FormLabel>
                             <FormSelect
                                 name="role"
@@ -1188,19 +1188,19 @@ function EmployeeEditModal({ employee, onClose, onSuccess }) {
                                 onChange={handleChange}
                                 required
                             >
-                                <option value="cashier">Кассир</option>
-                                <option value="manager">Менеджер</option>
-                                <option value="admin">Администратор</option>
+                                <option value="cashier">Cashier</option>
+                                <option value="manager">Manager</option>
+                                <option value="admin">Administrator</option>
                             </FormSelect>
                         </FormGroup>
                     </FormRow>
 
                     <FormActions>
                         <BtnSecondary type="button" onClick={onClose} disabled={saving}>
-                            Отмена
+                            Cancel
                         </BtnSecondary>
                         <BtnPrimary type="submit" disabled={saving}>
-                            {saving ? "Сохранение..." : "Сохранить изменения"}
+                            {saving ? "Saving..." : "Save changes"}
                         </BtnPrimary>
                     </FormActions>
                 </Form>

@@ -243,7 +243,7 @@ export async function applyMovement({
         // Create movement record
         // Use quantity (legacy field name that exists in current DB schema)
         // Also use reason (legacy field name)
-        const reasonText = reason || comment || null;
+        const reasonText = reason || null;
         const movementResult = await client.query(
             `INSERT INTO movements
                  (product_id, type, warehouse_from, warehouse_to, quantity, reason, created_by)

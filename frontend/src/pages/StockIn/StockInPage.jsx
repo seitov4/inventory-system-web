@@ -185,7 +185,7 @@ export default function StockInPage() {
                 setProducts(Array.isArray(data) ? data : []);
             } catch (e) {
                 console.error("Failed to load products:", e);
-                setError("Не удалось загрузить список товаров");
+                setError("Failed to load product list");
             } finally {
                 setLoading(false);
             }
@@ -208,18 +208,18 @@ export default function StockInPage() {
 
         // Validation
         if (!form.product_id) {
-            setError("Выберите товар");
+            setError("Select a product");
             return;
         }
         if (!form.warehouse_id) {
-            setError("Укажите ID склада");
+            setError("Specify warehouse ID");
             return;
         }
         
         // Validate and convert qty to number
         const qty = Number(form.qty);
         if (!form.qty || isNaN(qty) || qty <= 0 || !Number.isInteger(qty)) {
-            setError("Количество должно быть положительным целым числом");
+            setError("Quantity must be a positive integer");
             return;
         }
 
@@ -228,12 +228,12 @@ export default function StockInPage() {
         const warehouseId = Number(form.warehouse_id);
         
         if (isNaN(productId) || productId <= 0) {
-            setError("Некорректный ID товара");
+            setError("Invalid product ID");
             return;
         }
         
         if (isNaN(warehouseId) || warehouseId <= 0) {
-            setError("ID склада должен быть положительным числом");
+            setError("Warehouse ID must be a positive number");
             return;
         }
 
@@ -259,10 +259,10 @@ export default function StockInPage() {
             
             if (newQuantity !== undefined) {
                 setSuccess(
-                    `Товар успешно добавлен на склад! Новое количество: ${newQuantity}`
+                    `Product successfully added to warehouse. New quantity: ${newQuantity}`
                 );
             } else {
-                setSuccess("Товар успешно добавлен на склад!");
+                setSuccess("Product successfully added to warehouse.");
             }
 
             // Reset form (keep warehouse_id for convenience)
@@ -280,7 +280,7 @@ export default function StockInPage() {
                 e?.response?.data?.error || 
                 e?.response?.data?.message ||
                 e?.message ||
-                "Ошибка при добавлении товара на склад";
+                "Error while adding product to warehouse";
             
             setError(errorMessage);
         } finally {
@@ -289,17 +289,17 @@ export default function StockInPage() {
     };
 
     return (
-        <Layout title="Приход товара">
+        <Layout title="Stock intake">
             <FormSection>
-                <FormTitle>Приход товара на склад</FormTitle>
+                <FormTitle>Incoming stock to warehouse</FormTitle>
 
                 {error && <ErrorText>{error}</ErrorText>}
                 {success && <SuccessText>{success}</SuccessText>}
 
                 <Form onSubmit={handleSubmit}>
                     <FormField>
-                        <FormLabel htmlFor="product_id">
-                            Товар <span style={{ color: "var(--error-color)" }}>*</span>
+                                <FormLabel htmlFor="product_id">
+                            Product <span style={{ color: "var(--error-color)" }}>*</span>
                         </FormLabel>
                         <FormSelect
                             id="product_id"
@@ -309,7 +309,7 @@ export default function StockInPage() {
                             disabled={loading || saving}
                             required
                         >
-                            <option value="">Выберите товар...</option>
+                            <option value="">Select product...</option>
                             {products.map((product) => (
                                 <option key={product.id} value={product.id}>
                                     {product.name} {product.sku ? `(${product.sku})` : ""}
@@ -319,8 +319,8 @@ export default function StockInPage() {
                     </FormField>
 
                     <FormField>
-                        <FormLabel htmlFor="warehouse_id">
-                            ID склада <span style={{ color: "var(--error-color)" }}>*</span>
+                                <FormLabel htmlFor="warehouse_id">
+                            Warehouse ID <span style={{ color: "var(--error-color)" }}>*</span>
                         </FormLabel>
                         <FormInput
                             id="warehouse_id"
@@ -335,8 +335,8 @@ export default function StockInPage() {
                     </FormField>
 
                     <FormField>
-                        <FormLabel htmlFor="qty">
-                            Количество <span style={{ color: "var(--error-color)" }}>*</span>
+                                <FormLabel htmlFor="qty">
+                            Quantity <span style={{ color: "var(--error-color)" }}>*</span>
                         </FormLabel>
                         <FormInput
                             id="qty"
@@ -348,24 +348,24 @@ export default function StockInPage() {
                             onChange={handleChange}
                             disabled={loading || saving}
                             required
-                            placeholder="Введите количество (целое число)"
+                            placeholder="Enter quantity (integer)"
                         />
                     </FormField>
 
                     <FormField>
-                        <FormLabel htmlFor="comment">Комментарий (необязательно)</FormLabel>
+                        <FormLabel htmlFor="comment">Comment (optional)</FormLabel>
                         <FormTextarea
                             id="comment"
                             name="comment"
                             value={form.comment}
                             onChange={handleChange}
                             disabled={loading || saving}
-                            placeholder="Начальный приход, поставка от поставщика и т.д."
+                            placeholder="Initial stock, supplier delivery, etc."
                         />
                     </FormField>
 
                     <SubmitButton type="submit" disabled={loading || saving}>
-                        {saving ? "Добавление..." : "Добавить на склад"}
+                        {saving ? "Adding..." : "Add to warehouse"}
                     </SubmitButton>
                 </Form>
             </FormSection>

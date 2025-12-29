@@ -78,21 +78,6 @@ const EmptyChart = styled.div`
     }
 `;
 
-const ChartList = styled.ul`
-    list-style: none;
-    padding: 0;
-    margin: 0;
-`;
-
-const ChartItem = styled.li`
-    display: flex;
-    justify-content: space-between;
-    padding: 6px 0;
-    border-bottom: ${props => props.$last ? 'none' : `1px solid var(--border-color)`};
-    font-size: 14px;
-    color: var(--text-primary);
-`;
-
 // ===== STAT CARD COMPONENT =====
 function StatCard({ label, value }) {
     return (
@@ -183,48 +168,49 @@ export default function SalesPage() {
     const [period, setPeriod] = useState("daily"); // daily, weekly, monthly
     const [data, setData] = useState(null);
     const [chartData, setChartData] = useState({ labels: [], data: [] });
+    const [selectedDay, setSelectedDay] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
     useEffect(() => {
+        async function loadData() {
+            try {
+                setLoading(true);
+                setError("");
+
+                let result = null;
+                if (period === "daily") {
+                    result = await salesApi.getDaily();
+                    setData(result);
+                } else if (period === "weekly") {
+                    result = await salesApi.getWeekly();
+                    setData(result);
+                } else if (period === "monthly") {
+                    result = await salesApi.getMonthly();
+                    setData(result);
+                }
+
+                // Load chart data
+                const chartRes = await salesApi.getChart();
+                if (chartRes && chartRes.labels && chartRes.data) {
+                    setChartData(chartRes);
+                } else if (Array.isArray(chartRes)) {
+                    // Fallback: if chart returns array format
+                    setChartData({
+                        labels: chartRes.map(item => item.date || item.label),
+                        data: chartRes.map(item => item.total || 0),
+                    });
+                }
+            } catch (e) {
+                console.error(e);
+                setError("Failed to load sales data.");
+            } finally {
+                setLoading(false);
+            }
+        }
+
         loadData();
     }, [period]);
-
-    const loadData = async () => {
-        try {
-            setLoading(true);
-            setError("");
-
-            let result = null;
-            if (period === "daily") {
-                result = await salesApi.getDaily();
-                setData(result);
-            } else if (period === "weekly") {
-                result = await salesApi.getWeekly();
-                setData(result);
-            } else if (period === "monthly") {
-                result = await salesApi.getMonthly();
-                setData(result);
-            }
-
-            // Load chart data
-            const chartRes = await salesApi.getChart();
-            if (chartRes && chartRes.labels && chartRes.data) {
-                setChartData(chartRes);
-            } else if (Array.isArray(chartRes)) {
-                // Fallback: if chart returns array format
-                setChartData({
-                    labels: chartRes.map(item => item.date || item.label),
-                    data: chartRes.map(item => item.total || 0),
-                });
-            }
-        } catch (e) {
-            console.error(e);
-            setError("Не удалось загрузить данные по продажам.");
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const getTotalRevenue = () => {
         if (!data) return 0;
@@ -243,15 +229,15 @@ export default function SalesPage() {
     };
 
     const formatPeriodLabel = () => {
-        if (period === "daily") return "за день";
-        if (period === "weekly") return "за неделю";
-        if (period === "monthly") return "за месяц";
+        if (period === "daily") return "for the day";
+        if (period === "weekly") return "for the week";
+        if (period === "monthly") return "for the month";
         return "";
     };
 
     return (
-        <Layout title="Аналитика продаж">
-            {loading && <LoadingText>Загрузка...</LoadingText>}
+        <Layout title="Sales analytics">
+            {loading && <LoadingText>Loading...</LoadingText>}
             {error && <ErrorText>{error}</ErrorText>}
 
             <PeriodToggle>
@@ -259,42 +245,42 @@ export default function SalesPage() {
                     $active={period === "daily"}
                     onClick={() => setPeriod("daily")}
                 >
-                    День
+                    Day
                 </PeriodButton>
                 <PeriodButton
                     $active={period === "weekly"}
                     onClick={() => setPeriod("weekly")}
                 >
-                    Неделя
+                    Week
                 </PeriodButton>
                 <PeriodButton
                     $active={period === "monthly"}
                     onClick={() => setPeriod("monthly")}
                 >
-                    Месяц
+                    Month
                 </PeriodButton>
             </PeriodToggle>
 
             <StatsGrid>
                 <StatCard
-                    label={`Продажи ${formatPeriodLabel()}`}
-                    value={`${getTotalRevenue().toLocaleString('ru-RU')} ₸`}
+                    label={`Sales ${formatPeriodLabel()}`}
+                    value={`${getTotalRevenue().toLocaleString('en-US')} ₸`}
                 />
                 {period === "daily" && data && (
                     <StatCard
-                        label="Количество продаж"
+                        label="Number of sales"
                         value={data.salesCount || 0}
                     />
                 )}
             </StatsGrid>
 
             <ChartCard>
-                <ChartTitle>Динамика продаж (последние 30 дней)</ChartTitle>
+                <ChartTitle>Sales dynamics (last 30 days)</ChartTitle>
 
                 <ChartWrapper>
                     {chartData.labels.length === 0 ? (
                         <EmptyChart>
-                            Нет данных для отображения
+                            No data to display
                         </EmptyChart>
                     ) : (
                         <SimpleBarChart>
@@ -303,7 +289,17 @@ export default function SalesPage() {
                                 const height = (value / getMaxValue()) * 100;
                                 const shortLabel = label.split('-').slice(-1)[0]; // Show only day
                                 return (
-                                    <Bar key={index} $height={height} title={`${label}: ${value} ₸`}>
+                                    <Bar
+                                        key={index}
+                                        $height={height}
+                                        title={`${label}: ${value} ₸`}
+                                        onClick={() =>
+                                            setSelectedDay({
+                                                date: label,
+                                                total: value,
+                                            })
+                                        }
+                                    >
                                         <BarLabel>{shortLabel}</BarLabel>
                                         {value > 0 && <BarValue>{value > 1000 ? `${(value / 1000).toFixed(0)}k` : value}</BarValue>}
                                     </Bar>
@@ -312,6 +308,15 @@ export default function SalesPage() {
                         </SimpleBarChart>
                     )}
                 </ChartWrapper>
+
+                {selectedDay && (
+                    <EmptyChart style={{ marginTop: 12 }}>
+                        Drill‑down for day <code>{selectedDay.date}</code>: total sales{" "}
+                        <code>{selectedDay.total.toLocaleString("en-US")} ₸</code>. To show the
+                        list of products for this day you'll need a dedicated <code>/sales/by-day</code>{" "}
+                        endpoint on the backend.
+                    </EmptyChart>
+                )}
             </ChartCard>
         </Layout>
     );

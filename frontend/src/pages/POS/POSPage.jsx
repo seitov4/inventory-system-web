@@ -140,6 +140,27 @@ const PayButton = styled.button`
     }
 `;
 
+const AddButton = styled.button`
+    margin-top: 10px;
+    padding: 10px 16px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+        background: var(--primary-hover);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+`;
+
 const ErrorMessage = styled.div`
     padding: 12px;
     background: var(--error-bg);
@@ -186,7 +207,6 @@ export default function POSPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
-    const [saleId, setSaleId] = useState(null);
     const [warehouseId, setWarehouseId] = useState("1");
     const [storeId, setStoreId] = useState("1");
     const [paymentType, setPaymentType] = useState("CASH");
@@ -228,7 +248,7 @@ export default function POSPage() {
 
     const handleAddProduct = async () => {
         if (!barcode.trim()) {
-            setError("Введите штрихкод или ID товара");
+            setError("Enter barcode or product ID");
             return;
         }
 
@@ -236,7 +256,7 @@ export default function POSPage() {
             setError("");
             setLoading(true);
 
-            // Try to get product by ID or SKU
+            // Try to get product by ID, SKU, barcode or name
             let product = null;
             const allProducts = await productsApi.getAll();
             product = allProducts.find(
@@ -246,8 +266,18 @@ export default function POSPage() {
                     p.barcode === barcode
             );
 
+            // Fallback: search by name / SKU (partial match)
             if (!product) {
-                setError("Товар не найден");
+                const q = barcode.toLowerCase();
+                product = allProducts.find(
+                    (p) =>
+                        (p.name || "").toLowerCase().includes(q) ||
+                        (p.sku || "").toLowerCase().includes(q)
+                );
+            }
+
+            if (!product) {
+                setError("Product not found");
                 return;
             }
 
@@ -285,7 +315,7 @@ export default function POSPage() {
                 }
             }, 100);
         } catch (e) {
-            setError(e?.response?.data?.error || e?.message || "Ошибка при добавлении товара");
+            setError(e?.response?.data?.error || e?.message || "Error while adding product");
             // Return focus even on error
             setTimeout(() => {
                 if (barcodeInputRef.current) {
@@ -310,7 +340,7 @@ export default function POSPage() {
 
     const handlePay = async () => {
         if (cart.length === 0) {
-            setError("Добавьте товары в чек");
+            setError("Add products to the receipt first");
             return;
         }
 
@@ -334,9 +364,8 @@ export default function POSPage() {
                 payment_type: paymentType,
             });
 
-            const successMessage = `Продажа успешно создана! ID: ${result.sale_id}`;
+            const successMessage = `Sale created successfully! ID: ${result.sale_id}`;
             setSuccess(successMessage);
-            setSaleId(result.sale_id);
             setCart([]);
             // Show alert for demo purposes
             alert(successMessage);
@@ -347,7 +376,7 @@ export default function POSPage() {
                 }
             }, 100);
         } catch (e) {
-            setError(e?.response?.data?.error || e?.message || "Ошибка при создании продажи");
+            setError(e?.response?.data?.error || e?.message || "Error while creating sale");
             // Return focus on error
             setTimeout(() => {
                 if (barcodeInputRef.current) {
@@ -363,18 +392,34 @@ export default function POSPage() {
         return sum + (item.price - (item.discount || 0)) * item.qty;
     }, 0) - (parseFloat(discount) || 0);
 
+    // Global hotkeys for POS: Enter is handled in the input, F2 triggers payment
+    useEffect(() => {
+        const onKeyDown = (e) => {
+            if (e.key === "F2") {
+                e.preventDefault();
+                if (!loading && cart.length > 0) {
+                    handlePay();
+                }
+            }
+        };
+
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loading, cart.length, total]);
+
     return (
-        <Layout title="POS - Точка продаж">
+        <Layout title="POS - Point of sale">
             <POSContainer>
                 {error && <ErrorMessage>{error}</ErrorMessage>}
                 {success && <SuccessMessage>{success}</SuccessMessage>}
 
                 <Section>
-                    <SectionTitle>Добавить товар (сканирование штрихкода)</SectionTitle>
+                    <SectionTitle>Add product (barcode, ID or name)</SectionTitle>
                     <SearchInput
                         ref={barcodeInputRef}
                         type="text"
-                        placeholder="Сканируйте штрихкод или введите вручную и нажмите Enter"
+                        placeholder="Scan barcode or enter ID / name and press Enter"
                         value={barcode}
                         onChange={(e) => setBarcode(e.target.value)}
                         onKeyDown={(e) => {
@@ -403,13 +448,20 @@ export default function POSPage() {
                         autoFocus
                         autoComplete="off"
                     />
+                    <AddButton
+                        type="button"
+                        onClick={handleAddProduct}
+                        disabled={loading || !barcode.trim()}
+                    >
+                        Add product (Enter)
+                    </AddButton>
                 </Section>
 
                 <Section>
-                    <SectionTitle>Чек продажи</SectionTitle>
+                    <SectionTitle>Sales receipt</SectionTitle>
                     {cart.length === 0 ? (
                         <div style={{ color: "var(--text-secondary)", textAlign: "center", padding: "20px" }}>
-                            Чек пуст. Добавьте товары.
+                            Receipt is empty. Add products.
                         </div>
                     ) : (
                         <>
@@ -432,7 +484,7 @@ export default function POSPage() {
                                         </ItemInfo>
                                         <ItemActions>
                                             <RemoveBtn onClick={() => handleRemoveItem(index)}>
-                                                Удалить
+                                                Remove
                                             </RemoveBtn>
                                         </ItemActions>
                                     </CartItem>
@@ -441,7 +493,7 @@ export default function POSPage() {
 
                             <FormRow>
                                 <FormField>
-                                    <FormLabel>ID склада</FormLabel>
+                                    <FormLabel>Warehouse ID</FormLabel>
                                     <FormInput
                                         type="number"
                                         value={warehouseId}
@@ -449,7 +501,7 @@ export default function POSPage() {
                                     />
                                 </FormField>
                                 <FormField>
-                                    <FormLabel>ID магазина</FormLabel>
+                                    <FormLabel>Store ID</FormLabel>
                                     <FormInput
                                         type="number"
                                         value={storeId}
@@ -460,18 +512,18 @@ export default function POSPage() {
 
                             <FormRow>
                                 <FormField>
-                                    <FormLabel>Тип оплаты</FormLabel>
+                                    <FormLabel>Payment type</FormLabel>
                                     <FormInput
                                         as="select"
                                         value={paymentType}
                                         onChange={(e) => setPaymentType(e.target.value)}
                                     >
-                                        <option value="CASH">Наличные</option>
-                                        <option value="CARD">Карта</option>
+                                        <option value="CASH">Cash</option>
+                                        <option value="CARD">Card</option>
                                     </FormInput>
                                 </FormField>
                                 <FormField>
-                                    <FormLabel>Скидка</FormLabel>
+                                    <FormLabel>Discount</FormLabel>
                                     <FormInput
                                         type="number"
                                         step="0.01"
@@ -482,12 +534,12 @@ export default function POSPage() {
                             </FormRow>
 
                             <TotalSection>
-                                <TotalLabel>Итого:</TotalLabel>
+                                <TotalLabel>Total:</TotalLabel>
                                 <TotalAmount>{total.toFixed(2)} ₸</TotalAmount>
                             </TotalSection>
 
                             <PayButton onClick={handlePay} disabled={loading || cart.length === 0}>
-                                {loading ? "Обработка..." : "Оплатить"}
+                                {loading ? "Processing..." : "Pay (F2)"}
                             </PayButton>
                         </>
                     )}

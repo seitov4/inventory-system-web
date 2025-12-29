@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import Layout from "../../components/Layout/Layout";
 import productsApi from "../../api/productsApi";
+import movementsApi from "../../api/movementsApi";
 
 // ===== STYLED COMPONENTS =====
 const FormSection = styled.section`
@@ -184,6 +185,28 @@ const SearchInput = styled.input`
     }
 `;
 
+const FilterChipsRow = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+`;
+
+const FilterChip = styled.button`
+    border: none;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    background: ${props => (props.$active ? "var(--primary-color)" : "var(--bg-tertiary)")};
+    color: ${props => (props.$active ? "#ffffff" : "var(--text-secondary)")};
+    font-weight: ${props => (props.$active ? 600 : 500)};
+
+    &:hover {
+        background: ${props => (props.$active ? "var(--primary-hover)" : "var(--bg-secondary)")};
+    }
+`;
+
 const TableContainer = styled.div`
     border-radius: 16px;
     overflow: hidden;
@@ -270,6 +293,7 @@ const EmptyState = styled.div`
 export default function ProductsPage() {
     const [products, setProducts] = useState([]);
     const [stockRows, setStockRows] = useState([]);
+    const [recentMovementProductIds, setRecentMovementProductIds] = useState([]);
 
     const [form, setForm] = useState({
         name: "",
@@ -286,8 +310,25 @@ export default function ProductsPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
+    const [filter, setFilter] = useState("ALL"); // ALL | LOW_STOCK | NO_MOVEMENTS_30
+
+    const [inlineEdit, setInlineEdit] = useState({
+        id: null,
+        field: null,
+        value: "",
+    });
 
     useEffect(() => {
+        // Initialize search string from global search/notifications
+        const fromSearch = sessionStorage.getItem("globalSearchQuery");
+        const fromNotification = sessionStorage.getItem("lastNotificationProductId");
+        if (fromSearch) {
+            setQ(fromSearch);
+            sessionStorage.removeItem("globalSearchQuery");
+        } else if (fromNotification) {
+            setQ(fromNotification);
+            sessionStorage.removeItem("lastNotificationProductId");
+        }
         loadAll();
     }, []);
 
@@ -295,15 +336,38 @@ export default function ProductsPage() {
         try {
             setLoading(true);
             setError("");
-            const [allProducts, left] = await Promise.all([
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            const [allProducts, left, recentMovements] = await Promise.all([
                 productsApi.getAll().catch(() => []),
                 productsApi.getProductsLeft().catch(() => []),
+                movementsApi
+                    .getMovements({
+                        date_from: thirtyDaysAgo.toISOString(),
+                        limit: 1000,
+                    })
+                    .catch(() => []),
             ]);
             setProducts(Array.isArray(allProducts) ? allProducts : []);
             setStockRows(Array.isArray(left) ? left : []);
+
+            // remember which products had movements in the last 30 days
+            if (Array.isArray(recentMovements)) {
+                const ids = Array.from(
+                    new Set(
+                        recentMovements
+                            .map((m) => m.product_id)
+                            .filter((id) => typeof id === "number")
+                    )
+                );
+                setRecentMovementProductIds(ids);
+            } else {
+                setRecentMovementProductIds([]);
+            }
         } catch (e) {
             console.error(e);
-            setError("Не удалось загрузить данные по товарам.");
+            setError("Failed to load product data.");
         } finally {
             setLoading(false);
         }
@@ -326,6 +390,70 @@ export default function ProductsPage() {
         setEditingId(null);
     };
 
+    const startInlineEdit = (product, field) => {
+        if (field !== "sale_price" && field !== "min_stock") return;
+        const currentValue =
+            field === "sale_price"
+                ? product.sale_price ?? ""
+                : product.min_stock ?? "";
+        setInlineEdit({
+            id: product.id,
+            field,
+            value: currentValue === null ? "" : String(currentValue),
+        });
+    };
+
+    const handleInlineChange = (e) => {
+        setInlineEdit((prev) => ({ ...prev, value: e.target.value }));
+    };
+
+    const commitInlineEdit = async () => {
+        if (!inlineEdit.id || !inlineEdit.field) return;
+
+        const product = products.find((p) => p.id === inlineEdit.id);
+        if (!product) {
+            setInlineEdit({ id: null, field: null, value: "" });
+            return;
+        }
+
+        const numeric = Number(inlineEdit.value);
+        if (Number.isNaN(numeric) || numeric < 0) {
+            alert("Value must be a non-negative number");
+            return;
+        }
+
+        const payload = {
+            name: product.name,
+            sku: product.sku,
+            category: product.category,
+            barcode: product.barcode,
+            purchase_price: product.purchase_price ?? 0,
+            sale_price:
+                inlineEdit.field === "sale_price"
+                    ? numeric
+                    : product.sale_price ?? 0,
+            min_stock:
+                inlineEdit.field === "min_stock"
+                    ? numeric
+                    : product.min_stock ?? 0,
+        };
+
+        try {
+            setSaving(true);
+            setError("");
+            setMessage("");
+            await productsApi.update(product.id, payload);
+            setMessage("Product updated.");
+            setInlineEdit({ id: null, field: null, value: "" });
+            await loadAll();
+        } catch (e) {
+            console.error(e);
+            setError("Failed to update product.");
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const handleEdit = (product) => {
         setEditingId(product.id);
         setForm({
@@ -339,17 +467,17 @@ export default function ProductsPage() {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Удалить этот товар?")) return;
+        if (!window.confirm("Delete this product?")) return;
         try {
             setSaving(true);
             setError("");
             setMessage("");
             await productsApi.remove(id);
-            setMessage("Товар удалён.");
+            setMessage("Product deleted.");
             await loadAll();
         } catch (e) {
             console.error(e);
-            setError("Не удалось удалить товар.");
+            setError("Failed to delete product.");
         } finally {
             setSaving(false);
         }
@@ -361,7 +489,7 @@ export default function ProductsPage() {
         setMessage("");
 
         if (!form.name.trim()) {
-            setError("Название товара обязательно.");
+            setError("Product name is required.");
             return;
         }
 
@@ -380,37 +508,82 @@ export default function ProductsPage() {
             setSaving(true);
             if (editingId) {
                 await productsApi.update(editingId, payload);
-                setMessage("Товар обновлён.");
+                setMessage("Product updated.");
             } else {
                 await productsApi.create(payload);
-                setMessage("Товар добавлен.");
+                setMessage("Product created.");
             }
             resetForm();
             await loadAll();
         } catch (e) {
             console.error(e);
-            setError("Не удалось сохранить товар.");
+            setError("Failed to save product.");
         } finally {
             setSaving(false);
         }
     };
 
+    const productQuantityMap = useMemo(() => {
+        const map = new Map();
+        stockRows.forEach((row) => {
+            const qty = row.quantity ?? row.qty ?? 0;
+            map.set(row.id, qty);
+        });
+        return map;
+    }, [stockRows]);
+
+    const lowStockSet = useMemo(() => {
+        const set = new Set();
+        stockRows.forEach((row) => {
+            const qty = row.quantity ?? row.qty ?? 0;
+            const min = row.min_stock ?? 0;
+            if (min > 0 && qty <= min) {
+                set.add(row.id);
+            }
+        });
+        return set;
+    }, [stockRows]);
+
+    const recentMovementSet = useMemo(
+        () => new Set(recentMovementProductIds),
+        [recentMovementProductIds]
+    );
+
+    const noMovementsCount = useMemo(() => {
+        if (!products.length) return 0;
+        if (!recentMovementProductIds.length) return 0;
+        return products.filter((p) => !recentMovementSet.has(p.id)).length;
+    }, [products, recentMovementProductIds, recentMovementSet]);
+
     const filteredProducts = useMemo(() => {
-        const s = q.toLowerCase().trim();
-        if (!s) return products;
-        return products.filter((p) =>
-            ((p.name || "") + " " + (p.sku || "") + " " + (p.barcode || ""))
-                .toLowerCase()
-                .includes(s)
-        );
-    }, [q, products]);
+        const search = q.toLowerCase().trim();
+
+        let list = products;
+        if (search) {
+            list = list.filter((p) =>
+                ((p.name || "") + " " + (p.sku || "") + " " + (p.barcode || ""))
+                    .toLowerCase()
+                    .includes(search)
+            );
+        }
+
+        if (filter === "LOW_STOCK") {
+            list = list.filter((p) => lowStockSet.has(p.id));
+        } else if (filter === "NO_MOVEMENTS_30") {
+            if (recentMovementProductIds.length) {
+                list = list.filter((p) => !recentMovementSet.has(p.id));
+            }
+        }
+
+        return list;
+    }, [q, products, filter, lowStockSet, recentMovementProductIds, recentMovementSet]);
 
     return (
-        <Layout title="Товары и остатки">
+        <Layout title="Products & stock">
             {/* Form CRUD */}
             <FormSection>
                 <FormTitle>
-                    {editingId ? "Редактирование товара" : "Добавление товара"}
+                    {editingId ? "Edit product" : "Add product"}
                 </FormTitle>
 
                 {error && <ErrorText>{error}</ErrorText>}
@@ -418,12 +591,12 @@ export default function ProductsPage() {
 
                 <Form onSubmit={handleSubmit}>
                     <FormField>
-                        <FormLabel>Название*</FormLabel>
+                        <FormLabel>Name*</FormLabel>
                         <FormInput
                             name="name"
                             value={form.name}
                             onChange={handleChange}
-                            placeholder="Например, Молоко 2.5%"
+                            placeholder="For example, Milk 2.5%"
                         />
                     </FormField>
 
@@ -433,22 +606,22 @@ export default function ProductsPage() {
                             name="sku"
                             value={form.sku}
                             onChange={handleChange}
-                            placeholder="Артикул"
+                            placeholder="SKU"
                         />
                     </FormField>
 
                     <FormField>
-                        <FormLabel>Штрих-код</FormLabel>
+                        <FormLabel>Barcode</FormLabel>
                         <FormInput
                             name="barcode"
                             value={form.barcode}
                             onChange={handleChange}
-                            placeholder="Штрих-код"
+                            placeholder="Barcode"
                         />
                     </FormField>
 
                     <FormField>
-                        <FormLabel>Закупочная цена</FormLabel>
+                        <FormLabel>Purchase price</FormLabel>
                         <FormInput
                             name="purchase_price"
                             type="number"
@@ -460,7 +633,7 @@ export default function ProductsPage() {
                     </FormField>
 
                     <FormField>
-                        <FormLabel>Цена продажи</FormLabel>
+                        <FormLabel>Sale price</FormLabel>
                         <FormInput
                             name="sale_price"
                             type="number"
@@ -472,7 +645,7 @@ export default function ProductsPage() {
                     </FormField>
 
                     <FormField>
-                        <FormLabel>Мин. остаток</FormLabel>
+                        <FormLabel>Min. stock</FormLabel>
                         <FormInput
                             name="min_stock"
                             type="number"
@@ -485,14 +658,14 @@ export default function ProductsPage() {
                     <ButtonGroup>
                         <BtnPrimary type="submit" disabled={saving}>
                             {saving
-                                ? "Сохранение..."
+                                ? "Saving..."
                                 : editingId
-                                    ? "Сохранить"
-                                    : "Добавить"}
+                                    ? "Save"
+                                    : "Add"}
                         </BtnPrimary>
                         {editingId && (
                             <BtnSecondary type="button" onClick={resetForm}>
-                                Отмена
+                                Cancel
                             </BtnSecondary>
                         )}
                     </ButtonGroup>
@@ -502,26 +675,50 @@ export default function ProductsPage() {
             {/* Products Table */}
             <SectionWrapper>
                 <SectionHeader>
-                    <SectionTitle>Номенклатура товаров</SectionTitle>
+                    <SectionTitle>Product catalog</SectionTitle>
                     <SearchInput
                         type="text"
-                        placeholder="Поиск по товарам..."
+                        placeholder="Search products..."
                         value={q}
                         onChange={(e) => setQ(e.target.value)}
                     />
                 </SectionHeader>
+                <FilterChipsRow>
+                    <FilterChip
+                        type="button"
+                        $active={filter === "ALL"}
+                        onClick={() => setFilter("ALL")}
+                    >
+                        All
+                    </FilterChip>
+                    <FilterChip
+                        type="button"
+                        $active={filter === "LOW_STOCK"}
+                        onClick={() => setFilter("LOW_STOCK")}
+                    >
+                        Low stock ({lowStockSet.size})
+                    </FilterChip>
+                    <FilterChip
+                        type="button"
+                        $active={filter === "NO_MOVEMENTS_30"}
+                        onClick={() => setFilter("NO_MOVEMENTS_30")}
+                    >
+                        No movements 30 days
+                        {noMovementsCount > 0 ? ` (${noMovementsCount})` : ""}
+                    </FilterChip>
+                </FilterChipsRow>
 
                 <TableContainer>
                     <Table>
                         <TableHead>
                             <tr>
-                                <Th>Название</Th>
+                                <Th>Name</Th>
                                 <Th>SKU</Th>
-                                <Th>Штрих-код</Th>
-                                <Th>Закупочная</Th>
-                                <Th>Цена продажи</Th>
-                                <Th>Мин. остаток</Th>
-                                <Th>Действия</Th>
+                                <Th>Barcode</Th>
+                                <Th>Purchase</Th>
+                                <Th>Sale price</Th>
+                                <Th>Min. stock</Th>
+                                <Th>Actions</Th>
                             </tr>
                         </TableHead>
                         <tbody>
@@ -531,14 +728,99 @@ export default function ProductsPage() {
                                     <Td>{p.sku}</Td>
                                     <Td>{p.barcode}</Td>
                                     <Td>{p.purchase_price ?? "—"}</Td>
-                                    <Td>{p.sale_price ?? "—"}</Td>
-                                    <Td>{p.min_stock ?? 0}</Td>
+                                    <Td
+                                        onClick={() => startInlineEdit(p, "sale_price")}
+                                        style={{ cursor: "pointer" }}
+                                    >
+                                        {inlineEdit.id === p.id && inlineEdit.field === "sale_price" ? (
+                                            <FormInput
+                                                as="input"
+                                                type="number"
+                                                step="0.01"
+                                                value={inlineEdit.value}
+                                                onChange={handleInlineChange}
+                                                onBlur={commitInlineEdit}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter") {
+                                                        e.preventDefault();
+                                                        commitInlineEdit();
+                                                    }
+                                                    if (e.key === "Escape") {
+                                                        setInlineEdit({
+                                                            id: null,
+                                                            field: null,
+                                                            value: "",
+                                                        });
+                                                    }
+                                                }}
+                                                style={{ maxWidth: 100 }}
+                                            />
+                                        ) : (
+                                            p.sale_price ?? "—"
+                                        )}
+                                    </Td>
+                                    <Td
+                                        onClick={() => startInlineEdit(p, "min_stock")}
+                                        style={{ cursor: "pointer" }}
+                                    >
+                                        {inlineEdit.id === p.id && inlineEdit.field === "min_stock" ? (
+                                            <FormInput
+                                                as="input"
+                                                type="number"
+                                                value={inlineEdit.value}
+                                                onChange={handleInlineChange}
+                                                onBlur={commitInlineEdit}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter") {
+                                                        e.preventDefault();
+                                                        commitInlineEdit();
+                                                    }
+                                                    if (e.key === "Escape") {
+                                                        setInlineEdit({
+                                                            id: null,
+                                                            field: null,
+                                                            value: "",
+                                                        });
+                                                    }
+                                                }}
+                                                style={{ maxWidth: 80 }}
+                                            />
+                                        ) : (
+                                            <>
+                                                {p.min_stock ?? 0}
+                                                {(() => {
+                                                    const qty =
+                                                        productQuantityMap.get(p.id) ?? 0;
+                                                    const min = p.min_stock ?? 0;
+                                                    const isLow =
+                                                        min > 0 && qty <= min;
+                                                    if (!isLow) return null;
+                                                    return (
+                                                        <span
+                                                            style={{
+                                                                marginLeft: 6,
+                                                                padding: "2px 6px",
+                                                                borderRadius: 999,
+                                                                fontSize: 11,
+                                                                fontWeight: 600,
+                                                                background:
+                                                                    "var(--error-bg)",
+                                                                color: "var(--error-color)",
+                                                            }}
+                                                        >
+                                                            LOW
+                                                        </span>
+                                                    );
+                                                })()}
+                                            </>
+                                        )}
+                                    </Td>
                                     <TdActions>
                                         <LinkButton type="button" onClick={() => handleEdit(p)}>
-                                            Редактировать
+                                            Edit
                                         </LinkButton>
                                         <LinkButton type="button" $danger onClick={() => handleDelete(p.id)}>
-                                            Удалить
+                                            Delete
                                         </LinkButton>
                                     </TdActions>
                                 </tr>
@@ -547,7 +829,7 @@ export default function ProductsPage() {
                     </Table>
 
                     {filteredProducts.length === 0 && !loading && (
-                        <EmptyState>Товары не найдены</EmptyState>
+                        <EmptyState>No products found</EmptyState>
                     )}
                 </TableContainer>
             </SectionWrapper>
@@ -555,17 +837,17 @@ export default function ProductsPage() {
             {/* Stock Table */}
             <SectionWrapper>
                 <SectionTitle style={{ marginBottom: 10 }}>
-                    Остатки по складам (данные /products/left)
+                    Stock by warehouse (data from /products/left)
                 </SectionTitle>
 
                 <TableContainer>
                     <Table>
                         <TableHead>
                             <tr>
-                                <Th>Склад / магазин</Th>
-                                <Th>Товар</Th>
+                                <Th>Warehouse / store</Th>
+                                <Th>Product</Th>
                                 <Th>SKU</Th>
-                                <Th>Остаток</Th>
+                                <Th>Quantity</Th>
                             </tr>
                         </TableHead>
                         <tbody>
@@ -581,7 +863,7 @@ export default function ProductsPage() {
                     </Table>
 
                     {stockRows.length === 0 && (
-                        <EmptyState>Данные по остаткам отсутствуют</EmptyState>
+                        <EmptyState>No stock data available</EmptyState>
                     )}
                 </TableContainer>
             </SectionWrapper>

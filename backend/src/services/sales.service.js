@@ -89,11 +89,11 @@ export async function createSale({
             const price = Number(item.price) || 0;
             const itemDiscount = Number(item.discount || 0);
 
-            // Insert sale item
+            // Insert sale item (use qty as primary field, quantity as legacy)
             await client.query(
                 `INSERT INTO sale_items
-                     (sale_id, product_id, quantity, price, discount)
-                 VALUES ($1, $2, $3, $4, $5)`,
+                     (sale_id, product_id, qty, quantity, price, discount)
+                 VALUES ($1, $2, $3, $3, $4, $5)`,
                 [sale.id, product_id, qty, price, itemDiscount]
             );
 

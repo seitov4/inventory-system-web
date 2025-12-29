@@ -240,7 +240,7 @@ export default function AddEmployeePage() {
 
         const { firstName, lastName, contact, role, password } = employee;
         if (!firstName || !lastName || !contact || !password) {
-            setError("Заполните все обязательные поля");
+            setError("Fill in all required fields");
             return;
         }
 
@@ -253,7 +253,7 @@ export default function AddEmployeePage() {
                 role,
                 password,
             });
-            setSuccess("Сотрудник успешно добавлен");
+            setSuccess("Employee successfully added");
             setEmployee({
                 firstName: "",
                 lastName: "",
@@ -264,7 +264,7 @@ export default function AddEmployeePage() {
         } catch (e) {
             console.error(e);
             const msg =
-                e?.response?.data?.error || e?.response?.data?.message || e?.message || "Ошибка при добавлении сотрудника";
+                e?.response?.data?.error || e?.response?.data?.message || e?.message || "Error adding employee";
             setError(msg);
         } finally {
             setSaving(false);
@@ -272,14 +272,14 @@ export default function AddEmployeePage() {
     };
 
     return (
-        <Layout title="Добавить сотрудника">
+        <Layout title="Add employee">
             <PageWrapper>
                 <Card>
                     <Header>
-                        <Title>Добавить нового сотрудника</Title>
+                        <Title>Add new employee</Title>
                         <Subtitle>
-                            Сотрудник получит доступ к системе в рамках текущего магазина.
-                            Роль определяет уровень доступа.
+                            Employee will get access to the system within the current store.
+                            Role determines access level.
                         </Subtitle>
                     </Header>
 
@@ -290,28 +290,28 @@ export default function AddEmployeePage() {
                         <FormRow>
                             <FormGroup>
                                 <FormLabel>
-                                    Имя <Required>*</Required>
+                                    First name <Required>*</Required>
                                 </FormLabel>
                                 <FormInput
                                     type="text"
                                     name="firstName"
                                     value={employee.firstName}
                                     onChange={handleChange}
-                                    placeholder="Имя сотрудника"
+                                    placeholder="Employee first name"
                                     required
                                 />
                             </FormGroup>
 
                             <FormGroup>
                                 <FormLabel>
-                                    Фамилия <Required>*</Required>
+                                    Last name <Required>*</Required>
                                 </FormLabel>
                                 <FormInput
                                     type="text"
                                     name="lastName"
                                     value={employee.lastName}
                                     onChange={handleChange}
-                                    placeholder="Фамилия сотрудника"
+                                    placeholder="Employee last name"
                                     required
                                 />
                             </FormGroup>
@@ -320,21 +320,21 @@ export default function AddEmployeePage() {
                         <FormRow>
                             <FormGroup>
                                 <FormLabel>
-                                    Телефон или Email <Required>*</Required>
+                                    Phone or Email <Required>*</Required>
                                 </FormLabel>
                                 <FormInput
                                     type="text"
                                     name="contact"
                                     value={employee.contact}
                                     onChange={handleChange}
-                                    placeholder="+7... или you@example.com"
+                                    placeholder="+1... or you@example.com"
                                     required
                                 />
                             </FormGroup>
 
                             <FormGroup>
                                 <FormLabel>
-                                    Роль <Required>*</Required>
+                                    Role <Required>*</Required>
                                 </FormLabel>
                                 <FormSelect
                                     name="role"
@@ -342,9 +342,9 @@ export default function AddEmployeePage() {
                                     onChange={handleChange}
                                     required
                                 >
-                                    <option value="cashier">Кассир (cashier)</option>
-                                    <option value="manager">Менеджер (manager)</option>
-                                    <option value="admin">Администратор (admin)</option>
+                                    <option value="cashier">Cashier</option>
+                                    <option value="manager">Manager</option>
+                                    <option value="admin">Administrator</option>
                                 </FormSelect>
                             </FormGroup>
                         </FormRow>
@@ -352,14 +352,14 @@ export default function AddEmployeePage() {
                         <FormRow>
                             <FormGroup>
                                 <FormLabel>
-                                    Пароль <Required>*</Required>
+                                    Password <Required>*</Required>
                                 </FormLabel>
                                 <FormInput
                                     type="text"
                                     name="password"
                                     value={employee.password}
                                     onChange={handleChange}
-                                    placeholder="Задайте или сгенерируйте пароль"
+                                    placeholder="Set or generate password"
                                     required
                                 />
                             </FormGroup>
@@ -367,14 +367,14 @@ export default function AddEmployeePage() {
                             <FormGroupAction>
                                 <FormLabel>&nbsp;</FormLabel>
                                 <BtnSecondary type="button" onClick={generatePassword}>
-                                    Сгенерировать пароль
+                                    Generate password
                                 </BtnSecondary>
                             </FormGroupAction>
                         </FormRow>
 
                         <FormActions>
                             <BtnPrimary type="submit" disabled={saving}>
-                                {saving ? "Сохранение..." : "Добавить сотрудника"}
+                                {saving ? "Saving..." : "Add employee"}
                             </BtnPrimary>
                         </FormActions>
                     </Form>

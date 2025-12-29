@@ -3,8 +3,8 @@ import { createContext, useState, useContext } from "react";
 
 const PageContext = createContext();
 
-export const PageProvider = ({ children }) => {
-    const [activePage, setActivePage] = useState("landing");
+export const PageProvider = ({ children, initialPage = "landing" }) => {
+    const [activePage, setActivePage] = useState(initialPage);
 
     // Helper function to check if current page requires sidebar
     const needsSidebar = () => {
@@ -15,6 +15,7 @@ export const PageProvider = ({ children }) => {
             "pos",
             "sales",
             "warehouse",
+            "movements",
             "notifications",
             "addEmployee",
             "settings",
