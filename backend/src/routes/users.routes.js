@@ -26,11 +26,11 @@ router.get(
     }
 );
 
-// POST /api/users — добавление сотрудника - admin only
+// POST /api/users — добавление сотрудника - admin or owner only
 router.post(
     "/",
     authRequired,
-    requireRole("admin"),
+    requireRole("admin", "owner"),
     async (req, res, next) => {
         try {
             const {
@@ -81,11 +81,11 @@ router.post(
     }
 );
 
-// PUT /api/users/:id — обновление сотрудника - admin only
+// PUT /api/users/:id — обновление сотрудника - admin or owner only
 router.put(
     "/:id",
     authRequired,
-    requireRole("admin"),
+    requireRole("admin", "owner"),
     async (req, res, next) => {
         try {
             const { id } = req.params;
@@ -118,11 +118,11 @@ router.put(
     }
 );
 
-// DELETE /api/users/:id — удаление сотрудника - admin only
+// DELETE /api/users/:id — удаление сотрудника - admin or owner only
 router.delete(
     "/:id",
     authRequired,
-    requireRole("admin"),
+    requireRole("admin", "owner"),
     async (req, res, next) => {
         try {
             const { id } = req.params;

@@ -3,6 +3,7 @@ import styled from "styled-components";
 import Layout from "../../components/Layout/Layout";
 import productsApi from "../../api/productsApi";
 import salesApi from "../../api/salesApi";
+import { fadeInUp, fadeOutCollapse, slideIn } from "../../utils/animations";
 
 const POSContainer = styled.div`
     max-width: 800px;
@@ -51,6 +52,8 @@ const CartItem = styled.div`
     background: var(--bg-tertiary);
     border-radius: 8px;
     margin-bottom: 8px;
+    opacity: 0;
+    transform: translateY(8px);
 `;
 
 const ItemInfo = styled.div`
@@ -167,6 +170,8 @@ const ErrorMessage = styled.div`
     color: var(--error-color);
     border-radius: 8px;
     margin-bottom: 16px;
+    opacity: 0;
+    transform: translateY(-8px);
 `;
 
 const SuccessMessage = styled.div`
@@ -175,6 +180,8 @@ const SuccessMessage = styled.div`
     color: var(--success-color);
     border-radius: 8px;
     margin-bottom: 16px;
+    opacity: 0;
+    transform: translateY(-8px);
 `;
 
 const FormRow = styled.div`
@@ -328,7 +335,14 @@ export default function POSPage() {
     };
 
     const handleRemoveItem = (index) => {
-        setCart(cart.filter((_, i) => i !== index));
+        const itemElement = document.querySelector(`[data-cart-item-index="${index}"]`);
+        if (itemElement) {
+            fadeOutCollapse(itemElement, () => {
+                setCart(cart.filter((_, i) => i !== index));
+            });
+        } else {
+            setCart(cart.filter((_, i) => i !== index));
+        }
     };
 
     const handleUpdateQty = (index, newQty) => {
@@ -411,8 +425,38 @@ export default function POSPage() {
     return (
         <Layout title="POS - Point of sale">
             <POSContainer>
-                {error && <ErrorMessage>{error}</ErrorMessage>}
-                {success && <SuccessMessage>{success}</SuccessMessage>}
+                {error && (
+                    <ErrorMessage
+                        ref={(el) => {
+                            if (el && el instanceof HTMLElement && !el.dataset.animated) {
+                                el.dataset.animated = 'true';
+                                requestAnimationFrame(() => {
+                                    if (el && el.isConnected) {
+                                        slideIn(el, 'top', 0, { duration: 400 });
+                                    }
+                                });
+                            }
+                        }}
+                    >
+                        {error}
+                    </ErrorMessage>
+                )}
+                {success && (
+                    <SuccessMessage
+                        ref={(el) => {
+                            if (el && el instanceof HTMLElement && !el.dataset.animated) {
+                                el.dataset.animated = 'true';
+                                requestAnimationFrame(() => {
+                                    if (el && el.isConnected) {
+                                        slideIn(el, 'top', 0, { duration: 400 });
+                                    }
+                                });
+                            }
+                        }}
+                    >
+                        {success}
+                    </SuccessMessage>
+                )}
 
                 <Section>
                     <SectionTitle>Add product (barcode, ID or name)</SectionTitle>
@@ -467,7 +511,21 @@ export default function POSPage() {
                         <>
                             <CartList>
                                 {cart.map((item, index) => (
-                                    <CartItem key={index}>
+                                    <CartItem 
+                                        key={`${item.product_id}-${index}`}
+                                        data-cart-item-index={index}
+                                        ref={(el) => {
+                                            if (el && el instanceof HTMLElement && !el.dataset.animated) {
+                                                el.dataset.animated = 'true';
+                                                // Use requestAnimationFrame to ensure element is fully mounted
+                                                requestAnimationFrame(() => {
+                                                    if (el && el.isConnected) {
+                                                        fadeInUp(el, index * 30, { duration: 400 });
+                                                    }
+                                                });
+                                            }
+                                        }}
+                                    >
                                         <ItemInfo>
                                             <ItemName>{item.name}</ItemName>
                                             <ItemDetails>

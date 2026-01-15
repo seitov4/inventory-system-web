@@ -13,7 +13,7 @@ import Sidebar from "../components/Layout/Sidebar.jsx";
 import LandingPage from "../pages/LandingPage/LandingPage.jsx";
 import LoginPage from "../pages/Login/LoginPage.jsx";
 import RegisterPage from "../pages/Register/RegisterPage.jsx";
-import DashboardPage from "../pages/Dashboard/DashboardPage.jsx";
+import DashboardPage from "../pages/Dashboard/DashboardPageZoneBased.jsx";
 import ProductsPage from "../pages/Products/ProductsPage.jsx";
 import StockInPage from "../pages/StockIn/StockInPage.jsx";
 import SalesPage from "../pages/Sales/SalesPage.jsx";
@@ -87,43 +87,58 @@ const GlobalStyle = createGlobalStyle`
     body[data-theme="dark"],
     :root:not([data-theme]),
     body:not([data-theme]) {
-        /* Backgrounds */
-        --bg-primary: #0B1220;
-        --bg-secondary: #111827;
-        --bg-tertiary: #1F2937;
-        --bg-hover: #1F2937;
+        /* Backgrounds - Layered system for depth */
+        --bg-primary: #0D1117;
+        --bg-secondary: #161B22;
+        --bg-tertiary: #1C2128;
+        --bg-hover: #22272E;
+        --bg-card: #1C2128;
+        --bg-sidebar: #0F1419;
+        --bg-header: #161B22;
         
-        /* Text */
-        --text-primary: #E5E7EB;
-        --text-secondary: #9CA3AF;
-        --text-tertiary: #6B7280;
-        --text-inverse: #0B1220;
+        /* Text - Improved hierarchy */
+        --text-primary: #F0F3F6;
+        --text-secondary: #B1BAC4;
+        --text-tertiary: #8B949E;
+        --text-inverse: #0D1117;
         
-        /* Borders */
-        --border-color: #374151;
-        --border-color-light: rgba(156, 163, 175, 0.2);
+        /* Borders - Subtle separators */
+        --border-color: #30363D;
+        --border-color-light: rgba(240, 243, 246, 0.1);
+        --border-color-subtle: rgba(240, 243, 246, 0.05);
         
-        /* Shadows */
-        --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.5);
-        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
-        --shadow-lg: 0 6px 20px rgba(0, 0, 0, 0.7);
+        /* Shadows - Layered depth */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.25);
+        --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3);
+        --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
         
-        /* Primary */
-        --primary-color: #3B82F6;
-        --primary-hover: #2563EB;
-        --primary-light: #1E3A8A;
+        /* Primary - Consistent blue */
+        --primary-color: #58A6FF;
+        --primary-hover: #4493F8;
+        --primary-light: #1F6FEB;
         
         /* Success */
-        --success-color: #10B981;
-        --success-bg: rgba(16, 185, 129, 0.1);
+        --success-color: #3FB950;
+        --success-bg: rgba(63, 185, 80, 0.15);
         
         /* Error */
-        --error-color: #EF4444;
-        --error-bg: rgba(239, 68, 68, 0.1);
+        --error-color: #F85149;
+        --error-bg: rgba(248, 81, 73, 0.15);
         
         /* Warning */
-        --warning-color: #F59E0B;
-        --warning-bg: rgba(245, 158, 11, 0.1);
+        --warning-color: #D29922;
+        --warning-bg: rgba(210, 153, 34, 0.15);
+        
+        /* Soft Tints for Cards (2-6% opacity) */
+        --tint-blue: rgba(88, 166, 255, 0.04);
+        --tint-blue-strong: rgba(88, 166, 255, 0.06);
+        --tint-green: rgba(63, 185, 80, 0.04);
+        --tint-green-strong: rgba(63, 185, 80, 0.06);
+        --tint-amber: rgba(210, 153, 34, 0.04);
+        --tint-amber-strong: rgba(210, 153, 34, 0.06);
+        --tint-neutral: rgba(240, 243, 246, 0.03);
+        --tint-neutral-strong: rgba(240, 243, 246, 0.05);
     }
 
     code {
@@ -165,6 +180,42 @@ const AppBody = styled.div`
 const MainContent = styled.main`
     flex: 1;
     background: var(--bg-primary);
+    min-height: 100%;
+    position: relative;
+    
+    /* Subtle neutral tint for content area */
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--tint-neutral);
+        pointer-events: none;
+        z-index: 0;
+    }
+    
+    /* Subtle texture for depth */
+    &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+            radial-gradient(circle at 20% 30%, rgba(88, 166, 255, 0.02) 0%, transparent 50%),
+            radial-gradient(circle at 80% 70%, rgba(88, 166, 255, 0.015) 0%, transparent 50%);
+        pointer-events: none;
+        z-index: 0;
+    }
+    
+    /* Ensure content is above tints */
+    > * {
+        position: relative;
+        z-index: 1;
+    }
 `;
 
 // ------------- PAGE RENDERER -------------

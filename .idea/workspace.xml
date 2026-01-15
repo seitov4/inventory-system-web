@@ -6,30 +6,18 @@
   <component name="ChangeListManager">
     <list default="true" id="f389f196-9d98-43d6-ba14-c67799013cf4" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/services/movements.service.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/services/movements.service.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/services/sales.service.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/services/sales.service.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/routes/users.routes.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/routes/users.routes.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/api/apiClient.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/apiClient.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/assets/images/hero-bg.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/Footer/Footer.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/Footer/Footer.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/components/Header/Header.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/Header/Header.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/Layout/Layout.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/Layout/Layout.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/components/Layout/Sidebar.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/Layout/Sidebar.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/context/AuthContext.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/context/AuthContext.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/context/PageContext.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/context/PageContext.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/AddEmployee/AddEmployeePage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/AddEmployee/AddEmployeePage.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/Dashboard/DashboardPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Dashboard/DashboardPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/LandingPage/LandingPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/LandingPage/LandingPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Login/LoginPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Login/LoginPage.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/Notifications/NotificationsPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Notifications/NotificationsPage.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/POS/POSPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/POS/POSPage.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/Products/ProductsPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Products/ProductsPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Register/RegisterPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Register/RegisterPage.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/Sales/SalesPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Sales/SalesPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Settings/SettingsPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Settings/SettingsPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/StockIn/StockInPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/StockIn/StockInPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Warehouse/WarehousePage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Warehouse/WarehousePage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/store-app/StoreAppRoot.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/store-app/StoreAppRoot.jsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -109,6 +97,11 @@
       <workItem from="1766372038157" duration="709000" />
       <workItem from="1766383190917" duration="587000" />
       <workItem from="1766472281015" duration="16494000" />
+      <workItem from="1767155429932" duration="598000" />
+      <workItem from="1767161646056" duration="666000" />
+      <workItem from="1767176338631" duration="5000" />
+      <workItem from="1767601718479" duration="240000" />
+      <workItem from="1768196835531" duration="1780000" />
     </task>
     <servers />
   </component>

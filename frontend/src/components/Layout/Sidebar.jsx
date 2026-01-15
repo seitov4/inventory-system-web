@@ -19,11 +19,44 @@ const navItems = [
 
 // ===== STYLED COMPONENTS =====
 const SidebarWrapper = styled.aside`
-    background: #020617;
-    border-right: 1px solid rgba(15, 23, 42, 0.9);
-    color: #e5e7eb;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border-color);
+    color: var(--text-primary);
     transition: width 0.3s ease;
     width: ${props => props.$collapsed ? '64px' : '240px'};
+    position: relative;
+    
+    /* Subtle neutral tint for sidebar */
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--tint-neutral);
+        pointer-events: none;
+        z-index: 0;
+    }
+    
+    /* Subtle right edge highlight */
+    &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 1px;
+        background: linear-gradient(180deg, transparent, rgba(88, 166, 255, 0.15), transparent);
+        pointer-events: none;
+        z-index: 1;
+    }
+    
+    /* Ensure content is above tint */
+    > * {
+        position: relative;
+        z-index: 1;
+    }
 
     @media (max-width: 720px) {
         display: none;
@@ -52,18 +85,18 @@ const SidebarLabel = styled.div`
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #6b7280;
+    color: var(--text-tertiary);
 `;
 
 const ToggleButton = styled.button`
-    background: rgba(148, 163, 184, 0.2);
-    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
     border-radius: 6px;
-    color: #e5e7eb;
+    color: var(--text-secondary);
     cursor: pointer;
     font-size: 14px;
     padding: 4px 8px;
-    transition: background 0.2s ease;
+    transition: all 0.2s ease;
     width: 28px;
     height: 28px;
     display: flex;
@@ -71,7 +104,9 @@ const ToggleButton = styled.button`
     justify-content: center;
 
     &:hover {
-        background: rgba(148, 163, 184, 0.3);
+        background: var(--bg-hover);
+        border-color: var(--primary-color);
+        color: var(--text-primary);
     }
 `;
 
@@ -85,23 +120,41 @@ const NavLink = styled.button`
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px;
-    border-radius: 8px;
+    padding: 10px 12px;
+    border-radius: 6px;
     font-size: 14px;
-    color: #e5e7eb;
-    background: ${props => props.$active ? 'linear-gradient(90deg, #0ea5e9, #22c55e)' : 'transparent'};
-    color: ${props => props.$active ? '#0f172a' : '#e5e7eb'};
-    font-weight: ${props => props.$active ? '600' : '400'};
+    color: var(--text-secondary);
+    background: ${props => props.$active ? 'var(--primary-color)' : 'transparent'};
+    color: ${props => props.$active ? '#FFFFFF' : 'var(--text-secondary)'};
+    font-weight: ${props => props.$active ? '600' : '500'};
     border: none;
     cursor: pointer;
-    transition: 0.15s ease;
+    transition: all 0.15s ease;
     position: relative;
     justify-content: ${props => props.$collapsed ? 'center' : 'flex-start'};
     width: 100%;
     text-align: left;
+    margin-bottom: 2px;
+
+    /* Active indicator */
+    ${props => props.$active && `
+        &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 60%;
+            background: var(--primary-color);
+            border-radius: 0 2px 2px 0;
+        }
+    `}
 
     &:hover {
-        background: ${props => props.$active ? 'linear-gradient(90deg, #0ea5e9, #22c55e)' : 'rgba(148, 163, 184, 0.18)'};
+        background: ${props => props.$active ? 'var(--primary-hover)' : 'var(--bg-hover)'};
+        color: ${props => props.$active ? '#FFFFFF' : 'var(--text-primary)'};
+        transform: ${props => props.$active ? 'none' : 'translateX(2px)'};
     }
 `;
 
@@ -112,6 +165,8 @@ const NavIcon = styled.span`
     align-items: center;
     justify-content: center;
     width: 24px;
+    opacity: ${props => props.$active ? '1' : '0.8'};
+    transition: opacity 0.15s ease;
 `;
 
 const NavText = styled.span`
@@ -125,7 +180,7 @@ const SidebarSectionBottom = styled.div`
 
 const SidebarFootnote = styled.div`
     font-size: 11px;
-    color: #6b7280;
+    color: var(--text-tertiary);
 `;
 
 // ===== COMPONENT =====
@@ -174,7 +229,7 @@ export default function Sidebar({ onCollapseChange }) {
                                     $collapsed={collapsed}
                                     title={collapsed ? item.label : undefined}
                                 >
-                                    <NavIcon>{item.icon}</NavIcon>
+                                    <NavIcon $active={activePage === item.key}>{item.icon}</NavIcon>
                                     <NavText $collapsed={collapsed}>{item.label}</NavText>
                                 </NavLink>
                             ))}

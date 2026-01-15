@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import styled from "styled-components";
 import Layout from "../../components/Layout/Layout";
 import salesApi from "../../api/salesApi";
+import SalesByDayChart from "../../components/Charts/SalesByDayChart";
 
 // ===== STYLED COMPONENTS =====
 const LoadingText = styled.div`
@@ -168,6 +169,7 @@ export default function SalesPage() {
     const [period, setPeriod] = useState("daily"); // daily, weekly, monthly
     const [data, setData] = useState(null);
     const [chartData, setChartData] = useState({ labels: [], data: [] });
+    const [dailySalesData, setDailySalesData] = useState([]); // For SalesByDayChart
     const [selectedDay, setSelectedDay] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -201,6 +203,41 @@ export default function SalesPage() {
                         data: chartRes.map(item => item.total || 0),
                     });
                 }
+
+                // Load daily sales data for SalesByDayChart
+                // Daily sales aggregation - group by date and sum totals
+                let dailyData = [];
+                if (period === "daily") {
+                    // For daily mode, show last 7 days or just today
+                    const weeklyRes = await salesApi.getWeekly().catch(() => []);
+                    if (Array.isArray(weeklyRes) && weeklyRes.length > 0) {
+                        dailyData = weeklyRes;
+                    } else if (result && result.date) {
+                        // Convert single daily result to array format
+                        dailyData = [{
+                            date: result.date,
+                            total: result.totalRevenue || 0,
+                        }];
+                    } else {
+                        // Generate empty data for last 7 days
+                        const today = new Date();
+                        dailyData = Array.from({ length: 7 }, (_, i) => {
+                            const date = new Date(today);
+                            date.setDate(date.getDate() - (6 - i));
+                            return {
+                                date: date.toISOString().split('T')[0],
+                                total: 0,
+                            };
+                        });
+                    }
+                } else if (period === "weekly") {
+                    // Weekly data is already grouped by day
+                    dailyData = Array.isArray(result) ? result : [];
+                } else if (period === "monthly") {
+                    // Monthly data is already grouped by day
+                    dailyData = Array.isArray(result) ? result : [];
+                }
+                setDailySalesData(dailyData);
             } catch (e) {
                 console.error(e);
                 setError("Failed to load sales data.");
@@ -317,6 +354,15 @@ export default function SalesPage() {
                         endpoint on the backend.
                     </EmptyChart>
                 )}
+            </ChartCard>
+
+            {/* Daily Sales Volume Chart */}
+            <ChartCard>
+                <ChartTitle>Daily Sales Volume {formatPeriodLabel()}</ChartTitle>
+                <SalesByDayChart 
+                    data={dailySalesData} 
+                    period={period}
+                />
             </ChartCard>
         </Layout>
     );

@@ -5,13 +5,101 @@ import productsApi from "../../api/productsApi";
 import movementsApi from "../../api/movementsApi";
 
 // ===== STYLED COMPONENTS =====
+const PageHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    
+    @media (max-width: 640px) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+`;
+
+const AddProductButton = styled.button`
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    background: var(--primary-color);
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    
+    &:hover:not(:disabled) {
+        background: var(--primary-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
+    }
+    
+    &:active:not(:disabled) {
+        transform: translateY(0);
+    }
+    
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    
+    @media (max-width: 640px) {
+        width: 100%;
+        justify-content: center;
+    }
+`;
+
 const FormSection = styled.section`
     margin-bottom: 20px;
     background: var(--bg-secondary);
     border-radius: 16px;
-    padding: 16px;
+    padding: 0;
     box-shadow: var(--shadow-md);
     border: 1px solid var(--border-color);
+    overflow: hidden;
+    max-height: ${props => props.$isOpen ? '2000px' : '0'};
+    opacity: ${props => props.$isOpen ? '1' : '0'};
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                margin-bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-bottom: ${props => props.$isOpen ? '20px' : '0'};
+`;
+
+const FormSectionContent = styled.div`
+    padding: 16px;
+`;
+
+const FormHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+`;
+
+const CloseButton = styled.button`
+    padding: 4px 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    line-height: 1;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+    }
 `;
 
 const FormTitle = styled.h2`
@@ -289,6 +377,178 @@ const EmptyState = styled.div`
     font-size: 14px;
 `;
 
+const MockDataLabel = styled.div`
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    background: rgba(210, 153, 34, 0.1);
+    border: 1px solid rgba(210, 153, 34, 0.3);
+    border-radius: 8px;
+    color: var(--warning-color);
+    font-size: 12px;
+    text-align: center;
+    font-weight: 500;
+`;
+
+// ===== TEMP MOCK DATA — REMOVE WHEN BACKEND READY =====
+// This is for UI/UX testing only. Remove this section when backend is fully connected.
+const MOCK_PRODUCTS = [
+    {
+        id: 1001,
+        name: "Milk 2.5%",
+        sku: "MLK-250-001",
+        barcode: "4607025391234",
+        purchase_price: 180,
+        sale_price: 250,
+        min_stock: 20,
+    },
+    {
+        id: 1002,
+        name: "White Bread",
+        sku: "BRD-WHT-001",
+        barcode: "4607025391235",
+        purchase_price: 45,
+        sale_price: 65,
+        min_stock: 15,
+    },
+    {
+        id: 1003,
+        name: "Sugar 1kg",
+        sku: "SGR-1KG-001",
+        barcode: "4607025391236",
+        purchase_price: 120,
+        sale_price: 180,
+        min_stock: 30,
+    },
+    {
+        id: 1004,
+        name: "Rice 1kg",
+        sku: "RCE-1KG-001",
+        barcode: "4607025391237",
+        purchase_price: 280,
+        sale_price: 420,
+        min_stock: 25,
+    },
+    {
+        id: 1005,
+        name: "Soap Antibacterial",
+        sku: "SOAP-ANT-001",
+        barcode: "4607025391238",
+        purchase_price: 95,
+        sale_price: 150,
+        min_stock: 40,
+    },
+    {
+        id: 1006,
+        name: "Shampoo 400ml",
+        sku: "SHP-400-001",
+        barcode: "4607025391239",
+        purchase_price: 350,
+        sale_price: 520,
+        min_stock: 15,
+    },
+    {
+        id: 1007,
+        name: "Antiseptic 100ml",
+        sku: "ANT-100-001",
+        barcode: "4607025391240",
+        purchase_price: 220,
+        sale_price: 320,
+        min_stock: 20,
+    },
+    {
+        id: 1008,
+        name: "Batteries AA (4pcs)",
+        sku: "BAT-AA-001",
+        barcode: "4607025391241",
+        purchase_price: 180,
+        sale_price: 280,
+        min_stock: 50,
+    },
+    {
+        id: 1009,
+        name: "Water 1.5L",
+        sku: "WTR-1.5-001",
+        barcode: "4607025391242",
+        purchase_price: 60,
+        sale_price: 90,
+        min_stock: 100,
+    },
+    {
+        id: 1010,
+        name: "Chicken Eggs (10pcs)",
+        sku: "EGG-10-001",
+        barcode: "4607025391243",
+        purchase_price: 150,
+        sale_price: 220,
+        min_stock: 30,
+    },
+    {
+        id: 1011,
+        name: "Butter 200g",
+        sku: "BTR-200-001",
+        barcode: "4607025391244",
+        purchase_price: 320,
+        sale_price: 480,
+        min_stock: 20,
+    },
+    {
+        id: 1012,
+        name: "Coffee 250g",
+        sku: "COF-250-001",
+        barcode: "4607025391245",
+        purchase_price: 450,
+        sale_price: 680,
+        min_stock: 15,
+    },
+    {
+        id: 1013,
+        name: "Tea Black 100g",
+        sku: "TEA-100-001",
+        barcode: "4607025391246",
+        purchase_price: 180,
+        sale_price: 270,
+        min_stock: 25,
+    },
+    {
+        id: 1014,
+        name: "Pasta 500g",
+        sku: "PST-500-001",
+        barcode: "4607025391247",
+        purchase_price: 140,
+        sale_price: 210,
+        min_stock: 35,
+    },
+    {
+        id: 1015,
+        name: "Cooking Oil 1L",
+        sku: "OIL-1L-001",
+        barcode: "4607025391248",
+        purchase_price: 380,
+        sale_price: 550,
+        min_stock: 20,
+    },
+];
+
+// Mock stock data (for low stock badges)
+const MOCK_STOCK_ROWS = [
+    { id: 1001, quantity: 15, min_stock: 20 }, // Low stock
+    { id: 1002, quantity: 8, min_stock: 15 },  // Low stock
+    { id: 1003, quantity: 45, min_stock: 30 },
+    { id: 1004, quantity: 12, min_stock: 25 }, // Low stock
+    { id: 1005, quantity: 60, min_stock: 40 },
+    { id: 1006, quantity: 5, min_stock: 15 },  // Low stock
+    { id: 1007, quantity: 25, min_stock: 20 },
+    { id: 1008, quantity: 80, min_stock: 50 },
+    { id: 1009, quantity: 150, min_stock: 100 },
+    { id: 1010, quantity: 18, min_stock: 30 },  // Low stock
+    { id: 1011, quantity: 22, min_stock: 20 },
+    { id: 1012, quantity: 8, min_stock: 15 },    // Low stock
+    { id: 1013, quantity: 30, min_stock: 25 },
+    { id: 1014, quantity: 50, min_stock: 35 },
+    { id: 1015, quantity: 10, min_stock: 20 },  // Low stock
+];
+// ===== END TEMP MOCK DATA =====
+
 // ===== MAIN COMPONENT =====
 export default function ProductsPage() {
     const [products, setProducts] = useState([]);
@@ -317,6 +577,8 @@ export default function ProductsPage() {
         field: null,
         value: "",
     });
+    
+    const [isPanelOpen, setIsPanelOpen] = useState(false);
 
     useEffect(() => {
         // Initialize search string from global search/notifications
@@ -349,8 +611,18 @@ export default function ProductsPage() {
                     })
                     .catch(() => []),
             ]);
-            setProducts(Array.isArray(allProducts) ? allProducts : []);
-            setStockRows(Array.isArray(left) ? left : []);
+            const loadedProducts = Array.isArray(allProducts) ? allProducts : [];
+            const loadedStock = Array.isArray(left) ? left : [];
+            
+            // TEMP MOCK DATA — Use mock data if API returns empty (for UI/UX testing)
+            // REMOVE THIS WHEN BACKEND IS READY
+            if (loadedProducts.length === 0 && process.env.NODE_ENV === 'development') {
+                setProducts(MOCK_PRODUCTS);
+                setStockRows(MOCK_STOCK_ROWS);
+            } else {
+                setProducts(loadedProducts);
+                setStockRows(loadedStock);
+            }
 
             // remember which products had movements in the last 30 days
             if (Array.isArray(recentMovements)) {
@@ -388,7 +660,33 @@ export default function ProductsPage() {
             min_stock: "",
         });
         setEditingId(null);
+        setError("");
+        setMessage("");
     };
+    
+    const handleOpenPanel = () => {
+        resetForm();
+        setIsPanelOpen(true);
+    };
+    
+    const handleClosePanel = () => {
+        setIsPanelOpen(false);
+        resetForm();
+    };
+    
+    // Handle Esc key to close panel
+    useEffect(() => {
+        if (!isPanelOpen) return;
+        
+        const handleEsc = (e) => {
+            if (e.key === 'Escape') {
+                setIsPanelOpen(false);
+                resetForm();
+            }
+        };
+        window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [isPanelOpen]);
 
     const startInlineEdit = (product, field) => {
         if (field !== "sale_price" && field !== "min_stock") return;
@@ -464,6 +762,7 @@ export default function ProductsPage() {
             sale_price: product.sale_price ?? "",
             min_stock: product.min_stock ?? "",
         });
+        setIsPanelOpen(true); // Open panel when editing
     };
 
     const handleDelete = async (id) => {
@@ -509,11 +808,20 @@ export default function ProductsPage() {
             if (editingId) {
                 await productsApi.update(editingId, payload);
                 setMessage("Product updated.");
+                // Close panel after successful update
+                setTimeout(() => {
+                    setIsPanelOpen(false);
+                    resetForm();
+                }, 1000);
             } else {
                 await productsApi.create(payload);
                 setMessage("Product created.");
+                // Close panel after successful creation
+                setTimeout(() => {
+                    setIsPanelOpen(false);
+                    resetForm();
+                }, 1000);
             }
-            resetForm();
             await loadAll();
         } catch (e) {
             console.error(e);
@@ -580,16 +888,39 @@ export default function ProductsPage() {
 
     return (
         <Layout title="Products & stock">
-            {/* Form CRUD */}
-            <FormSection>
-                <FormTitle>
-                    {editingId ? "Edit product" : "Add product"}
-                </FormTitle>
+            {/* Page Header with Add Button */}
+            <PageHeader>
+                <div></div> {/* Spacer for alignment */}
+                <AddProductButton
+                    type="button"
+                    onClick={handleOpenPanel}
+                    disabled={isPanelOpen}
+                >
+                    <span>+</span>
+                    <span>Add product</span>
+                </AddProductButton>
+            </PageHeader>
 
-                {error && <ErrorText>{error}</ErrorText>}
-                {message && <SuccessText>{message}</SuccessText>}
+            {/* Collapsible Form Panel */}
+            <FormSection $isOpen={isPanelOpen}>
+                <FormSectionContent>
+                    <FormHeader>
+                        <FormTitle>
+                            {editingId ? "Edit product" : "New product"}
+                        </FormTitle>
+                        <CloseButton
+                            type="button"
+                            onClick={handleClosePanel}
+                            title="Close (Esc)"
+                        >
+                            ✕
+                        </CloseButton>
+                    </FormHeader>
 
-                <Form onSubmit={handleSubmit}>
+                    {error && <ErrorText>{error}</ErrorText>}
+                    {message && <SuccessText>{message}</SuccessText>}
+
+                    <Form onSubmit={handleSubmit}>
                     <FormField>
                         <FormLabel>Name*</FormLabel>
                         <FormInput
@@ -655,21 +986,20 @@ export default function ProductsPage() {
                         />
                     </FormField>
 
-                    <ButtonGroup>
-                        <BtnPrimary type="submit" disabled={saving}>
-                            {saving
-                                ? "Saving..."
-                                : editingId
-                                    ? "Save"
-                                    : "Add"}
-                        </BtnPrimary>
-                        {editingId && (
-                            <BtnSecondary type="button" onClick={resetForm}>
+                        <ButtonGroup>
+                            <BtnPrimary type="submit" disabled={saving}>
+                                {saving
+                                    ? "Saving..."
+                                    : editingId
+                                        ? "Save"
+                                        : "Add"}
+                            </BtnPrimary>
+                            <BtnSecondary type="button" onClick={handleClosePanel}>
                                 Cancel
                             </BtnSecondary>
-                        )}
-                    </ButtonGroup>
-                </Form>
+                        </ButtonGroup>
+                    </Form>
+                </FormSectionContent>
             </FormSection>
 
             {/* Products Table */}
@@ -683,6 +1013,12 @@ export default function ProductsPage() {
                         onChange={(e) => setQ(e.target.value)}
                     />
                 </SectionHeader>
+                {/* TEMP MOCK DATA LABEL — Remove when backend is ready */}
+                {products.length > 0 && products[0]?.id >= 1000 && process.env.NODE_ENV === 'development' && (
+                    <MockDataLabel>
+                        📋 Demo data shown for layout preview
+                    </MockDataLabel>
+                )}
                 <FilterChipsRow>
                     <FilterChip
                         type="button"

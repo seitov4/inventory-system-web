@@ -10,9 +10,42 @@ const HeaderWrapper = styled.header`
     top: 0;
     z-index: 1000;
     height: 64px;
-    background: var(--bg-secondary);
+    background: var(--bg-header);
     border-bottom: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(8px);
+    position: relative;
+    
+    /* Subtle cool blue tint */
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--tint-blue);
+        pointer-events: none;
+        z-index: 0;
+    }
+    
+    /* Subtle top highlight */
+    &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(88, 166, 255, 0.2), transparent);
+        z-index: 1;
+    }
+    
+    /* Ensure content is above tint */
+    > * {
+        position: relative;
+        z-index: 1;
+    }
 `;
 
 const HeaderInner = styled.div`
@@ -300,11 +333,22 @@ export default function Header() {
                                 value={searchValue}
                                 onChange={(e) => setSearchValue(e.target.value)}
                                 style={{
-                                    padding: "6px 10px",
-                                    borderRadius: 999,
-                                    border: "1px solid var(--border-color)",
-                                    fontSize: 12,
-                                    minWidth: 180,
+                                    padding: "6px 12px",
+                                    borderRadius: 6,
+                                    border: "1px solid var(--border-color-light)",
+                                    fontSize: 13,
+                                    minWidth: 200,
+                                    background: "var(--bg-primary)",
+                                    color: "var(--text-primary)",
+                                    transition: "all 0.15s ease",
+                                }}
+                                onFocus={(e) => {
+                                    e.target.style.borderColor = "var(--primary-color)";
+                                    e.target.style.background = "var(--bg-secondary)";
+                                }}
+                                onBlur={(e) => {
+                                    e.target.style.borderColor = "var(--border-color-light)";
+                                    e.target.style.background = "var(--bg-primary)";
                                 }}
                             />
                         </form>

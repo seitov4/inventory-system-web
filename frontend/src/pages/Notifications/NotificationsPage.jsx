@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import Layout from "../../components/Layout/Layout";
 import notificationsApi from "../../api/notificationsApi";
 import { usePage } from "../../context/PageContext";
+import { slideIn } from "../../utils/animations";
 
 // ===== STYLED COMPONENTS =====
 const LoadingText = styled.div`
@@ -18,6 +19,8 @@ const ErrorText = styled.div`
     background: var(--error-bg);
     border-radius: 8px;
     font-size: 14px;
+    opacity: 0;
+    transform: translateY(-8px);
 `;
 
 const NotificationsList = styled.div`
@@ -36,6 +39,9 @@ const NotificationCard = styled.div`
     align-items: flex-start;
     gap: 16px;
     ${props => props.$unread && `border-left: 3px solid var(--warning-color);`}
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.3s ease, transform 0.3s ease;
 `;
 
 const NotificationContent = styled.div`
@@ -183,7 +189,22 @@ export default function NotificationsPage() {
     return (
         <Layout title="Notifications">
             {loading && <LoadingText>Loading...</LoadingText>}
-            {error && <ErrorText>{error}</ErrorText>}
+            {error && (
+                <ErrorText
+                    ref={(el) => {
+                        if (el && el instanceof HTMLElement && !el.dataset.animated) {
+                            el.dataset.animated = 'true';
+                            requestAnimationFrame(() => {
+                                if (el && el.isConnected) {
+                                    slideIn(el, 'top', 0, { duration: 400 });
+                                }
+                            });
+                        }
+                    }}
+                >
+                    {error}
+                </ErrorText>
+            )}
 
             {!loading && notifications.length === 0 && !error && (
                 <EmptyState>No notifications</EmptyState>
@@ -191,10 +212,31 @@ export default function NotificationsPage() {
 
             {!loading && notifications.length > 0 && (
                 <NotificationsList>
-                    {notifications.map((notification) => {
+                    {notifications.map((notification, index) => {
                         const isUnread = notification.status === 'UNREAD' || notification.is_read === false;
                         return (
-                            <NotificationCard key={notification.id} $unread={isUnread}>
+                            <NotificationCard 
+                                key={notification.id} 
+                                $unread={isUnread}
+                                ref={(el) => {
+                                    if (el && el instanceof HTMLElement && !el.dataset.animated) {
+                                        el.dataset.animated = 'true';
+                                        // Apply animation with delay for staggered effect
+                                        requestAnimationFrame(() => {
+                                            setTimeout(() => {
+                                                if (el && el.isConnected) {
+                                                    try {
+                                                        slideIn(el, 'top', index * 50, { duration: 500 });
+                                                    } catch (err) {
+                                                        console.warn('Animation error:', err);
+                                                        // Element is already visible, so no fallback needed
+                                                    }
+                                                }
+                                            }, index * 50);
+                                        });
+                                    }
+                                }}
+                            >
                                 <NotificationContent>
                                     <NotificationMessage $unread={isUnread}>
                                         {formatNotificationMessage(notification)}
