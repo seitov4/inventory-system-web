@@ -11,6 +11,7 @@ import usersRouter from "./routes/users.routes.js";
 import authRouter from "./routes/auth.routes.js";
 import movementsRouter from "./routes/movements.routes.js";
 import notificationsRouter from "./routes/notifications.routes.js";
+import reportsRouter from "./routes/reports.routes.js";
 import { setupFrontend } from "./routes/frontend.js";
 
 const app = express();
@@ -61,6 +62,7 @@ app.use("/api/products", productsRouter);
 app.use("/api/sales", salesRouter);
 app.use("/api/movements", movementsRouter);
 app.use("/api/notifications", notificationsRouter);
+app.use("/api/reports", reportsRouter);
 
 // 404 handler for unknown API routes
 app.use("/api/*", (req, res) => {

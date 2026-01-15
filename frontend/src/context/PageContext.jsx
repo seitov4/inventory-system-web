@@ -15,6 +15,8 @@ export const PageProvider = ({ children, initialPage = "landing" }) => {
             "pos",
             "sales",
             "warehouse",
+            "reconciliation",
+            "reports",
             "movements",
             "notifications",
             "addEmployee",

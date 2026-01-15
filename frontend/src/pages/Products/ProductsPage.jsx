@@ -63,9 +63,9 @@ const FormSection = styled.section`
     overflow: hidden;
     max-height: ${props => props.$isOpen ? '2000px' : '0'};
     opacity: ${props => props.$isOpen ? '1' : '0'};
-    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                margin-bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                margin-bottom 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     margin-bottom: ${props => props.$isOpen ? '20px' : '0'};
 `;
 
