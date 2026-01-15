@@ -418,10 +418,26 @@ const RoleBadge = styled.span`
 `;
 
 const EmptyState = styled.div`
-    padding: 32px;
+    padding: 48px 32px;
     text-align: center;
-    color: #64748b;
+    color: var(--text-tertiary);
+`;
+
+const EmptyIcon = styled.div`
+    font-size: 48px;
+    margin-bottom: 16px;
+`;
+
+const EmptyText = styled.div`
+    font-size: 16px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    font-weight: 500;
+`;
+
+const EmptySubtext = styled.div`
     font-size: 14px;
+    color: var(--text-tertiary);
 `;
 
 // System Actions
@@ -776,11 +792,28 @@ function EmployeesTab() {
     const loadEmployees = async () => {
         try {
             setLoading(true);
+            setError(""); // Clear previous errors
             const res = await usersApi.getAll();
             setEmployees(Array.isArray(res) ? res : []);
         } catch (e) {
-            console.error(e);
-            setError("Failed to load employees list");
+            // Log detailed error for debugging
+            console.error("[Employees] Load error:", e.response || e);
+            
+            // Only show error for actual HTTP errors, not empty results
+            if (e.response) {
+                const status = e.response.status;
+                if (status === 401) {
+                    setError("Authentication required. Please log in again.");
+                } else if (status === 403) {
+                    setError("You do not have permission to view employees.");
+                } else {
+                    setError(`Failed to load employees (Error ${status})`);
+                }
+            } else if (e.request) {
+                setError("Cannot connect to server. Please check your connection.");
+            } else {
+                setError("Failed to load employees list");
+            }
         } finally {
             setLoading(false);
         }
@@ -846,6 +879,14 @@ function EmployeesTab() {
                 <LoadingText>Loading employees...</LoadingText>
             ) : error ? (
                 <ErrorText>{error}</ErrorText>
+            ) : employees.length === 0 ? (
+                <SettingsCard>
+                    <EmptyState>
+                        <EmptyIcon>👥</EmptyIcon>
+                        <EmptyText>No employees yet</EmptyText>
+                        <EmptySubtext>Add your first employee using the button above</EmptySubtext>
+                    </EmptyState>
+                </SettingsCard>
             ) : (
                 <SettingsCard>
                     <EmployeesTable>

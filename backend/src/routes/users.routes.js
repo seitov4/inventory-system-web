@@ -11,11 +11,11 @@ import { success, error } from "../utils/response.js";
 
 const router = Router();
 
-// GET /api/users - admin only
+// GET /api/users - admin or owner
 router.get(
     "/",
     authRequired,
-    requireRole("admin"),
+    requireRole("admin", "owner"),
     async (req, res, next) => {
         try {
             const users = await getAllUsers();

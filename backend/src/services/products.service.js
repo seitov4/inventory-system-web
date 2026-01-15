@@ -302,3 +302,144 @@ export async function deleteProduct(id) {
     // Stock will be deleted automatically due to ON DELETE CASCADE
     await pool.query(`DELETE FROM products WHERE id = $1`, [id]);
 }
+
+/**
+ * Bulk import products
+ * Creates multiple products in a single transaction
+ * Skips products with duplicate SKU/barcode
+ * 
+ * @param {Array} products - Array of product objects
+ * @returns {Object} { created: number, skipped: number, errors: Array }
+ */
+export async function importProducts(products) {
+    const client = await pool.connect();
+    const errors = [];
+    let created = 0;
+    let skipped = 0;
+
+    try {
+        await client.query("BEGIN");
+
+        // Get default warehouse for stock records
+        let warehouseId = null;
+        try {
+            const whResult = await client.query(
+                `SELECT id FROM warehouses ORDER BY id LIMIT 1`
+            );
+            if (whResult.rows.length > 0) {
+                warehouseId = whResult.rows[0].id;
+            }
+        } catch (e) {
+            console.warn("[Import] No warehouse found, skipping stock creation");
+        }
+
+        for (let i = 0; i < products.length; i++) {
+            const product = products[i];
+            const rowNum = i + 1;
+
+            try {
+                // Validate required fields: name, sku, sale_price
+                const missingFields = [];
+                
+                if (!product.name || String(product.name).trim() === '') {
+                    missingFields.push('name');
+                }
+                if (!product.sku || String(product.sku).trim() === '') {
+                    missingFields.push('sku');
+                }
+                if (product.sale_price === null || product.sale_price === undefined || product.sale_price === '') {
+                    missingFields.push('sale_price');
+                }
+                
+                if (missingFields.length > 0) {
+                    errors.push(`Row ${rowNum}: Missing required fields: ${missingFields.join(', ')}`);
+                    skipped++;
+                    continue;
+                }
+
+                const name = String(product.name).trim();
+                const sku = String(product.sku).trim();
+                const barcode = product.barcode ? String(product.barcode).trim() : null;
+                const purchasePrice = product.purchase_price !== null && product.purchase_price !== undefined
+                    ? Number(product.purchase_price) || 0
+                    : 0;
+                const salePrice = Number(product.sale_price) || 0;
+                const minStock = product.min_stock !== null && product.min_stock !== undefined
+                    ? Number(product.min_stock) || 0
+                    : 0;
+                
+                // Validate sale_price is a valid number
+                if (isNaN(salePrice) || salePrice < 0) {
+                    errors.push(`Row ${rowNum}: sale_price must be a non-negative number`);
+                    skipped++;
+                    continue;
+                }
+
+                // Check for duplicate SKU
+                const skuCheck = await client.query(
+                    `SELECT id FROM products WHERE sku = $1`,
+                    [sku]
+                );
+                if (skuCheck.rows.length > 0) {
+                    errors.push(`Row ${rowNum}: SKU "${sku}" already exists`);
+                    skipped++;
+                    continue;
+                }
+
+                // Check for duplicate barcode
+                if (barcode) {
+                    const barcodeCheck = await client.query(
+                        `SELECT id FROM products WHERE barcode = $1`,
+                        [barcode]
+                    );
+                    if (barcodeCheck.rows.length > 0) {
+                        errors.push(`Row ${rowNum}: Barcode "${barcode}" already exists`);
+                        skipped++;
+                        continue;
+                    }
+                }
+
+                // Insert product
+                const insertResult = await client.query(
+                    `INSERT INTO products
+                         (name, sku, barcode, purchase_price, sale_price, min_stock)
+                     VALUES ($1, $2, $3, $4, $5, $6)
+                     RETURNING id`,
+                    [name, sku, barcode, purchasePrice, salePrice, minStock]
+                );
+
+                const productId = insertResult.rows[0].id;
+
+                // Create stock record if warehouse exists
+                if (warehouseId) {
+                    await client.query(
+                        `INSERT INTO stock (product_id, warehouse_id, quantity)
+                         VALUES ($1, $2, 0)
+                         ON CONFLICT (product_id, warehouse_id) DO NOTHING`,
+                        [productId, warehouseId]
+                    );
+                }
+
+                created++;
+            } catch (err) {
+                console.error(`[Import] Error on row ${rowNum}:`, err.message);
+                errors.push(`Row ${rowNum}: ${err.message}`);
+                skipped++;
+            }
+        }
+
+        await client.query("COMMIT");
+
+        return {
+            created,
+            skipped,
+            errors: errors.slice(0, 50), // Limit error list
+            total: products.length
+        };
+    } catch (err) {
+        await client.query("ROLLBACK");
+        throw err;
+    } finally {
+        client.release();
+    }
+}

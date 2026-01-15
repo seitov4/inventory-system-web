@@ -7,6 +7,7 @@ import {
     createProduct,
     updateProduct,
     deleteProduct,
+    importProducts,
 } from "../services/products.service.js";
 import { success, error } from "../utils/response.js";
 
@@ -145,6 +146,46 @@ export async function deleteProductController(req, res, next) {
         await deleteProduct(id);
         return success(res, { message: "Товар успешно удалён" }, 200);
     } catch (err) {
+        next(err);
+    }
+}
+
+/**
+ * POST /api/products/import
+ * Bulk import products from CSV/XLSX
+ */
+export async function importProductsController(req, res, next) {
+    try {
+        const { products } = req.body;
+
+        // Validate input
+        if (!products || !Array.isArray(products)) {
+            return error(res, "Products array is required", 400);
+        }
+
+        if (products.length === 0) {
+            return error(res, "Products array cannot be empty", 400);
+        }
+
+        if (products.length > 1000) {
+            return error(res, "Maximum 1000 products per import", 400);
+        }
+
+        console.log(`[Import] Received ${products.length} products for import`);
+
+        const result = await importProducts(products);
+
+        console.log(`[Import] Result: ${result.created} created, ${result.skipped} skipped`);
+
+        return success(res, result, 201);
+    } catch (err) {
+        console.error("[Import] Error:", err);
+        
+        // Handle validation errors
+        if (err.message.includes("validation") || err.message.includes("required")) {
+            return error(res, err.message, 400);
+        }
+
         next(err);
     }
 }

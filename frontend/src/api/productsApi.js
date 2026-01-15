@@ -13,6 +13,13 @@ const productsApi = {
         apiClient.put(`/products/${id}`, data).then((r) => r.data?.data || r.data),
     remove: (id) =>
         apiClient.delete(`/products/${id}`).then((r) => r.data?.data || r.data),
+    /**
+     * Import multiple products from CSV/XLSX
+     * @param {Array} products - Array of product objects
+     * @returns {Promise} Import result with created/skipped counts
+     */
+    importProducts: (products) =>
+        apiClient.post("/products/import", { products }).then((r) => r.data?.data || r.data),
 };
 
 export default productsApi;

@@ -8,6 +8,7 @@ import {
     createProductController,
     updateProductController,
     deleteProductController,
+    importProductsController,
 } from "../controllers/products.controller.js";
 import { authRequired, requireRole } from "../middleware/auth.middleware.js";
 
@@ -30,6 +31,14 @@ router.post(
     authRequired,
     requireRole("manager", "owner", "admin"),
     createProductController
+);
+
+// Bulk import products from CSV/XLSX
+router.post(
+    "/import",
+    authRequired,
+    requireRole("manager", "owner", "admin"),
+    importProductsController
 );
 
 router.put(

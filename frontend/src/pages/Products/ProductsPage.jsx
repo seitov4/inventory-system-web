@@ -3,6 +3,7 @@ import styled from "styled-components";
 import Layout from "../../components/Layout/Layout";
 import productsApi from "../../api/productsApi";
 import movementsApi from "../../api/movementsApi";
+import ProductImportModal from "../../components/Products/ProductImportModal";
 
 // ===== STYLED COMPONENTS =====
 const PageHeader = styled.div`
@@ -15,6 +16,16 @@ const PageHeader = styled.div`
         flex-direction: column;
         align-items: stretch;
         gap: 12px;
+    }
+`;
+
+const HeaderButtons = styled.div`
+    display: flex;
+    gap: 12px;
+    
+    @media (max-width: 640px) {
+        flex-direction: column;
+        width: 100%;
     }
 `;
 
@@ -45,6 +56,32 @@ const AddProductButton = styled.button`
     &:disabled {
         opacity: 0.6;
         cursor: not-allowed;
+    }
+    
+    @media (max-width: 640px) {
+        width: 100%;
+        justify-content: center;
+    }
+`;
+
+const ImportButton = styled.button`
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    
+    &:hover {
+        background: var(--bg-tertiary);
+        border-color: var(--primary-color);
+        color: var(--text-primary);
     }
     
     @media (max-width: 640px) {
@@ -579,6 +616,7 @@ export default function ProductsPage() {
     });
     
     const [isPanelOpen, setIsPanelOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     useEffect(() => {
         // Initialize search string from global search/notifications
@@ -891,14 +929,23 @@ export default function ProductsPage() {
             {/* Page Header with Add Button */}
             <PageHeader>
                 <div></div> {/* Spacer for alignment */}
-                <AddProductButton
-                    type="button"
-                    onClick={handleOpenPanel}
-                    disabled={isPanelOpen}
-                >
-                    <span>+</span>
-                    <span>Add product</span>
-                </AddProductButton>
+                <HeaderButtons>
+                    <ImportButton
+                        type="button"
+                        onClick={() => setIsImportModalOpen(true)}
+                    >
+                        <span>📥</span>
+                        <span>Import products</span>
+                    </ImportButton>
+                    <AddProductButton
+                        type="button"
+                        onClick={handleOpenPanel}
+                        disabled={isPanelOpen}
+                    >
+                        <span>+</span>
+                        <span>Add product</span>
+                    </AddProductButton>
+                </HeaderButtons>
             </PageHeader>
 
             {/* Collapsible Form Panel */}
@@ -1203,6 +1250,16 @@ export default function ProductsPage() {
                     )}
                 </TableContainer>
             </SectionWrapper>
+
+            {/* Product Import Modal */}
+            <ProductImportModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onSuccess={() => {
+                    setIsImportModalOpen(false);
+                    loadAll(); // Refresh product list after import
+                }}
+            />
         </Layout>
     );
 }
