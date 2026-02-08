@@ -2,6 +2,7 @@
 import app from "./app.js";
 import "dotenv/config";
 import net from "net";
+import { initializeDatabase } from "./utils/db-init.js";
 
 const DEFAULT_PORT = parseInt(process.env.PORT, 10) || 5000;
 const MAX_PORT_ATTEMPTS = 10;
@@ -50,6 +51,9 @@ async function findAvailablePort(startPort, maxAttempts) {
  */
 async function startServer() {
     try {
+        // Initialize database before starting server
+        await initializeDatabase();
+        
         const PORT = await findAvailablePort(DEFAULT_PORT, MAX_PORT_ATTEMPTS);
         
         app.listen(PORT, () => {
