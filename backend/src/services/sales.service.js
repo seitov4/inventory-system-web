@@ -73,12 +73,14 @@ export async function createSale({
         const total = Math.max(0, totalWithoutGlobalDiscount - Number(discount || 0));
 
         // Create sale record
+        // warehouse_id is required (NOT NULL), store_id is kept for backward compatibility
+        // total_amount is required (NOT NULL), total is legacy field (include both for compatibility)
         const saleRes = await client.query(
             `INSERT INTO sales
-                 (cashier_id, store_id, total, discount, payment_type, status)
-             VALUES ($1, $2, $3, $4, $5, 'COMPLETED')
-             RETURNING id, cashier_id, store_id, total, discount, payment_type, status, created_at`,
-            [cashier_id, store_id || effectiveWarehouseId, total, discount, payment_type]
+                 (cashier_id, warehouse_id, store_id, total, total_amount, discount, payment_type, status)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, 'COMPLETED')
+             RETURNING id, cashier_id, warehouse_id, store_id, total, total_amount, discount, payment_type, status, created_at`,
+            [cashier_id, effectiveWarehouseId, store_id || effectiveWarehouseId, total, total, discount, payment_type]
         );
         const sale = saleRes.rows[0];
 

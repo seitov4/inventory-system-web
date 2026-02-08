@@ -171,4 +171,4 @@ export async function safeQuery(text, params = [], maxRetries = 1) {
 }
 
 export default pool;
-export { startKeepAlive, stopKeepAlive, withTransaction, safeQuery };
+export { startKeepAlive, stopKeepAlive };

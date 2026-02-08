@@ -4,7 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f389f196-9d98-43d6-ba14-c67799013cf4" name="Changes" comment="" />
+    <list default="true" id="f389f196-9d98-43d6-ba14-c67799013cf4" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/controllers/products.controller.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/controllers/products.controller.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/services/movements.service.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/services/movements.service.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/services/sales.service.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/services/sales.service.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/utils/db.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/utils/db.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/Footer/Footer.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/Footer/Footer.jsx" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -27,7 +34,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "Frontend",
     "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "C:/Users/Администратор/Documents/GitHub/inventory-system-web",
     "node.js.detected.package.eslint": "true",
@@ -89,6 +96,7 @@
       <workItem from="1767601718479" duration="240000" />
       <workItem from="1768196835531" duration="1780000" />
       <workItem from="1770285312602" duration="41000" />
+      <workItem from="1770574445971" duration="642000" />
     </task>
     <servers />
   </component>

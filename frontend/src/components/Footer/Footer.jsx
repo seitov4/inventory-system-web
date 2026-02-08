@@ -59,8 +59,6 @@ export default function Footer() {
     return (
         <FooterWrapper>
             <FooterInner>
-                <FooterText>Diploma project</FooterText>
-                <FooterSeparator>•</FooterSeparator>
                 <FooterProjectName>Inventory Management System</FooterProjectName>
                 <FooterSeparator>•</FooterSeparator>
                 <FooterYear>© {currentYear}</FooterYear>

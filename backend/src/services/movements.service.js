@@ -129,13 +129,6 @@ export async function applyMovement({
         }
 
         // Handle stock operations based on movement type
-        // Determine which warehouse to work with
-        const warehouseId =
-            type === "IN" || type === "RETURN" || type === "ADJUST" || 
-            (type === "TRANSFER" && true) // TRANSFER handles both warehouses separately
-                ? warehouse_to
-                : warehouse_from;
-
         if (type === "IN" || type === "RETURN") {
             // For IN and RETURN: work with warehouse_to, create if needed
             // Use INSERT ... ON CONFLICT DO UPDATE to atomically create or update stock
@@ -241,15 +234,30 @@ export async function applyMovement({
         }
 
         // Create movement record
-        // Use quantity (legacy field name that exists in current DB schema)
-        // Also use reason (legacy field name)
+        // warehouse_id is required (NOT NULL) - set based on movement type
+        // For IN, RETURN, ADJUST: use warehouse_to
+        // For OUT, SALE: use warehouse_from
+        // For TRANSFER: use warehouse_to (destination)
+        const warehouseId = 
+            type === "IN" || type === "RETURN" || type === "ADJUST" || type === "TRANSFER"
+                ? warehouse_to
+                : warehouse_from;
+        
+        // direction is required (NOT NULL): +1 for increase, -1 for decrease
+        // For IN, RETURN, ADJUST, TRANSFER: direction = +1 (increase at destination)
+        // For OUT, SALE: direction = -1 (decrease from source)
+        const direction = 
+            type === "IN" || type === "RETURN" || type === "ADJUST" || type === "TRANSFER"
+                ? 1
+                : -1;
+        
         const reasonText = reason || null;
         const movementResult = await client.query(
             `INSERT INTO movements
-                 (product_id, type, warehouse_from, warehouse_to, quantity, reason, created_by)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
+                 (product_id, type, warehouse_id, direction, source_type, warehouse_from, warehouse_to, quantity, qty, reason, created_by)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
              RETURNING *`,
-            [product_id, type, warehouse_from, warehouse_to, qty, reasonText, user_id]
+            [product_id, type, warehouseId, direction, type, warehouse_from, warehouse_to, qty, qty, reasonText, user_id]
         );
 
         const movement = movementResult.rows[0];

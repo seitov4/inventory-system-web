@@ -81,12 +81,18 @@ export async function createProductController(req, res, next) {
 
         // Handle duplicate errors
         if (err.message.includes("уже существует")) {
+            console.log(`[createProduct] Duplicate detected: ${err.message}`);
             return error(res, err.message, 409);
         }
 
         // Handle database constraint errors (fallback)
         if (err.code === "23505") {
             // PostgreSQL unique constraint violation
+            console.log(`[createProduct] Database constraint violation:`, {
+                code: err.code,
+                detail: err.detail,
+                constraint: err.constraint
+            });
             if (err.detail && err.detail.includes("sku")) {
                 return error(res, `Товар с SKU "${req.body.sku}" уже существует`, 409);
             }
@@ -96,6 +102,8 @@ export async function createProductController(req, res, next) {
             return error(res, "Нарушение уникальности данных", 409);
         }
 
+        // Log unexpected errors
+        console.error("[createProduct] Unexpected error:", err);
         next(err);
     }
 }
