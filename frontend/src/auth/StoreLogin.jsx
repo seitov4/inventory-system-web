@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "../context/AuthContext.js";
+import { useAuth } from "../context/AuthContext.js";
 
 // ===== STYLED COMPONENTS =====
 const PageWrapper = styled.div`
@@ -216,9 +216,5 @@ function StoreLoginForm() {
 
 // ===== EXPORT WITH AUTH PROVIDER =====
 export default function StoreLogin() {
-    return (
-        <AuthProvider>
-            <StoreLoginForm />
-        </AuthProvider>
-    );
+    return <StoreLoginForm />;
 }

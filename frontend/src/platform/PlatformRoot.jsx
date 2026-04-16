@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import { createGlobalStyle } from "styled-components";
+import { useLocation, useNavigate } from "react-router-dom";
 import PlatformLayout from "./layout/PlatformLayout.jsx";
 import DashboardSection from "./sections/DashboardSection.jsx";
 import StoresSection from "./sections/StoresSection.jsx";
@@ -31,38 +32,32 @@ const PlatformGlobalStyle = createGlobalStyle`
  * Navigation is state-based only: activeSection.
  */
 export default function PlatformRoot() {
-    const [activeSection, setActiveSection] = useState("dashboard");
-    const [selectedStoreId, setSelectedStoreId] = useState(null);
+    const location = useLocation();
+    const navigate = useNavigate();
 
-    const handleNavigate = (section, storeId = null) => {
-        setActiveSection(section);
-        if (storeId) {
-            setSelectedStoreId(storeId);
-        } else if (section !== "store-overview") {
-            // Clear selected store when navigating away from store overview
-            setSelectedStoreId(null);
+    // derive section and optional store id from URL: /platform/<section> or /platform/store-overview/:id
+    const parts = location.pathname.split("/").filter(Boolean);
+    const section = parts[1] || "dashboard";
+    const storeId = parts[2] || null;
+
+    const handleNavigate = (targetSection, maybeStoreId = null) => {
+        if (targetSection === "store-overview" && maybeStoreId) {
+            navigate(`/platform/store-overview/${maybeStoreId}`);
+        } else {
+            navigate(`/platform/${targetSection}`);
         }
     };
 
     const renderSection = () => {
-        switch (activeSection) {
+        switch (section) {
             case "dashboard":
                 return <DashboardSection onNavigate={handleNavigate} />;
             case "stores":
-                return <StoresSection onNavigate={handleNavigate} onStoreSelect={setSelectedStoreId} />;
+                return <StoresSection onNavigate={handleNavigate} onStoreSelect={(id) => handleNavigate("store-overview", id)} />;
             case "store-create":
-                return (
-                    <StoreCreateSection
-                        onNavigate={handleNavigate}
-                    />
-                );
+                return <StoreCreateSection onNavigate={handleNavigate} />;
             case "store-overview":
-                return (
-                    <StoreOverviewSection
-                        storeId={selectedStoreId}
-                        onNavigate={handleNavigate}
-                    />
-                );
+                return <StoreOverviewSection storeId={storeId} onNavigate={handleNavigate} />;
             case "monitoring":
                 return <MonitoringSection />;
             case "logs":
@@ -77,10 +72,7 @@ export default function PlatformRoot() {
     return (
         <>
             <PlatformGlobalStyle />
-            <PlatformLayout
-                activeSection={activeSection}
-                onNavigate={handleNavigate}
-            >
+            <PlatformLayout activeSection={section} onNavigate={handleNavigate}>
                 {renderSection()}
             </PlatformLayout>
         </>

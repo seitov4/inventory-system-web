@@ -2,7 +2,7 @@ import React from "react";
 import styled, { createGlobalStyle } from "styled-components";
 import { PageProvider, usePage } from "../context/PageContext.jsx";
 import { ThemeProvider } from "../context/ThemeContext.jsx";
-import { AuthProvider, useAuth } from "../context/AuthContext.js";
+import { useAuth } from "../context/AuthContext.js";
 
 // Components
 import Header from "../components/Header/Header.jsx";
@@ -296,12 +296,10 @@ function StoreAppLayout() {
 export default function StoreAppRoot({ initialPage = "landing" }) {
     return (
         <ThemeProvider>
-            <AuthProvider>
-                <PageProvider initialPage={initialPage}>
-                    <GlobalStyle />
-                    <StoreAppLayout />
-                </PageProvider>
-            </AuthProvider>
+            <PageProvider>
+                <GlobalStyle />
+                <StoreAppLayout />
+            </PageProvider>
         </ThemeProvider>
     );
 }

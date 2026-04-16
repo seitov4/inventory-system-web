@@ -7,6 +7,8 @@ import { success, error } from "../utils/response.js";
  */
 export async function login(req, res, next) {
     try {
+        console.log("[AUTH] Login attempt received");
+
         const { login, email, password } = req.body;
         const identifier = login || email;
 
@@ -34,6 +36,8 @@ export async function login(req, res, next) {
  */
 export async function register(req, res, next) {
     try {
+        console.log("[AUTH] Registration attempt received");
+
         const {
             storeName,
             firstName,

@@ -74,11 +74,11 @@ async function setupDatabase() {
     try {
         console.log(`📄 Applying schema to database '${dbName}'...`);
         
-        // Read schema file
-        const schemaPath = join(__dirname, "../../db/schema.sql");
+        // Read canonical init file (Postgres) under backend/src/db
+        const schemaPath = join(__dirname, "../src/db/init.sql");
         const schemaSQL = readFileSync(schemaPath, "utf-8");
-        
-        // Execute schema
+
+        // Execute schema (init.sql contains creation + migrations)
         await dbClient.query(schemaSQL);
         console.log("✅ Schema applied successfully");
         

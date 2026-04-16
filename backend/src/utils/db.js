@@ -1,151 +1,290 @@
-// backend/src/utils/db.js
-// PostgreSQL connection pool with automatic reconnection and keep-alive
+import "dotenv/config";
+import { mkdirSync } from "fs";
+import { dirname, resolve } from "path";
+import { fileURLToPath } from "url";
+import { DatabaseSync } from "node:sqlite";
 import pkg from "pg";
+
 const { Pool } = pkg;
 
-const isSsl = process.env.DB_SSL === "true";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-// Configure pool with proper settings for production stability
-const pool = new Pool({
-    host: process.env.DB_HOST,
-    port: Number(process.env.DB_PORT || 5432),
-    database: process.env.DB_NAME,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    ssl: isSsl ? { rejectUnauthorized: false } : false,
-    
-    // Pool configuration
-    max: 20, // Maximum number of clients in the pool
-    min: 2, // Minimum number of clients in the pool
-    idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-    connectionTimeoutMillis: 10000, // Return error after 10 seconds if connection cannot be established
-    
-    // Keep connections alive
-    keepAlive: true,
-    keepAliveInitialDelayMillis: 10000, // Start keep-alive after 10 seconds
-});
+export const DB_PROVIDER = (
+    process.env.DB_CLIENT ||
+    process.env.DB_PROVIDER ||
+    "sqlite"
+).toLowerCase();
 
-// Handle pool connection events
-pool.on("connect", (client) => {
-    console.log("✅ PostgreSQL client connected (pool size:", pool.totalCount, ")");
-    
-    // Set statement timeout to prevent hanging queries
-    client.on("error", (err) => {
-        console.error("❌ PostgreSQL client error:", err.message);
+const SQLITE_RELATIVE_PATH =
+    process.env.DB_SQLITE_PATH || "data/inventory.sqlite";
+export const SQLITE_DB_PATH = resolve(__dirname, "..", "..", SQLITE_RELATIVE_PATH);
+const POSTGRES_SSL = process.env.DB_SSL === "true";
+
+function normalizeSqliteParam(value) {
+    if (value instanceof Date) {
+        return value.toISOString();
+    }
+
+    if (typeof value === "boolean") {
+        return value ? 1 : 0;
+    }
+
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+        return JSON.stringify(value);
+    }
+
+    return value;
+}
+
+function transformSqliteQuery(text) {
+    return text
+        .replace(/\bFOR\s+UPDATE\b/gi, "")
+        .replace(/\bNOW\(\)/gi, "CURRENT_TIMESTAMP")
+        .replace(
+            /\bCURRENT_TIMESTAMP\b/gi,
+            "STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now')"
+        )
+        .replace(/::\s*[a-zA-Z_][a-zA-Z0-9_\[\]]*/g, "")
+        .replace(/\$\d+/g, "?");
+}
+
+function isRowReturningQuery(sql) {
+    return (
+        /^\s*(select|pragma|with)\b/i.test(sql) ||
+        /\breturning\b/i.test(sql)
+    );
+}
+
+function executeSqliteQuery(db, text, params = []) {
+    const sql = transformSqliteQuery(text);
+    const normalizedParams = params.map(normalizeSqliteParam);
+    const statement = db.prepare(sql);
+
+    if (isRowReturningQuery(sql)) {
+        const rows = statement.all(...normalizedParams);
+        return {
+            rows,
+            rowCount: rows.length,
+        };
+    }
+
+    const result = statement.run(...normalizedParams);
+    return {
+        rows: [],
+        rowCount: Number(result.changes || 0),
+        lastInsertRowid: Number(result.lastInsertRowid || 0),
+    };
+}
+
+class SQLiteClient {
+    constructor(db) {
+        this.db = db;
+    }
+
+    async query(text, params = []) {
+        return executeSqliteQuery(this.db, text, params);
+    }
+
+    release() {}
+}
+
+class SQLitePool {
+    constructor(filePath) {
+        this.filePath = filePath;
+        mkdirSync(dirname(filePath), { recursive: true });
+        this.db = new DatabaseSync(filePath);
+        this.db.exec("PRAGMA foreign_keys = ON;");
+        this.db.exec("PRAGMA journal_mode = WAL;");
+        this.db.exec("PRAGMA synchronous = NORMAL;");
+    }
+
+    on() {
+        return this;
+    }
+
+    async query(text, params = []) {
+        return executeSqliteQuery(this.db, text, params);
+    }
+
+    async connect() {
+        return new SQLiteClient(this.db);
+    }
+
+    async end() {
+        if (this.db) {
+            this.db.close();
+            this.db = null;
+        }
+    }
+}
+
+function createPostgresPool() {
+    return new Pool({
+        host: process.env.DB_HOST,
+        port: Number(process.env.DB_PORT || 5432),
+        database: process.env.DB_NAME,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        ssl: POSTGRES_SSL ? { rejectUnauthorized: false } : false,
+        max: 20,
+        min: 2,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+        keepAlive: true,
+        keepAliveInitialDelayMillis: 10000,
     });
-});
+}
 
-pool.on("error", (err, client) => {
-    console.error("❌ PostgreSQL pool error:", {
-        message: err.message,
-        code: err.code,
-        severity: err.severity,
-    });
-    
-    // Don't crash the app on pool errors - pool will handle reconnection
-    // Log the error for monitoring
-});
-
-// Keep-alive mechanism: periodically execute SELECT 1 to prevent idle connection timeout
+// Internal runtime state
+let internalPool = null;
 let keepAliveInterval = null;
 
-function startKeepAlive() {
-    // Clear existing interval if any
+function ensurePoolInitialized() {
+    if (!internalPool) {
+        throw new Error(
+            "Database pool is not initialized. Call initDb() before using the DB API."
+        );
+    }
+}
+
+export async function initDb() {
+    if (internalPool) return;
+
+    if (DB_PROVIDER === "sqlite") {
+        internalPool = new SQLitePool(SQLITE_DB_PATH);
+    } else {
+        internalPool = createPostgresPool();
+
+        internalPool.on("connect", (client) => {
+            console.log("PostgreSQL client connected");
+            client.on("error", (err) => {
+                console.error("PostgreSQL client error:", err.message);
+            });
+        });
+
+        internalPool.on("error", (err) => {
+            console.error("PostgreSQL pool error:", {
+                message: err.message,
+                code: err.code,
+                severity: err.severity,
+            });
+        });
+    }
+
+    // Run an initial lightweight readiness check
+    try {
+        await internalPool.query("SELECT 1");
+        if (DB_PROVIDER === "sqlite") {
+            console.log(`SQLite connection ready: ${SQLITE_DB_PATH}`);
+        } else {
+            console.log("PostgreSQL pool initialized successfully");
+        }
+    } catch (err) {
+        console.error("Failed to initialize database connection:", err.message);
+        throw err;
+    }
+
+    // Start keep-alive only after explicit init
+    startKeepAlive();
+}
+
+export async function closeDb() {
+    stopKeepAlive();
+    if (internalPool) {
+        try {
+            await internalPool.end();
+        } catch (err) {
+            console.warn("Error while closing DB pool:", err.message);
+        }
+        internalPool = null;
+    }
+}
+
+export function startKeepAlive() {
+    if (DB_PROVIDER !== "postgres") {
+        return;
+    }
+
     if (keepAliveInterval) {
         clearInterval(keepAliveInterval);
     }
-    
-    // Execute SELECT 1 every 60 seconds to keep connections alive
+
     keepAliveInterval = setInterval(async () => {
         try {
-            await pool.query("SELECT 1");
-            // Silently succeed - no need to log every keep-alive
+            if (!internalPool) return;
+            await internalPool.query("SELECT 1");
         } catch (err) {
-            // Log keep-alive failures but don't crash
-            console.warn("⚠️  Keep-alive query failed:", err.message);
+            console.warn("Keep-alive query failed:", err.message);
         }
-    }, 60000); // Every 60 seconds
-    
-    console.log("✅ Keep-alive mechanism started (pinging DB every 60 seconds)");
+    }, 60000);
+
+    console.log("PostgreSQL keep-alive started");
 }
 
-function stopKeepAlive() {
+export function stopKeepAlive() {
     if (keepAliveInterval) {
         clearInterval(keepAliveInterval);
         keepAliveInterval = null;
-        console.log("🛑 Keep-alive mechanism stopped");
     }
 }
 
-// Start keep-alive when module loads
-startKeepAlive();
+// Default export is a lightweight proxy compatible with previous usage (pool.query(...))
+const pool = {
+    async query(text, params = []) {
+        ensurePoolInitialized();
+        return internalPool.query(text, params);
+    },
+    async connect() {
+        ensurePoolInitialized();
+        return internalPool.connect();
+    },
+    async end() {
+        ensurePoolInitialized();
+        return internalPool.end();
+    },
+    on(...args) {
+        ensurePoolInitialized();
+        return internalPool.on(...args);
+    },
+};
 
-// Graceful shutdown: close pool and stop keep-alive on process exit
-process.on("SIGINT", async () => {
-    stopKeepAlive();
-    await pool.end();
-    console.log("✅ PostgreSQL pool closed");
-    process.exit(0);
-});
-
-process.on("SIGTERM", async () => {
-    stopKeepAlive();
-    await pool.end();
-    console.log("✅ PostgreSQL pool closed");
-    process.exit(0);
-});
-
-// Test connection on startup
-pool.query("SELECT 1")
-    .then(() => {
-        console.log("✅ PostgreSQL pool initialized successfully");
-    })
-    .catch((err) => {
-        console.error("❌ Failed to initialize PostgreSQL pool:", err.message);
-        // Don't exit - let the app start and retry on first query
-    });
-
-/**
- * Safely execute a transaction with automatic reconnection handling
- * @param {Function} callback - Async function that receives a client and executes queries
- * @returns {Promise<any>} Result from callback
- */
 export async function withTransaction(callback) {
-    const client = await pool.connect();
+    ensurePoolInitialized();
+    const client = await internalPool.connect();
     try {
         await client.query("BEGIN");
         const result = await callback(client);
         await client.query("COMMIT");
         return result;
     } catch (err) {
-        // Try to rollback, but don't fail if connection is already lost
         try {
             await client.query("ROLLBACK");
         } catch (rollbackErr) {
-            console.warn("⚠️  Rollback failed (connection may be lost):", rollbackErr.message);
+            console.warn("Rollback failed:", rollbackErr.message);
         }
         throw err;
     } finally {
-        // Always release client back to pool
         client.release();
     }
 }
 
-/**
- * Safely execute a query with automatic retry on connection errors
- * @param {string} text - SQL query text
- * @param {Array} params - Query parameters
- * @param {number} maxRetries - Maximum number of retries (default: 1)
- * @returns {Promise<any>} Query result
- */
 export async function safeQuery(text, params = [], maxRetries = 1) {
+    // For sqlite, the pool's query is local and synchronous-like
+    if (DB_PROVIDER === "sqlite") {
+        ensurePoolInitialized();
+        return internalPool.query(text, params);
+    }
+
     let lastError;
+
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
-            return await pool.query(text, params);
+            ensurePoolInitialized();
+            return await internalPool.query(text, params);
         } catch (err) {
             lastError = err;
-            // Retry on connection errors
+
             if (
                 err.code === "ECONNREFUSED" ||
                 err.code === "ETIMEDOUT" ||
@@ -155,20 +294,35 @@ export async function safeQuery(text, params = [], maxRetries = 1) {
             ) {
                 if (attempt < maxRetries) {
                     console.warn(
-                        `⚠️  Connection error (attempt ${attempt + 1}/${maxRetries + 1}), retrying...`,
+                        `Connection error (attempt ${attempt + 1}/${maxRetries + 1}), retrying...`,
                         err.message
                     );
-                    // Wait a bit before retry
-                    await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+                    await new Promise((resolve) =>
+                        setTimeout(resolve, 1000 * (attempt + 1))
+                    );
                     continue;
                 }
             }
-            // Don't retry on other errors (syntax errors, constraint violations, etc.)
+
             throw err;
         }
     }
+
     throw lastError;
 }
 
+export function getDatabaseInfo() {
+    if (DB_PROVIDER === "sqlite") {
+        return {
+            provider: "sqlite",
+            target: SQLITE_DB_PATH,
+        };
+    }
+
+    return {
+        provider: "postgres",
+        target: `${process.env.DB_HOST || "localhost"}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || ""}`,
+    };
+}
+
 export default pool;
-export { startKeepAlive, stopKeepAlive };

@@ -1,14 +1,10 @@
-// backend/src/utils/db-init.js
-// Development-friendly PostgreSQL auto-initialization:
-// - waits for PostgreSQL server
-// - ensures target database exists
-// - applies unified schema (init.sql) with all required columns
-
 import "dotenv/config";
 import pkg from "pg";
-import { readFileSync } from "fs";
+import { DatabaseSync } from "node:sqlite";
+import { mkdirSync, readFileSync } from "fs";
+import { dirname, join, resolve } from "path";
 import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import { DB_PROVIDER } from "./db.js";
 
 const { Pool } = pkg;
 
@@ -22,23 +18,23 @@ const DB_USER = process.env.DB_USER;
 const DB_PASSWORD = process.env.DB_PASSWORD;
 const DB_SSL =
     process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false;
+const SQLITE_PATH = resolve(
+    __dirname,
+    "..",
+    "..",
+    process.env.DB_SQLITE_PATH || "data/inventory.sqlite"
+);
 
-/**
- * Basic validation of required env vars for DB connection.
- */
-function validateDbEnv() {
+function validatePostgresEnv() {
     if (!DB_NAME || !DB_USER) {
         console.warn(
-            "⚠️  Skipping DB auto-init: DB_NAME and DB_USER must be set in environment"
+            "Skipping Postgres auto-init: DB_NAME and DB_USER must be set"
         );
         return false;
     }
     return true;
 }
 
-/**
- * Create pool for admin connection (to default 'postgres' DB).
- */
 function createAdminPool() {
     return new Pool({
         host: DB_HOST,
@@ -50,9 +46,6 @@ function createAdminPool() {
     });
 }
 
-/**
- * Create pool for target application database.
- */
 function createAppPool() {
     return new Pool({
         host: DB_HOST,
@@ -68,9 +61,6 @@ function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * Wait until PostgreSQL is accepting connections on the admin database.
- */
 async function waitForDatabaseServer(maxRetries = 10, delayMs = 3000) {
     const adminPool = createAdminPool();
 
@@ -78,59 +68,41 @@ async function waitForDatabaseServer(maxRetries = 10, delayMs = 3000) {
         try {
             const client = await adminPool.connect();
             client.release();
-            console.log("✅ PostgreSQL server is reachable");
             await adminPool.end();
+            console.log("PostgreSQL server is reachable");
             return;
         } catch (err) {
             console.warn(
-                `⚠️  PostgreSQL is not ready yet (attempt ${attempt}/${maxRetries}):`,
+                `PostgreSQL is not ready yet (attempt ${attempt}/${maxRetries}):`,
                 err.message
             );
+
             if (attempt === maxRetries) {
                 await adminPool.end();
                 throw new Error(
                     "PostgreSQL server is not reachable after multiple attempts"
                 );
             }
+
             await sleep(delayMs);
         }
     }
 }
 
-/**
- * Ensure the target database exists, creating it if missing.
- */
 async function ensureDatabaseExists() {
     const adminPool = createAdminPool();
     const client = await adminPool.connect();
 
     try {
-        console.log(`🔍 Checking if database '${DB_NAME}' exists...`);
-
         const result = await client.query(
             "SELECT 1 FROM pg_database WHERE datname = $1",
             [DB_NAME]
         );
 
-        if (result.rows.length > 0) {
-            console.log(`✅ Database '${DB_NAME}' already exists`);
-        } else {
-            console.log(`📦 Creating database '${DB_NAME}'...`);
+        if (result.rows.length === 0) {
             const safeDbName = DB_NAME.replace(/"/g, '""');
             await client.query(`CREATE DATABASE "${safeDbName}"`);
-            console.log(`✅ Database '${DB_NAME}' created successfully`);
-        }
-    } catch (err) {
-        if (err.code === "42P04") {
-            console.log(`✅ Database '${DB_NAME}' already exists (42P04)`);
-        } else if (err.code === "3D000") {
-            console.error(
-                `❌ PostgreSQL is running but database '${DB_NAME}' is missing`
-            );
-            throw err;
-        } else {
-            console.error("❌ Error ensuring database exists:", err);
-            throw err;
+            console.log(`PostgreSQL database '${DB_NAME}' created`);
         }
     } finally {
         client.release();
@@ -138,72 +110,80 @@ async function ensureDatabaseExists() {
     }
 }
 
-/**
- * Apply unified schema to the target database.
- */
-async function ensureSchema() {
+async function ensurePostgresSchema() {
     const appPool = createAppPool();
     const client = await appPool.connect();
 
     try {
         const initSqlPath = join(__dirname, "../db/init.sql");
-        console.log(
-            `📄 Applying unified schema from '${initSqlPath}' to database '${DB_NAME}'...`
-        );
-
         const initSql = readFileSync(initSqlPath, "utf-8");
         await client.query(initSql);
-        console.log("✅ Schema applied successfully");
+        console.log("PostgreSQL schema applied successfully");
 
-        // Ensure default warehouse exists (idempotent)
-        try {
-            const warehouseCount = await client.query(
-                "SELECT COUNT(*)::int AS count FROM warehouses"
+        const warehouseCount = await client.query(
+            "SELECT COUNT(*)::int AS count FROM warehouses"
+        );
+
+        if (warehouseCount.rows[0].count === 0) {
+            const defaultWarehousePath = join(
+                __dirname,
+                "../../db/create_default_warehouse.sql"
             );
-            if (warehouseCount.rows[0].count === 0) {
-                const defaultWarehousePath = join(
-                    __dirname,
-                    "../../db/create_default_warehouse.sql"
-                );
-                console.log(
-                    `📦 Creating default warehouse using '${defaultWarehousePath}'...`
-                );
-                const defaultWarehouseSql = readFileSync(
-                    defaultWarehousePath,
-                    "utf-8"
-                );
-                await client.query(defaultWarehouseSql);
-                console.log("✅ Default warehouse created");
-            } else {
-                console.log(
-                    `✅ Default warehouse already exists (count=${warehouseCount.rows[0].count})`
-                );
-            }
-        } catch (seedErr) {
-            console.error("⚠️  Error during default warehouse setup:", seedErr);
+            const defaultWarehouseSql = readFileSync(
+                defaultWarehousePath,
+                "utf-8"
+            );
+            await client.query(defaultWarehouseSql);
+            console.log("Default warehouse created");
         }
-    } catch (err) {
-        console.error("❌ Error applying schema to database:", err);
-        throw err;
     } finally {
         client.release();
         await appPool.end();
     }
 }
 
-/**
- * Public entry point used by server startup.
- * Always runs (no NODE_ENV check) to ensure schema is always up-to-date.
- */
-export async function initializeDatabase() {
-    if (!validateDbEnv()) {
+async function initializePostgresDatabase() {
+    if (!validatePostgresEnv()) {
         return;
     }
 
-    console.log("🚀 Starting PostgreSQL initialization...");
+    console.log("Starting PostgreSQL initialization...");
     await waitForDatabaseServer();
     await ensureDatabaseExists();
-    await ensureSchema();
-    console.log("🎉 PostgreSQL initialization completed");
+    await ensurePostgresSchema();
+    console.log("PostgreSQL initialization completed");
 }
 
+async function initializeSqliteDatabase() {
+    mkdirSync(dirname(SQLITE_PATH), { recursive: true });
+
+    const db = new DatabaseSync(SQLITE_PATH);
+    try {
+        db.exec("PRAGMA foreign_keys = ON;");
+        db.exec("PRAGMA journal_mode = WAL;");
+
+        const initSqlPath = join(__dirname, "../db/init.sqlite.sql");
+        const initSql = readFileSync(initSqlPath, "utf-8");
+        db.exec(initSql);
+
+        console.log(`SQLite database initialized at ${SQLITE_PATH}`);
+    } finally {
+        db.close();
+    }
+}
+
+export async function initializeDatabase() {
+    if (DB_PROVIDER === "sqlite") {
+        await initializeSqliteDatabase();
+        return;
+    }
+
+    if (DB_PROVIDER === "postgres") {
+        await initializePostgresDatabase();
+        return;
+    }
+
+    throw new Error(
+        `Unsupported DB provider '${DB_PROVIDER}'. Use 'sqlite' or 'postgres'.`
+    );
+}
