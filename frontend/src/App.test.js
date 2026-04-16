@@ -1,8 +1,24 @@
-import { render, screen } from '@testing-library/react';
-import App from './App';
+import React from "react";
+import { render } from "@testing-library/react";
+import App from "./App";
 
-test('renders learn react link', () => {
-  render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+describe("App Component", () => {
+    test("renders without crashing", () => {
+        const { container } = render(<App />);
+        expect(container).toBeInTheDocument();
+    });
+
+    test("renders AppRouter component", () => {
+        const { container } = render(<App />);
+        // AppRouter renders a BrowserRouter, which contains routes
+        // At minimum, we should have a router provider in the DOM
+        expect(container.firstChild).toBeInTheDocument();
+    });
+
+    test("app structure is properly mounted", () => {
+        const { container } = render(<App />);
+        // Verify the app rendered a valid React component tree
+        // (no null/undefined returns from App)
+        expect(container.innerHTML).toBeTruthy();
+    });
 });

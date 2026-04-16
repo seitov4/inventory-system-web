@@ -8,6 +8,10 @@ This directory contains the database schema and migrations for the Inventory Man
 
 - `schema.sql` - Main database schema (supports both legacy and new structure)
 - `schema_v2.sql` - Complete v2.0 schema with all improvements
+- `backend/src/db/init.sql` - Canonical runtime init (Postgres). Preferred for automated setup and runtime init.
+- `backend/src/db/init.sqlite.sql` - Canonical runtime init for SQLite.
+ - `schema.sql` - (moved) Legacy archived schema available in `db/legacy/`
+ - `schema_v2.sql` - (moved) Legacy v2 archived schema available in `db/legacy/`
 - `migrations/` - Database migration scripts
   - `001_add_sku_unique_index.sql` - Adds unique constraint to products.sku
   - `002_update_schema_to_v2.sql` - Migrates existing database to v2.0 structure
@@ -32,8 +36,10 @@ The schema supports backward compatibility:
 
 ### Fresh Installation
 
+Recommended: use the canonical init file under the backend package which includes creation + migrations:
+
 ```bash
-psql -U your_user -d your_database -f schema.sql
+psql -U your_user -d your_database -f backend/src/db/init.sql
 ```
 
 ### Migrating Existing Database

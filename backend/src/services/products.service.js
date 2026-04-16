@@ -145,7 +145,7 @@ export async function getProductsWithLeft() {
                 p.purchase_price,
                 p.sale_price,
                 p.min_stock,
-                COALESCE(SUM(s.quantity), 0)::int AS quantity
+                CAST(COALESCE(SUM(s.quantity), 0) AS INTEGER) AS quantity
          FROM products p
                   LEFT JOIN stock s ON s.product_id = p.id
          GROUP BY p.id
@@ -164,7 +164,7 @@ export async function getLowStockProducts() {
                 p.purchase_price,
                 p.sale_price,
                 p.min_stock,
-                COALESCE(SUM(s.quantity), 0)::int AS quantity
+                CAST(COALESCE(SUM(s.quantity), 0) AS INTEGER) AS quantity
          FROM products p
                   LEFT JOIN stock s ON s.product_id = p.id
          GROUP BY p.id
@@ -277,7 +277,7 @@ export async function updateProduct(
              purchase_price = $6,
              sale_price     = $7,
              min_stock      = $8,
-             updated_at     = NOW()
+             updated_at     = CURRENT_TIMESTAMP
          WHERE id = $1
          RETURNING id,
                    name,

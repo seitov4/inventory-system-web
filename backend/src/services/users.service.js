@@ -96,7 +96,7 @@ export async function updateUser(id, { firstName, lastName, contact, role }) {
     values.push(id);
     const query = `
         UPDATE users
-        SET ${updates.join(", ")}, updated_at = NOW()
+        SET ${updates.join(", ")}, updated_at = CURRENT_TIMESTAMP
         WHERE id = $${paramIndex}
         RETURNING id, email, phone, first_name, last_name, store_name, role, created_at
     `;

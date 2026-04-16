@@ -3,6 +3,7 @@ import app from "./app.js";
 import "dotenv/config";
 import net from "net";
 import { initializeDatabase } from "./utils/db-init.js";
+import { getDatabaseInfo, safeQuery, initDb, closeDb } from "./utils/db.js";
 
 const DEFAULT_PORT = parseInt(process.env.PORT, 10) || 5000;
 const MAX_PORT_ATTEMPTS = 10;
@@ -51,14 +52,33 @@ async function findAvailablePort(startPort, maxAttempts) {
  */
 async function startServer() {
     try {
-        // Initialize database before starting server
-        await initializeDatabase();
+        // Initialize or validate database before starting server
+        // Development: keep auto-init convenience (apply schema + init runtime pool)
+        if (process.env.NODE_ENV !== "production") {
+            await initializeDatabase();
+            await initDb();
+        } else {
+            // Production: do NOT apply schema automatically. Validate DB readiness and schema presence.
+            try {
+                // Try a simple query against a core table to ensure schema is applied
+                await safeQuery("SELECT 1 FROM users LIMIT 1", [], 1);
+                // Now initialize runtime DB resources (pool, keep-alive)
+                await initDb();
+            } catch (err) {
+                throw new Error(
+                    "Database not ready or schema not applied. Run `npm --workspace backend run db:init` to initialize before starting in production. " +
+                        err.message
+                );
+            }
+        }
         
         const PORT = await findAvailablePort(DEFAULT_PORT, MAX_PORT_ATTEMPTS);
+        const dbInfo = getDatabaseInfo();
         
         app.listen(PORT, () => {
             console.log(`===================================`);
             console.log(`Backend running on http://localhost:${PORT}`);
+            console.log(`Database: ${dbInfo.provider} (${dbInfo.target})`);
             console.log(`API Health Check: http://localhost:${PORT}/api/health`);
             console.log(`Auth Register: POST http://localhost:${PORT}/api/auth/register`);
             console.log(`Auth Login: POST http://localhost:${PORT}/api/auth/login`);
@@ -75,3 +95,24 @@ async function startServer() {
 }
 
 startServer();
+
+// Graceful shutdown handlers registered here (only when server.js is executed)
+process.on("SIGINT", async () => {
+    console.log("SIGINT received — shutting down...");
+    try {
+        await closeDb();
+    } catch (err) {
+        console.warn("Error during DB close:", err.message);
+    }
+    process.exit(0);
+});
+
+process.on("SIGTERM", async () => {
+    console.log("SIGTERM received — shutting down...");
+    try {
+        await closeDb();
+    } catch (err) {
+        console.warn("Error during DB close:", err.message);
+    }
+    process.exit(0);
+});

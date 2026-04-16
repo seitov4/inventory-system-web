@@ -1,10 +1,34 @@
 // context/PageContext.jsx
-import { createContext, useState, useContext } from "react";
+import { createContext, useContext, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const PageContext = createContext();
 
-export const PageProvider = ({ children, initialPage = "landing" }) => {
-    const [activePage, setActivePage] = useState(initialPage);
+// Map canonical page keys to /app paths
+const pageToPath = (page) => {
+    if (!page || page === "landing") return "/app";
+    return `/app/${page}`;
+};
+
+const pathToPage = (pathname) => {
+    // Expect paths like /app, /app/dashboard, /app/products
+    if (!pathname) return "landing";
+    const parts = pathname.split("/").filter(Boolean);
+    if (parts[0] !== "app") return "landing";
+    return parts[1] || "landing";
+};
+
+export const PageProvider = ({ children }) => {
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    const activePage = useMemo(() => pathToPage(location.pathname), [location.pathname]);
+
+    const setActivePage = (page) => {
+        const target = pageToPath(page);
+        // Preserve full navigation semantics (push)
+        navigate(target);
+    };
 
     // Helper function to check if current page requires sidebar
     const needsSidebar = () => {

@@ -1,0 +1,36 @@
+{
+  "root": true,
+  "extends": [
+    "react-app"
+  ],
+  "rules": {
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "no-console": ["warn", { "allow": ["warn", "error", "log"] }],
+    "eqeqeq": ["warn", "always"],
+    "prefer-const": "warn",
+    "no-var": "warn",
+    "curly": ["warn", "all"],
+    "no-implicit-coercion": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["backend/**/*.js"],
+      "env": {
+        "node": true,
+        "es2021": true
+      },
+      "parserOptions": {
+        "ecmaVersion": 2021,
+        "sourceType": "module"
+      },
+      "extends": [],
+      "rules": {
+        "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+        "no-console": ["warn", { "allow": ["warn", "error", "log"] }],
+        "eqeqeq": ["warn", "always"],
+        "prefer-const": "warn",
+        "no-var": "warn"
+      }
+    }
+  ]
+}

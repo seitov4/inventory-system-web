@@ -6,7 +6,6 @@ import "dotenv/config";
 import { errorHandler } from "./middleware/error.middleware.js";
 import { success, error } from "./utils/response.js";
 import productsRouter from "./routes/products.routs.js";
-import itemsRouter from "./routes/items.routes.js";
 import salesRouter from "./routes/sales.routes.js";
 import usersRouter from "./routes/users.routes.js";
 import authRouter from "./routes/auth.routes.js";
@@ -14,6 +13,7 @@ import movementsRouter from "./routes/movements.routes.js";
 import notificationsRouter from "./routes/notifications.routes.js";
 import reportsRouter from "./routes/reports.routes.js";
 import { setupFrontend } from "./routes/frontend.js";
+import platformRouter from "./routes/platform.routes.js";
 
 const app = express();
 
@@ -60,11 +60,11 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/products", productsRouter);
-app.use("/api/items", itemsRouter);
 app.use("/api/sales", salesRouter);
 app.use("/api/movements", movementsRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/reports", reportsRouter);
+app.use("/api/platform", platformRouter);
 
 // 404 handler for unknown API routes
 app.use("/api/*", (req, res) => {

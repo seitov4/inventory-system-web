@@ -103,7 +103,7 @@ export async function getUserNotifications(userId, { status = null, limit = 100,
 export async function markAsRead(notificationId, userId) {
     const result = await pool.query(
         `UPDATE notifications
-         SET status = 'READ', read_at = NOW()
+         SET status = 'READ', read_at = CURRENT_TIMESTAMP
          WHERE id = $1 AND user_id = $2 AND status = 'NEW'
          RETURNING id`,
         [notificationId, userId]
@@ -123,8 +123,9 @@ export async function getUsersByRoles(roles, client = null) {
         return [];
     }
 
-    const query = `SELECT id FROM users WHERE role = ANY($1::text[])`;
-    const params = [roles];
+    const placeholders = roles.map((_, index) => `$${index + 1}`).join(", ");
+    const query = `SELECT id FROM users WHERE role IN (${placeholders})`;
+    const params = roles;
 
     if (client) {
         const result = await client.query(query, params);

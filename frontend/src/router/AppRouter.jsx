@@ -10,10 +10,15 @@ import PlatformRoot from "../platform/PlatformRoot.jsx";
 import StoreLogin from "../auth/StoreLogin.jsx";
 import PlatformLogin from "../auth/PlatformLogin.jsx";
 import { PlatformAuthProvider } from "../platform/context/PlatformAuthContext.jsx";
+import { AuthProvider, useAuth } from "../context/AuthContext.js";
 
 function StoreProtectedRoute({ children }) {
-    const hasToken = Boolean(localStorage.getItem("token"));
-    if (!hasToken) {
+    const { isAuthenticated, status } = useAuth();
+    // while auth is initializing, don't redirect (prevent flicker)
+    if (status === "loading" || status === "idle") {
+        return <div />;
+    }
+    if (!isAuthenticated) {
         return <Navigate to="/login" replace />;
     }
     return children;
@@ -45,7 +50,8 @@ function PlatformLoginZone() {
 
 export default function AppRouter() {
     return (
-        <BrowserRouter>
+        <AuthProvider>
+            <BrowserRouter>
             <Routes>
                 {/* ===== STORE ZONE ===== */}
                 <Route path="/login" element={<StoreLogin />} />
@@ -65,7 +71,8 @@ export default function AppRouter() {
                 {/* ===== DEFAULT ===== */}
                 <Route path="/" element={<Navigate to="/app" replace />} />
             </Routes>
-        </BrowserRouter>
+            </BrowserRouter>
+        </AuthProvider>
     );
 }
 
