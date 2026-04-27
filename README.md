@@ -37,41 +37,52 @@ npm run dev:backend
 
 The `dev:mobile` script prints information because the mobile app is currently not included in the workspace.
 
-### Database modes
-The backend now supports two database providers:
-
-- `sqlite` for local development right now
-- `postgres` for a future AWS/RDS deployment
-
-Local development defaults to SQLite via `.env` / `backend/.env`:
+### Database
+The backend uses PostgreSQL for local development, tests, and AWS/RDS deployment.
 
 ```env
-DB_CLIENT=sqlite
-DB_SQLITE_PATH=data/inventory.sqlite
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=inventory_db
+DB_USER=postgres
+DB_PASSWORD=postgres_password_here
+DB_SSL=false
 ```
 
-The backend will auto-create the SQLite file and apply `backend/src/db/init.sqlite.sql` on startup.
+Start the local database with Docker Compose:
 
-When you are ready to move back to AWS/Postgres, switch env values:
+```bash
+npm run db:postgres:up
+npm run db:postgres:init
+```
+
+Then start the app:
+
+```bash
+npm run dev
+```
+
+For AWS RDS, switch the connection values:
 
 ```env
-DB_CLIENT=postgres
 DB_HOST=your-rds-host.amazonaws.com
 DB_PORT=5432
 DB_NAME=inventory
-DB_USER=postgres
+DB_USER=inventory_app
 DB_PASSWORD=your-password
 DB_SSL=true
 ```
+
+See `backend/docs/postgres-local.md` for a focused local PostgreSQL checklist.
 
 ### Database initialization (new, explicit)
 
 To avoid mixing provisioning with runtime in production, the backend no longer applies schema automatically when `NODE_ENV=production`.
 
-- Development (default): the backend will continue to auto-initialize the local SQLite database on startup for convenience.
+- Development (default): the backend applies the PostgreSQL schema on startup for convenience.
 - Production: the server will NOT apply schema on startup. If the schema is missing the process will exit with a clear error telling you to run the explicit init command during provisioning.
 
-Run the explicit initialization command (works for both Postgres and SQLite):
+Run the explicit initialization command:
 
 ```bash
 npm --workspace backend run db:init

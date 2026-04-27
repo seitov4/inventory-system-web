@@ -5,7 +5,9 @@ import {
     updateUser as updateUserService,
     deleteUser as deleteUserService,
 } from "../services/users.service.js";
-import { success, error } from "../utils/response.js";
+import { createAppError } from "../errors/app-error.js";
+import { ERROR_CODES } from "../errors/error-codes.js";
+import { success } from "../utils/response.js";
 
 const ALLOWED_USER_ROLES = ["cashier", "manager", "admin"];
 
@@ -14,7 +16,7 @@ export async function listUsers(req, res, next) {
         const users = await getAllUsers();
         return success(res, users);
     } catch (err) {
-        next(err);
+        return next(err);
     }
 }
 
@@ -23,19 +25,11 @@ export async function createUser(req, res, next) {
         const { firstName, lastName, contact, role, password } = req.body;
 
         if (!firstName || !lastName || !contact || !password) {
-            return error(
-                res,
-                "Имя, фамилия, контакт и пароль сотрудника обязательны",
-                400
-            );
+            return next(createAppError(ERROR_CODES.USERS_REQUIRED_FIELDS, 400));
         }
 
         if (!ALLOWED_USER_ROLES.includes(role)) {
-            return error(
-                res,
-                "Роль сотрудника должна быть одной из: cashier, manager, admin",
-                400
-            );
+            return next(createAppError(ERROR_CODES.USERS_ROLE_INVALID, 400));
         }
 
         const currentUser = await findUserById(req.user.id);
@@ -57,7 +51,7 @@ export async function createUser(req, res, next) {
 
         return success(res, user, 201);
     } catch (err) {
-        next(err);
+        return next(err);
     }
 }
 
@@ -67,16 +61,12 @@ export async function updateUser(req, res, next) {
         const { firstName, lastName, contact, role } = req.body;
 
         if (!ALLOWED_USER_ROLES.includes(role)) {
-            return error(
-                res,
-                "Роль сотрудника должна быть одной из: cashier, manager, admin",
-                400
-            );
+            return next(createAppError(ERROR_CODES.USERS_ROLE_INVALID, 400));
         }
 
         const existingUser = await findUserById(parseInt(id, 10));
         if (!existingUser) {
-            return error(res, "Сотрудник не найден", 404);
+            return next(createAppError(ERROR_CODES.USERS_NOT_FOUND, 404));
         }
 
         const updatedUser = await updateUserService(parseInt(id, 10), {
@@ -88,7 +78,7 @@ export async function updateUser(req, res, next) {
 
         return success(res, updatedUser);
     } catch (err) {
-        next(err);
+        return next(err);
     }
 }
 
@@ -99,17 +89,18 @@ export async function deleteUser(req, res, next) {
 
         const existingUser = await findUserById(userId);
         if (!existingUser) {
-            return error(res, "Сотрудник не найден", 404);
+            return next(createAppError(ERROR_CODES.USERS_NOT_FOUND, 404));
         }
 
         if (existingUser.id === req.user.id) {
-            return error(res, "Нельзя удалить самого себя", 400);
+            return next(createAppError(ERROR_CODES.USERS_CANNOT_DELETE_SELF, 400));
         }
 
         await deleteUserService(userId);
 
-        return success(res, { message: "Сотрудник успешно удалён" });
+        return success(res, { message: "Сотрудник успешно удален" });
     } catch (err) {
-        next(err);
+        return next(err);
     }
 }
+

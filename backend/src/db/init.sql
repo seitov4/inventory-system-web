@@ -46,21 +46,45 @@ CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 CREATE INDEX IF NOT EXISTS idx_products_is_active ON products(is_active);
 
 -- =====================================================
--- 3. WAREHOUSES
+-- 3. STORES (platform domain)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS stores (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) NOT NULL UNIQUE,
+    owner_email VARCHAR(255),
+    status VARCHAR(20) NOT NULL DEFAULT 'active',
+    plan VARCHAR(50) NOT NULL DEFAULT 'standard',
+    region VARCHAR(100) NOT NULL DEFAULT 'local',
+    address TEXT,
+    primary_warehouse_id INTEGER,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    CONSTRAINT stores_status_chk CHECK (status IN ('active', 'suspended', 'archived', 'provisioning'))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_stores_slug ON stores(slug);
+CREATE INDEX IF NOT EXISTS idx_stores_status ON stores(status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_stores_primary_warehouse ON stores(primary_warehouse_id) WHERE primary_warehouse_id IS NOT NULL;
+
+-- =====================================================
+-- 4. WAREHOUSES
 -- =====================================================
 CREATE TABLE IF NOT EXISTS warehouses (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     type VARCHAR(50),
+    store_id INTEGER REFERENCES stores(id) ON DELETE SET NULL,
     address TEXT,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_warehouses_type ON warehouses(type);
+CREATE INDEX IF NOT EXISTS idx_warehouses_store_id ON warehouses(store_id);
 
 -- =====================================================
--- 4. STOCK
+-- 5. STOCK
 -- =====================================================
 CREATE TABLE IF NOT EXISTS stock (
     id SERIAL PRIMARY KEY,
@@ -76,7 +100,7 @@ CREATE INDEX IF NOT EXISTS idx_stock_warehouse ON stock(warehouse_id);
 CREATE INDEX IF NOT EXISTS idx_stock_product_warehouse ON stock(product_id, warehouse_id);
 
 -- =====================================================
--- 5. MOVEMENTS (base table - legacy columns added in migrations below)
+-- 6. MOVEMENTS (base table - legacy columns added in migrations below)
 -- =====================================================
 CREATE TABLE IF NOT EXISTS movements (
     id SERIAL PRIMARY KEY,
@@ -102,7 +126,7 @@ CREATE INDEX IF NOT EXISTS idx_movements_related_entity ON movements(related_ent
 CREATE INDEX IF NOT EXISTS idx_movements_product_warehouse_date ON movements(product_id, warehouse_id, created_at DESC) WHERE warehouse_id IS NOT NULL;
 
 -- =====================================================
--- 6. SALES (base table - legacy columns added in migrations below)
+-- 7. SALES (base table - legacy columns added in migrations below)
 -- =====================================================
 CREATE TABLE IF NOT EXISTS sales (
     id SERIAL PRIMARY KEY,
@@ -122,7 +146,7 @@ CREATE INDEX IF NOT EXISTS idx_sales_status ON sales(status);
 CREATE INDEX IF NOT EXISTS idx_sales_created_at ON sales(created_at);
 
 -- =====================================================
--- 7. SALE ITEMS (base table - legacy column added in migrations below)
+-- 8. SALE ITEMS (base table - legacy column added in migrations below)
 -- =====================================================
 CREATE TABLE IF NOT EXISTS sale_items (
     id SERIAL PRIMARY KEY,
@@ -137,7 +161,7 @@ CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id);
 CREATE INDEX IF NOT EXISTS idx_sale_items_product ON sale_items(product_id);
 
 -- =====================================================
--- 8. NOTIFICATIONS (base table - legacy columns added in migrations below)
+-- 9. NOTIFICATIONS (base table - legacy columns added in migrations below)
 -- =====================================================
 CREATE TABLE IF NOT EXISTS notifications (
     id SERIAL PRIMARY KEY,
@@ -155,6 +179,50 @@ CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created
 -- =====================================================
 -- MIGRATIONS: Add missing columns if they don't exist
 -- =====================================================
+
+-- Ensure warehouses.store_id exists for store -> warehouses relation
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name='warehouses' AND column_name='store_id'
+    ) THEN
+        ALTER TABLE warehouses ADD COLUMN store_id INTEGER REFERENCES stores(id);
+    END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_warehouses_store_id ON warehouses(store_id);
+
+-- Backfill stores from legacy "store as warehouse.type" records
+INSERT INTO stores (name, slug, owner_email, status, plan, region, address, primary_warehouse_id, created_at, updated_at)
+SELECT w.name,
+       CONCAT('store-', w.id),
+       NULL,
+       CASE
+           WHEN w.type = 'suspended' THEN 'suspended'
+           WHEN w.type = 'archived' THEN 'archived'
+           ELSE 'active'
+       END,
+       'standard',
+       'local',
+       w.address,
+       w.id,
+       COALESCE(w.created_at, NOW()),
+       COALESCE(w.updated_at, NOW())
+FROM warehouses w
+WHERE w.type IN ('store', 'suspended', 'archived')
+  AND NOT EXISTS (
+      SELECT 1
+      FROM stores s
+      WHERE s.primary_warehouse_id = w.id
+  );
+
+UPDATE warehouses w
+SET store_id = s.id
+FROM stores s
+WHERE s.primary_warehouse_id = w.id
+  AND w.store_id IS NULL;
 
 -- Add legacy columns to movements if missing
 DO $$

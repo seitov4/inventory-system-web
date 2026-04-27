@@ -1,6 +1,41 @@
 import jwt from "jsonwebtoken";
 import { findUserById } from "../services/users.service.js";
-import { error } from "../utils/response.js";
+import { createAppError, isAppError } from "../errors/app-error.js";
+import { ERROR_CODES } from "../errors/error-codes.js";
+
+function extractBearerToken(authorizationHeader) {
+    if (!authorizationHeader) {
+        throw createAppError(ERROR_CODES.AUTH_REQUIRED, 401);
+    }
+
+    const parts = authorizationHeader.split(" ");
+    if (parts.length !== 2 || parts[0] !== "Bearer") {
+        throw createAppError(ERROR_CODES.AUTH_TOKEN_FORMAT_INVALID, 401);
+    }
+
+    const token = parts[1];
+    if (!token) {
+        throw createAppError(ERROR_CODES.AUTH_TOKEN_MISSING, 401);
+    }
+
+    return token;
+}
+
+function verifyJwtToken(token) {
+    try {
+        return jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+        if (err.name === "TokenExpiredError") {
+            throw createAppError(ERROR_CODES.AUTH_TOKEN_EXPIRED, 401);
+        }
+
+        if (err.name === "JsonWebTokenError") {
+            throw createAppError(ERROR_CODES.AUTH_TOKEN_INVALID, 401);
+        }
+
+        throw createAppError(ERROR_CODES.AUTH_TOKEN_VERIFICATION_FAILED, 401);
+    }
+}
 
 /**
  * Authentication middleware
@@ -10,44 +45,19 @@ import { error } from "../utils/response.js";
 export async function authRequired(req, res, next) {
     try {
         const header = req.headers.authorization;
-
-        if (!header) {
-            return error(res, "Требуется авторизация", 401);
-        }
-
-        const parts = header.split(" ");
-        if (parts.length !== 2 || parts[0] !== "Bearer") {
-            return error(res, "Некорректный формат токена", 401);
-        }
-
-        const token = parts[1];
-        if (!token) {
-            return error(res, "Токен не предоставлен", 401);
-        }
-
-        // Verify JWT token
-        let payload;
-        try {
-            payload = jwt.verify(token, process.env.JWT_SECRET);
-        } catch (err) {
-            if (err.name === "TokenExpiredError") {
-                return error(res, "Токен истёк", 401);
-            }
-            if (err.name === "JsonWebTokenError") {
-                return error(res, "Неверный токен", 401);
-            }
-            return error(res, "Ошибка проверки токена", 401);
-        }
+        const token = extractBearerToken(header);
+        const payload = verifyJwtToken(token);
 
         // Load full user from database
         const user = await findUserById(payload.id);
 
         if (!user) {
-            return error(res, "Пользователь не найден", 401);
+            throw createAppError(ERROR_CODES.AUTH_USER_NOT_FOUND, 401);
         }
 
         // Attach user to request (without password_hash)
-        const { password_hash, ...userWithoutPassword } = user;
+        const userWithoutPassword = { ...user };
+        delete userWithoutPassword.password_hash;
         req.user = {
             id: userWithoutPassword.id,
             email: userWithoutPassword.email,
@@ -59,10 +69,14 @@ export async function authRequired(req, res, next) {
             created_at: userWithoutPassword.created_at,
         };
 
-        next();
+        return next();
     } catch (err) {
         console.error("[authRequired] Error:", err);
-        return error(res, "Ошибка авторизации", 500);
+        if (isAppError(err)) {
+            return next(err);
+        }
+
+        return next(createAppError(ERROR_CODES.AUTHORIZATION_FAILED, 500));
     }
 }
 
@@ -78,14 +92,21 @@ export async function authRequired(req, res, next) {
  */
 export function requireRole(...roles) {
     return (req, res, next) => {
-        if (!req.user) {
-            return error(res, "Требуется авторизация", 401);
-        }
+        try {
+            if (!req.user) {
+                throw createAppError(ERROR_CODES.AUTH_REQUIRED, 401);
+            }
 
-        if (!roles.includes(req.user.role)) {
-            return error(res, "Доступ запрещён. Недостаточно прав", 403);
-        }
+            if (!roles.includes(req.user.role)) {
+                throw createAppError(ERROR_CODES.AUTH_FORBIDDEN, 403);
+            }
 
-        next();
+            return next();
+        } catch (err) {
+            return next(err);
+        }
     };
 }
+
+
+

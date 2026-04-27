@@ -1,5 +1,6 @@
 import { getSalesReportData } from "../services/reports.service.js";
-import { success, error } from "../utils/response.js";
+import { success } from "../utils/response.js";
+import { parseSalesReportDateRange } from "../validation/reports.validation.js";
 
 /**
  * GET /api/reports/sales
@@ -7,23 +8,8 @@ import { success, error } from "../utils/response.js";
  */
 export async function getSalesReportController(req, res, next) {
     try {
+        const { fromDate, toDate } = parseSalesReportDateRange(req.query);
         const { from, to } = req.query;
-
-        // Validate date parameters
-        if (!from || !to) {
-            return error(res, "Parameters 'from' and 'to' are required (YYYY-MM-DD format)", 400);
-        }
-
-        const fromDate = new Date(from);
-        const toDate = new Date(to);
-
-        if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-            return error(res, "Invalid date format. Use YYYY-MM-DD", 400);
-        }
-
-        if (fromDate > toDate) {
-            return error(res, "'from' date must be before or equal to 'to' date", 400);
-        }
 
         // Log the request
         console.log(`[Reports] Sales report requested: ${from} to ${to}`);
@@ -36,7 +22,7 @@ export async function getSalesReportController(req, res, next) {
         return success(res, data);
     } catch (err) {
         console.error("[Reports] Error generating sales report:", err);
-        next(err);
+        return next(err);
     }
 }
 

@@ -4,7 +4,9 @@ import morgan from "morgan";
 import "dotenv/config";
 
 import { errorHandler } from "./middleware/error.middleware.js";
-import { success, error } from "./utils/response.js";
+import { success } from "./utils/response.js";
+import { createAppError } from "./errors/app-error.js";
+import { ERROR_CODES } from "./errors/error-codes.js";
 import productsRouter from "./routes/products.routs.js";
 import salesRouter from "./routes/sales.routes.js";
 import usersRouter from "./routes/users.routes.js";
@@ -44,8 +46,12 @@ app.use((req, res, next) => {
     if (req.body && Object.keys(req.body).length > 0) {
         // Don't log passwords
         const safeBody = { ...req.body };
-        if (safeBody.password) safeBody.password = "[HIDDEN]";
-        if (safeBody.passwordConfirm) safeBody.passwordConfirm = "[HIDDEN]";
+        if (safeBody.password) {
+            safeBody.password = "[HIDDEN]";
+        }
+        if (safeBody.passwordConfirm) {
+            safeBody.passwordConfirm = "[HIDDEN]";
+        }
         console.log("Request body:", safeBody);
     }
     next();
@@ -67,9 +73,9 @@ app.use("/api/reports", reportsRouter);
 app.use("/api/platform", platformRouter);
 
 // 404 handler for unknown API routes
-app.use("/api/*", (req, res) => {
+app.use("/api/*", (req, res, next) => {
     console.log(`[404] Route not found: ${req.method} ${req.originalUrl}`);
-    return error(res, "API endpoint not found", 404);
+    return next(createAppError(ERROR_CODES.API_ENDPOINT_NOT_FOUND, 404));
 });
 
 // Frontend serving (must be after all API routes to avoid intercepting /api/*)

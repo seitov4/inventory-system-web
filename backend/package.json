@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
+    "test": "node --test --test-isolation=none",
     "create:test-user": "node scripts/create-test-user.js",
+    "seed:rds-test-data": "node scripts/seed-rds-test-data.js",
     "db:setup": "node scripts/setup-db.js",
     "db:check-sync": "node scripts/check-db-sync.js",
     "db:init": "node scripts/run-init.js",

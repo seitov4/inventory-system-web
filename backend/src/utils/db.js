@@ -1,123 +1,10 @@
 import "dotenv/config";
-import { mkdirSync } from "fs";
-import { dirname, resolve } from "path";
-import { fileURLToPath } from "url";
-import { DatabaseSync } from "node:sqlite";
 import pkg from "pg";
 
 const { Pool } = pkg;
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-export const DB_PROVIDER = (
-    process.env.DB_CLIENT ||
-    process.env.DB_PROVIDER ||
-    "sqlite"
-).toLowerCase();
-
-const SQLITE_RELATIVE_PATH =
-    process.env.DB_SQLITE_PATH || "data/inventory.sqlite";
-export const SQLITE_DB_PATH = resolve(__dirname, "..", "..", SQLITE_RELATIVE_PATH);
+export const DB_PROVIDER = "postgres";
 const POSTGRES_SSL = process.env.DB_SSL === "true";
-
-function normalizeSqliteParam(value) {
-    if (value instanceof Date) {
-        return value.toISOString();
-    }
-
-    if (typeof value === "boolean") {
-        return value ? 1 : 0;
-    }
-
-    if (value && typeof value === "object" && !Array.isArray(value)) {
-        return JSON.stringify(value);
-    }
-
-    return value;
-}
-
-function transformSqliteQuery(text) {
-    return text
-        .replace(/\bFOR\s+UPDATE\b/gi, "")
-        .replace(/\bNOW\(\)/gi, "CURRENT_TIMESTAMP")
-        .replace(
-            /\bCURRENT_TIMESTAMP\b/gi,
-            "STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now')"
-        )
-        .replace(/::\s*[a-zA-Z_][a-zA-Z0-9_\[\]]*/g, "")
-        .replace(/\$\d+/g, "?");
-}
-
-function isRowReturningQuery(sql) {
-    return (
-        /^\s*(select|pragma|with)\b/i.test(sql) ||
-        /\breturning\b/i.test(sql)
-    );
-}
-
-function executeSqliteQuery(db, text, params = []) {
-    const sql = transformSqliteQuery(text);
-    const normalizedParams = params.map(normalizeSqliteParam);
-    const statement = db.prepare(sql);
-
-    if (isRowReturningQuery(sql)) {
-        const rows = statement.all(...normalizedParams);
-        return {
-            rows,
-            rowCount: rows.length,
-        };
-    }
-
-    const result = statement.run(...normalizedParams);
-    return {
-        rows: [],
-        rowCount: Number(result.changes || 0),
-        lastInsertRowid: Number(result.lastInsertRowid || 0),
-    };
-}
-
-class SQLiteClient {
-    constructor(db) {
-        this.db = db;
-    }
-
-    async query(text, params = []) {
-        return executeSqliteQuery(this.db, text, params);
-    }
-
-    release() {}
-}
-
-class SQLitePool {
-    constructor(filePath) {
-        this.filePath = filePath;
-        mkdirSync(dirname(filePath), { recursive: true });
-        this.db = new DatabaseSync(filePath);
-        this.db.exec("PRAGMA foreign_keys = ON;");
-        this.db.exec("PRAGMA journal_mode = WAL;");
-        this.db.exec("PRAGMA synchronous = NORMAL;");
-    }
-
-    on() {
-        return this;
-    }
-
-    async query(text, params = []) {
-        return executeSqliteQuery(this.db, text, params);
-    }
-
-    async connect() {
-        return new SQLiteClient(this.db);
-    }
-
-    async end() {
-        if (this.db) {
-            this.db.close();
-            this.db = null;
-        }
-    }
-}
 
 function createPostgresPool() {
     return new Pool({
@@ -149,37 +36,31 @@ function ensurePoolInitialized() {
 }
 
 export async function initDb() {
-    if (internalPool) return;
-
-    if (DB_PROVIDER === "sqlite") {
-        internalPool = new SQLitePool(SQLITE_DB_PATH);
-    } else {
-        internalPool = createPostgresPool();
-
-        internalPool.on("connect", (client) => {
-            console.log("PostgreSQL client connected");
-            client.on("error", (err) => {
-                console.error("PostgreSQL client error:", err.message);
-            });
-        });
-
-        internalPool.on("error", (err) => {
-            console.error("PostgreSQL pool error:", {
-                message: err.message,
-                code: err.code,
-                severity: err.severity,
-            });
-        });
+    if (internalPool) {
+        return;
     }
+
+    internalPool = createPostgresPool();
+
+    internalPool.on("connect", (client) => {
+        console.log("PostgreSQL client connected");
+        client.on("error", (err) => {
+            console.error("PostgreSQL client error:", err.message);
+        });
+    });
+
+    internalPool.on("error", (err) => {
+        console.error("PostgreSQL pool error:", {
+            message: err.message,
+            code: err.code,
+            severity: err.severity,
+        });
+    });
 
     // Run an initial lightweight readiness check
     try {
         await internalPool.query("SELECT 1");
-        if (DB_PROVIDER === "sqlite") {
-            console.log(`SQLite connection ready: ${SQLITE_DB_PATH}`);
-        } else {
-            console.log("PostgreSQL pool initialized successfully");
-        }
+        console.log("PostgreSQL pool initialized successfully");
     } catch (err) {
         console.error("Failed to initialize database connection:", err.message);
         throw err;
@@ -202,17 +83,15 @@ export async function closeDb() {
 }
 
 export function startKeepAlive() {
-    if (DB_PROVIDER !== "postgres") {
-        return;
-    }
-
     if (keepAliveInterval) {
         clearInterval(keepAliveInterval);
     }
 
     keepAliveInterval = setInterval(async () => {
         try {
-            if (!internalPool) return;
+            if (!internalPool) {
+                return;
+            }
             await internalPool.query("SELECT 1");
         } catch (err) {
             console.warn("Keep-alive query failed:", err.message);
@@ -270,12 +149,6 @@ export async function withTransaction(callback) {
 }
 
 export async function safeQuery(text, params = [], maxRetries = 1) {
-    // For sqlite, the pool's query is local and synchronous-like
-    if (DB_PROVIDER === "sqlite") {
-        ensurePoolInitialized();
-        return internalPool.query(text, params);
-    }
-
     let lastError;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -312,13 +185,6 @@ export async function safeQuery(text, params = [], maxRetries = 1) {
 }
 
 export function getDatabaseInfo() {
-    if (DB_PROVIDER === "sqlite") {
-        return {
-            provider: "sqlite",
-            target: SQLITE_DB_PATH,
-        };
-    }
-
     return {
         provider: "postgres",
         target: `${process.env.DB_HOST || "localhost"}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || ""}`,

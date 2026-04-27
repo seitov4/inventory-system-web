@@ -6,12 +6,9 @@ import {
     findUserByPhone,
     findUserById,
 } from "./users.service.js";
+import { createAppError } from "../errors/app-error.js";
+import { ERROR_CODES } from "../errors/error-codes.js";
 
-/**
- * Generate JWT token for user
- * @param {Object} user - User object with id, email, phone, role
- * @returns {string} JWT token
- */
 export function generateToken(user) {
     return jwt.sign(
         {
@@ -25,12 +22,6 @@ export function generateToken(user) {
     );
 }
 
-/**
- * Validate user credentials
- * @param {string} identifier - Email or phone
- * @param {string} password - Plain password
- * @returns {Object|null} User object without password_hash, or null if invalid
- */
 export async function validateCredentials(identifier, password) {
     if (!identifier || !password) {
         return null;
@@ -50,23 +41,16 @@ export async function validateCredentials(identifier, password) {
         return null;
     }
 
-    // Return user without password_hash
-    const { password_hash, ...userWithoutPassword } = user;
+    const userWithoutPassword = { ...user };
+    delete userWithoutPassword.password_hash;
     return userWithoutPassword;
 }
 
-/**
- * Login user
- * @param {string} identifier - Email or phone
- * @param {string} password - Plain password
- * @returns {Object} { token, user }
- * @throws {Error} If credentials are invalid
- */
 export async function loginUser(identifier, password) {
     const user = await validateCredentials(identifier, password);
 
     if (!user) {
-        throw new Error("Неверный логин или пароль");
+        throw createAppError(ERROR_CODES.AUTH_INVALID_CREDENTIALS, 401);
     }
 
     const token = generateToken(user);
@@ -86,19 +70,6 @@ export async function loginUser(identifier, password) {
     };
 }
 
-/**
- * Register new user (store owner/admin)
- * @param {Object} userData - Registration data
- * @param {string} userData.storeName - Store name
- * @param {string} userData.firstName - User first name
- * @param {string} userData.lastName - User last name
- * @param {string} userData.contact - Email or phone
- * @param {string} userData.password - Plain password
- * @param {string} [userData.passwordConfirm] - Password confirmation
- * @param {string} [userData.role] - User role (default: 'owner')
- * @returns {Object} { token, user }
- * @throws {Error} If validation fails or user exists
- */
 export async function registerUser({
     storeName,
     firstName,
@@ -108,45 +79,37 @@ export async function registerUser({
     passwordConfirm,
     role,
 }) {
-    // Validation
     if (!storeName || !firstName || !lastName || !contact || !password) {
-        throw new Error(
-            "Название магазина, имя, фамилия, контакт и пароль обязательны"
-        );
+        throw createAppError(ERROR_CODES.AUTH_REGISTER_REQUIRED_FIELDS, 400);
     }
 
     if (passwordConfirm && password !== passwordConfirm) {
-        throw new Error("Пароль и подтверждение не совпадают");
+        throw createAppError(ERROR_CODES.AUTH_PASSWORD_CONFIRM_MISMATCH, 400);
     }
 
     const normalizedRole = role || "owner";
     if (!["owner", "admin"].includes(normalizedRole)) {
-        throw new Error(
-            "Роль при регистрации может быть только owner или admin"
-        );
+        throw createAppError(ERROR_CODES.AUTH_REGISTER_ROLE_INVALID, 400);
     }
 
-    // Normalize contact (email or phone)
     const isEmail = contact.includes("@");
     const email = isEmail ? contact : null;
     const phone = isEmail ? null : contact;
 
-    // Check for existing user
     if (email) {
         const existing = await findUserByEmail(email);
         if (existing) {
-            throw new Error("Пользователь с таким email уже существует");
+            throw createAppError(ERROR_CODES.AUTH_USER_EMAIL_EXISTS, 409);
         }
     }
 
     if (phone) {
         const existingByPhone = await findUserByPhone(phone);
         if (existingByPhone) {
-            throw new Error("Пользователь с таким телефоном уже существует");
+            throw createAppError(ERROR_CODES.AUTH_USER_PHONE_EXISTS, 409);
         }
     }
 
-    // Create user (password will be hashed in users.service.js)
     const user = await createUser({
         email,
         phone,
@@ -174,21 +137,15 @@ export async function registerUser({
     };
 }
 
-/**
- * Get current user profile
- * @param {number} userId - User ID
- * @returns {Object} User object without password_hash
- * @throws {Error} If user not found
- */
 export async function getCurrentUser(userId) {
     const user = await findUserById(userId);
 
     if (!user) {
-        throw new Error("Пользователь не найден");
+        throw createAppError(ERROR_CODES.AUTH_USER_NOT_FOUND, 404);
     }
 
-    // Return user without password_hash
-    const { password_hash, ...userWithoutPassword } = user;
+    const userWithoutPassword = { ...user };
+    delete userWithoutPassword.password_hash;
 
     return {
         user: {
@@ -203,4 +160,3 @@ export async function getCurrentUser(userId) {
         },
     };
 }
-

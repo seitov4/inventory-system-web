@@ -1,25 +1,18 @@
 import pool from "../utils/db.js";
+import { createAppError } from "../errors/app-error.js";
+import { ERROR_CODES } from "../errors/error-codes.js";
 
-/**
- * Create notification for multiple users
- * @param {Object} params
- * @param {string} params.type - Notification type (e.g., 'LOW_STOCK')
- * @param {number[]} params.userIds - Array of user IDs to notify
- * @param {Object} params.payload - JSON payload with notification data
- * @param {Object} [params.client] - Optional database client for use within existing transaction
- * @returns {Promise<void>}
- */
 export async function createNotification({ type, userIds, payload, client = null }) {
     if (!type) {
-        throw new Error("Notification type is required");
+        throw createAppError(ERROR_CODES.NOTIFICATION_TYPE_REQUIRED, 400);
     }
 
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
-        throw new Error("User IDs array is required and cannot be empty");
+        throw createAppError(ERROR_CODES.NOTIFICATION_USER_IDS_REQUIRED, 400);
     }
 
     if (!payload || typeof payload !== "object") {
-        throw new Error("Payload must be an object");
+        throw createAppError(ERROR_CODES.NOTIFICATION_PAYLOAD_OBJECT_REQUIRED, 400);
     }
 
     const useExternalClient = client !== null;
@@ -32,8 +25,6 @@ export async function createNotification({ type, userIds, payload, client = null
             await client.query("BEGIN");
         }
 
-        // Create notification for each user
-        // Note: DB uses 'NEW' status (matches schema), API maps it to 'UNREAD'
         for (const userId of userIds) {
             await client.query(
                 `INSERT INTO notifications (type, user_id, payload, status)
@@ -57,16 +48,10 @@ export async function createNotification({ type, userIds, payload, client = null
     }
 }
 
-/**
- * Get notifications for a user
- * @param {number} userId - User ID
- * @param {Object} [options] - Query options
- * @param {string} [options.status] - Filter by status (UNREAD, READ)
- * @param {number} [options.limit] - Limit results
- * @param {number} [options.offset] - Offset for pagination
- * @returns {Promise<Array>} Array of notifications
- */
-export async function getUserNotifications(userId, { status = null, limit = 100, offset = 0 } = {}) {
+export async function getUserNotifications(
+    userId,
+    { status = null, limit = 100, offset = 0 } = {}
+) {
     let query = `SELECT id,
                         type,
                         user_id,
@@ -81,7 +66,6 @@ export async function getUserNotifications(userId, { status = null, limit = 100,
     let paramIndex = 2;
 
     if (status) {
-        // Map UNREAD to NEW for DB query (DB uses 'NEW', API uses 'UNREAD')
         const dbStatus = status === "UNREAD" ? "NEW" : status;
         query += ` AND status = $${paramIndex++}`;
         params.push(dbStatus);
@@ -94,12 +78,6 @@ export async function getUserNotifications(userId, { status = null, limit = 100,
     return result.rows;
 }
 
-/**
- * Mark notification as read
- * @param {number} notificationId - Notification ID
- * @param {number} userId - User ID (for authorization check)
- * @returns {Promise<boolean>} True if updated, false if not found or unauthorized
- */
 export async function markAsRead(notificationId, userId) {
     const result = await pool.query(
         `UPDATE notifications
@@ -112,12 +90,6 @@ export async function markAsRead(notificationId, userId) {
     return result.rows.length > 0;
 }
 
-/**
- * Get users with specific roles (for low stock notifications)
- * @param {string[]} roles - Array of roles (e.g., ['owner', 'manager'])
- * @param {Object} [client] - Optional database client
- * @returns {Promise<number[]>} Array of user IDs
- */
 export async function getUsersByRoles(roles, client = null) {
     if (!roles || !Array.isArray(roles) || roles.length === 0) {
         return [];
@@ -130,9 +102,9 @@ export async function getUsersByRoles(roles, client = null) {
     if (client) {
         const result = await client.query(query, params);
         return result.rows.map((row) => row.id);
-    } else {
-        const result = await pool.query(query, params);
-        return result.rows.map((row) => row.id);
     }
+
+    const result = await pool.query(query, params);
+    return result.rows.map((row) => row.id);
 }
 

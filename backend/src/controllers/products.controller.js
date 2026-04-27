@@ -9,14 +9,16 @@ import {
     deleteProduct,
     importProducts,
 } from "../services/products.service.js";
-import { success, error } from "../utils/response.js";
+import { createAppError } from "../errors/app-error.js";
+import { ERROR_CODES } from "../errors/error-codes.js";
+import { success } from "../utils/response.js";
 
 export async function listProducts(req, res, next) {
     try {
         const products = await getAllProducts();
         return success(res, products);
     } catch (err) {
-        next(err);
+        return next(err);
     }
 }
 
@@ -25,11 +27,11 @@ export async function getProduct(req, res, next) {
         const { id } = req.params;
         const product = await getProductById(id);
         if (!product) {
-            return error(res, "Товар не найден", 404);
+            return next(createAppError(ERROR_CODES.PRODUCT_NOT_FOUND, 404));
         }
         return success(res, product);
     } catch (err) {
-        next(err);
+        return next(err);
     }
 }
 
@@ -38,11 +40,11 @@ export async function getProductByBarcodeController(req, res, next) {
         const { code } = req.params;
         const product = await getProductByBarcode(code);
         if (!product) {
-            return error(res, "Товар не найден", 404);
+            return next(createAppError(ERROR_CODES.PRODUCT_NOT_FOUND, 404));
         }
         return success(res, product);
     } catch (err) {
-        next(err);
+        return next(err);
     }
 }
 
@@ -51,7 +53,7 @@ export async function getProductsLeftController(req, res, next) {
         const rows = await getProductsWithLeft();
         return success(res, rows);
     } catch (err) {
-        next(err);
+        return next(err);
     }
 }
 
@@ -60,7 +62,7 @@ export async function getLowStockController(req, res, next) {
         const rows = await getLowStockProducts();
         return success(res, rows);
     } catch (err) {
-        next(err);
+        return next(err);
     }
 }
 
@@ -69,42 +71,25 @@ export async function createProductController(req, res, next) {
         const product = await createProduct(req.body);
         return success(res, product, 201);
     } catch (err) {
-        // Handle specific validation errors
-        if (
-            err.message.includes("обязательно") ||
-            err.message.includes("не может быть пустым") ||
-            err.message.includes("должна быть") ||
-            err.message.includes("должен быть")
-        ) {
-            return error(res, err.message, 400);
-        }
-
-        // Handle duplicate errors
-        if (err.message.includes("уже существует")) {
-            console.log(`[createProduct] Duplicate detected: ${err.message}`);
-            return error(res, err.message, 409);
-        }
-
-        // Handle database constraint errors (fallback)
         if (err.code === "23505") {
-            // PostgreSQL unique constraint violation
-            console.log(`[createProduct] Database constraint violation:`, {
-                code: err.code,
-                detail: err.detail,
-                constraint: err.constraint
-            });
             if (err.detail && err.detail.includes("sku")) {
-                return error(res, `Товар с SKU "${req.body.sku}" уже существует`, 409);
+                return next(
+                    createAppError(ERROR_CODES.PRODUCT_SKU_EXISTS, 409, {
+                        sku: req.body.sku,
+                    })
+                );
             }
             if (err.detail && err.detail.includes("barcode")) {
-                return error(res, `Товар с штрихкодом "${req.body.barcode}" уже существует`, 409);
+                return next(
+                    createAppError(ERROR_CODES.PRODUCT_BARCODE_EXISTS, 409, {
+                        barcode: req.body.barcode,
+                    })
+                );
             }
-            return error(res, "Нарушение уникальности данных", 409);
+            return next(createAppError(ERROR_CODES.PRODUCT_UNIQUE_CONSTRAINT, 409));
         }
 
-        // Log unexpected errors
-        console.error("[createProduct] Unexpected error:", err);
-        next(err);
+        return next(err);
     }
 }
 
@@ -113,38 +98,29 @@ export async function updateProductController(req, res, next) {
         const { id } = req.params;
         const updated = await updateProduct(id, req.body);
         if (!updated) {
-            return error(res, "Товар не найден", 404);
+            return next(createAppError(ERROR_CODES.PRODUCT_NOT_FOUND, 404));
         }
         return success(res, updated);
     } catch (err) {
-        // Handle specific validation errors
-        if (
-            err.message.includes("обязательно") ||
-            err.message.includes("не может быть пустым") ||
-            err.message.includes("должна быть") ||
-            err.message.includes("должен быть")
-        ) {
-            return error(res, err.message, 400);
-        }
-
-        // Handle duplicate errors
-        if (err.message.includes("уже существует")) {
-            return error(res, err.message, 409);
-        }
-
-        // Handle database constraint errors (fallback)
         if (err.code === "23505") {
-            // PostgreSQL unique constraint violation
             if (err.detail && err.detail.includes("sku")) {
-                return error(res, `Товар с SKU "${req.body.sku}" уже существует`, 409);
+                return next(
+                    createAppError(ERROR_CODES.PRODUCT_SKU_EXISTS, 409, {
+                        sku: req.body.sku,
+                    })
+                );
             }
             if (err.detail && err.detail.includes("barcode")) {
-                return error(res, `Товар с штрихкодом "${req.body.barcode}" уже существует`, 409);
+                return next(
+                    createAppError(ERROR_CODES.PRODUCT_BARCODE_EXISTS, 409, {
+                        barcode: req.body.barcode,
+                    })
+                );
             }
-            return error(res, "Нарушение уникальности данных", 409);
+            return next(createAppError(ERROR_CODES.PRODUCT_UNIQUE_CONSTRAINT, 409));
         }
 
-        next(err);
+        return next(err);
     }
 }
 
@@ -152,48 +128,32 @@ export async function deleteProductController(req, res, next) {
     try {
         const { id } = req.params;
         await deleteProduct(id);
-        return success(res, { message: "Товар успешно удалён" }, 200);
+        return success(res, { message: "Товар успешно удален" }, 200);
     } catch (err) {
-        next(err);
+        return next(err);
     }
 }
 
-/**
- * POST /api/products/import
- * Bulk import products from CSV/XLSX
- */
 export async function importProductsController(req, res, next) {
     try {
         const { products } = req.body;
 
-        // Validate input
         if (!products || !Array.isArray(products)) {
-            return error(res, "Products array is required", 400);
+            return next(createAppError(ERROR_CODES.PRODUCT_IMPORT_ARRAY_REQUIRED, 400));
         }
 
         if (products.length === 0) {
-            return error(res, "Products array cannot be empty", 400);
+            return next(createAppError(ERROR_CODES.PRODUCT_IMPORT_ARRAY_EMPTY, 400));
         }
 
         if (products.length > 1000) {
-            return error(res, "Maximum 1000 products per import", 400);
+            return next(createAppError(ERROR_CODES.PRODUCT_IMPORT_MAX_LIMIT, 400));
         }
-
-        console.log(`[Import] Received ${products.length} products for import`);
 
         const result = await importProducts(products);
-
-        console.log(`[Import] Result: ${result.created} created, ${result.skipped} skipped`);
-
         return success(res, result, 201);
     } catch (err) {
-        console.error("[Import] Error:", err);
-        
-        // Handle validation errors
-        if (err.message.includes("validation") || err.message.includes("required")) {
-            return error(res, err.message, 400);
-        }
-
-        next(err);
+        return next(err);
     }
 }
+

@@ -1,4 +1,6 @@
 import pool from "../utils/db.js";
+import { createAppError } from "../errors/app-error.js";
+import { ERROR_CODES } from "../errors/error-codes.js";
 import { applyMovement } from "./movements.service.js";
 
 /**
@@ -12,36 +14,35 @@ export async function createSale({
     discount = 0,
     payment_type = "CASH",
 }) {
-    // Validation
     if (!items || !Array.isArray(items) || items.length === 0) {
-        throw new Error("Список позиций продажи пуст");
+        throw createAppError(ERROR_CODES.SALES_ITEMS_REQUIRED, 400);
     }
 
     for (const item of items) {
         if (!item.product_id) {
-            throw new Error("product_id обязателен для каждой позиции");
+            throw createAppError(ERROR_CODES.SALES_ITEM_PRODUCT_ID_REQUIRED, 400);
         }
+
         const qty = item.qty || item.quantity;
         if (!qty || qty <= 0) {
-            throw new Error("qty должен быть положительным числом");
+            throw createAppError(ERROR_CODES.SALES_ITEM_QTY_INVALID, 400);
         }
-        if (!item.price || item.price < 0) {
-            throw new Error("price обязателен и должен быть неотрицательным");
+
+        if (item.price === undefined || item.price === null || Number(item.price) < 0) {
+            throw createAppError(ERROR_CODES.SALES_ITEM_PRICE_INVALID, 400);
         }
     }
 
     if (!warehouse_id && !store_id) {
-        throw new Error("warehouse_id или store_id обязателен");
+        throw createAppError(ERROR_CODES.SALES_WAREHOUSE_OR_STORE_REQUIRED, 400);
     }
 
-    // Use warehouse_id if provided, otherwise use store_id
     const effectiveWarehouseId = warehouse_id || store_id;
 
     const client = await pool.connect();
     try {
         await client.query("BEGIN");
 
-        // Check stock availability for all items (validation before creating sale)
         for (const item of items) {
             const { product_id } = item;
             const qty = item.qty || item.quantity;
@@ -56,13 +57,14 @@ export async function createSale({
 
             const currentQty = stockRes.rows[0]?.quantity || 0;
             if (currentQty < qty) {
-                throw new Error(
-                    `Недостаточно товара (product_id=${product_id}) на складе. Доступно: ${currentQty}, требуется: ${qty}`
-                );
+                throw createAppError(ERROR_CODES.SALES_INSUFFICIENT_STOCK, 409, {
+                    productId: product_id,
+                    available: currentQty,
+                    required: qty,
+                });
             }
         }
 
-        // Calculate total
         let totalWithoutGlobalDiscount = 0;
         for (const item of items) {
             const qty = item.qty || item.quantity;
@@ -72,26 +74,29 @@ export async function createSale({
         }
         const total = Math.max(0, totalWithoutGlobalDiscount - Number(discount || 0));
 
-        // Create sale record
-        // warehouse_id is required (NOT NULL), store_id is kept for backward compatibility
-        // total_amount is required (NOT NULL), total is legacy field (include both for compatibility)
         const saleRes = await client.query(
             `INSERT INTO sales
                  (cashier_id, warehouse_id, store_id, total, total_amount, discount, payment_type, status)
              VALUES ($1, $2, $3, $4, $5, $6, $7, 'COMPLETED')
              RETURNING id, cashier_id, warehouse_id, store_id, total, total_amount, discount, payment_type, status, created_at`,
-            [cashier_id, effectiveWarehouseId, store_id || effectiveWarehouseId, total, total, discount, payment_type]
+            [
+                cashier_id,
+                effectiveWarehouseId,
+                store_id || effectiveWarehouseId,
+                total,
+                total,
+                discount,
+                payment_type,
+            ]
         );
         const sale = saleRes.rows[0];
 
-        // Create sale items and apply movements
         for (const item of items) {
             const { product_id } = item;
             const qty = item.qty || item.quantity;
             const price = Number(item.price) || 0;
             const itemDiscount = Number(item.discount || 0);
 
-            // Insert sale item (use qty as primary field, quantity as legacy)
             await client.query(
                 `INSERT INTO sale_items
                      (sale_id, product_id, qty, quantity, price, discount)
@@ -99,15 +104,14 @@ export async function createSale({
                 [sale.id, product_id, qty, price, itemDiscount]
             );
 
-            // Apply SALE movement (updates stock, creates movement, checks min_stock)
             await applyMovement({
                 type: "SALE",
                 product_id,
                 warehouse_from: effectiveWarehouseId,
-                qty: qty,
+                qty,
                 reason: `Sale #${sale.id}`,
                 user_id: cashier_id || null,
-                client, // Use existing transaction
+                client,
             });
         }
 
@@ -143,7 +147,9 @@ export async function getSaleById(id) {
     );
 
     const sale = saleRes.rows[0];
-    if (!sale) return null;
+    if (!sale) {
+        return null;
+    }
 
     const itemsRes = await pool.query(
         `SELECT si.product_id,
@@ -184,14 +190,13 @@ export async function getSaleById(id) {
  */
 export async function returnSale({ sale_id, user_id, warehouse_id }) {
     if (!warehouse_id) {
-        throw new Error("warehouse_id обязателен для возврата");
+        throw createAppError(ERROR_CODES.SALES_RETURN_WAREHOUSE_REQUIRED, 400);
     }
 
     const client = await pool.connect();
     try {
         await client.query("BEGIN");
 
-        // Read sale with lock
         const saleRes = await client.query(
             `SELECT id, status, store_id
              FROM sales
@@ -202,14 +207,13 @@ export async function returnSale({ sale_id, user_id, warehouse_id }) {
 
         const sale = saleRes.rows[0];
         if (!sale) {
-            throw new Error("Продажа не найдена");
+            throw createAppError(ERROR_CODES.SALES_NOT_FOUND, 404);
         }
 
         if (sale.status === "RETURNED") {
-            throw new Error("Продажа уже возвращена");
+            throw createAppError(ERROR_CODES.SALES_ALREADY_RETURNED, 409);
         }
 
-        // Get sale items
         const itemsRes = await client.query(
             `SELECT product_id, quantity
              FROM sale_items
@@ -219,13 +223,11 @@ export async function returnSale({ sale_id, user_id, warehouse_id }) {
         const items = itemsRes.rows;
 
         if (items.length === 0) {
-            throw new Error("Продажа не содержит позиций");
+            throw createAppError(ERROR_CODES.SALES_NO_ITEMS, 400);
         }
 
-        // Return items: increase stock and create movements
         for (const item of items) {
             const { product_id, quantity } = item;
-
             await applyMovement({
                 type: "RETURN",
                 product_id,
@@ -233,11 +235,10 @@ export async function returnSale({ sale_id, user_id, warehouse_id }) {
                 qty: quantity,
                 reason: `Return of sale #${sale_id}`,
                 user_id: user_id || null,
-                client, // Use existing transaction
+                client,
             });
         }
 
-        // Update sale status
         await client.query(
             `UPDATE sales
              SET status = 'RETURNED'
@@ -258,7 +259,6 @@ export async function returnSale({ sale_id, user_id, warehouse_id }) {
     }
 }
 
-// Re-export analytics functions from analytics service
 export {
     getDailySales,
     getWeeklySales,

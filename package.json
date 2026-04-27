@@ -16,6 +16,11 @@
     "dev:backend": "npm --workspace backend run dev",
     "dev:mobile": "echo \"mobile is currently excluded from the workspace. See README.md\"",
 
+    "db:postgres:up": "docker compose up -d postgres",
+    "db:postgres:down": "docker compose stop postgres",
+    "db:postgres:logs": "docker compose logs -f postgres",
+    "db:postgres:init": "npm --workspace backend run db:init",
+
     "build": "npm run build:frontend",
     "build:frontend": "npm --workspace frontend run build",
 

@@ -60,10 +60,9 @@ async function startServer() {
         } else {
             // Production: do NOT apply schema automatically. Validate DB readiness and schema presence.
             try {
+                await initDb();
                 // Try a simple query against a core table to ensure schema is applied
                 await safeQuery("SELECT 1 FROM users LIMIT 1", [], 1);
-                // Now initialize runtime DB resources (pool, keep-alive)
-                await initDb();
             } catch (err) {
                 throw new Error(
                     "Database not ready or schema not applied. Run `npm --workspace backend run db:init` to initialize before starting in production. " +

@@ -1,21 +1,8 @@
 import pool from "../utils/db.js";
 import { createNotification, getUsersByRoles } from "./notification.service.js";
+import { createAppError } from "../errors/app-error.js";
+import { ERROR_CODES } from "../errors/error-codes.js";
 
-/**
- * Unified movement application service
- * This is the ONLY way to change stock quantities
- * 
- * @param {Object} params
- * @param {string} params.type - Movement type: IN | OUT | TRANSFER | SALE | RETURN | ADJUST
- * @param {number} params.product_id - Product ID
- * @param {number} [params.warehouse_from] - Source warehouse (required for OUT, SALE, TRANSFER)
- * @param {number} [params.warehouse_to] - Destination warehouse (required for IN, RETURN, TRANSFER)
- * @param {number} params.qty - Quantity (always positive)
- * @param {number} [params.user_id] - User who created the movement
- * @param {string} [params.reason] - Optional reason for movement
- * @param {Object} [params.client] - Optional database client for use within existing transaction
- * @returns {Object} { success: true, movement }
- */
 export async function applyMovement({
     type,
     product_id,
@@ -26,63 +13,49 @@ export async function applyMovement({
     reason = null,
     client = null,
 }) {
-    // Strict validation
     if (!type) {
-        throw new Error("type обязателен");
+        throw createAppError(ERROR_CODES.MOVEMENT_TYPE_REQUIRED, 400);
     }
 
     const validTypes = ["IN", "OUT", "TRANSFER", "SALE", "RETURN", "ADJUST"];
     if (!validTypes.includes(type)) {
-        throw new Error(`Недопустимый тип движения: ${type}`);
+        throw createAppError(ERROR_CODES.MOVEMENT_TYPE_INVALID, 400, { type });
     }
 
     if (!product_id || isNaN(product_id) || product_id <= 0) {
-        throw new Error("product_id обязателен и должен быть положительным числом");
+        throw createAppError(ERROR_CODES.MOVEMENT_PRODUCT_ID_INVALID, 400);
     }
 
     if (!qty || qty <= 0 || isNaN(qty)) {
-        throw new Error("qty должно быть > 0");
+        throw createAppError(ERROR_CODES.MOVEMENT_QTY_INVALID, 400);
     }
 
     if (!user_id || isNaN(user_id) || user_id <= 0) {
-        throw new Error("user_id обязателен и должен быть положительным числом");
+        throw createAppError(ERROR_CODES.MOVEMENT_USER_ID_INVALID, 400);
     }
 
-    // Domain-specific warehouse validation
-    if (type === "IN") {
+    if (type === "IN" || type === "RETURN" || type === "ADJUST") {
         if (!warehouse_to || isNaN(warehouse_to) || warehouse_to <= 0) {
-            throw new Error("warehouse_to обязателен для IN и должен быть положительным числом");
+            throw createAppError(ERROR_CODES.MOVEMENT_WAREHOUSE_TO_INVALID, 400);
         }
     }
 
-    if (type === "OUT") {
+    if (type === "OUT" || type === "SALE") {
         if (!warehouse_from || isNaN(warehouse_from) || warehouse_from <= 0) {
-            throw new Error("warehouse_from обязателен для OUT и должен быть положительным числом");
+            throw createAppError(ERROR_CODES.MOVEMENT_WAREHOUSE_FROM_INVALID, 400);
         }
     }
 
     if (type === "TRANSFER") {
-        if (!warehouse_from || isNaN(warehouse_from) || warehouse_from <= 0 ||
-            !warehouse_to || isNaN(warehouse_to) || warehouse_to <= 0) {
-            throw new Error("warehouse_from и warehouse_to обязательны для TRANSFER и должны быть положительными числами");
-        }
-    }
-
-    if (type === "SALE") {
-        if (!warehouse_from || isNaN(warehouse_from) || warehouse_from <= 0) {
-            throw new Error("warehouse_from обязателен для SALE и должен быть положительным числом");
-        }
-    }
-
-    if (type === "RETURN") {
-        if (!warehouse_to || isNaN(warehouse_to) || warehouse_to <= 0) {
-            throw new Error("warehouse_to обязателен для RETURN и должен быть положительным числом");
-        }
-    }
-
-    if (type === "ADJUST") {
-        if (!warehouse_to || isNaN(warehouse_to) || warehouse_to <= 0) {
-            throw new Error("warehouse_to обязателен для ADJUST и должен быть положительным числом");
+        if (
+            !warehouse_from ||
+            isNaN(warehouse_from) ||
+            warehouse_from <= 0 ||
+            !warehouse_to ||
+            isNaN(warehouse_to) ||
+            warehouse_to <= 0
+        ) {
+            throw createAppError(ERROR_CODES.MOVEMENT_WAREHOUSE_TRANSFER_INVALID, 400);
         }
     }
 
@@ -96,25 +69,24 @@ export async function applyMovement({
             await client.query("BEGIN");
         }
 
-        // Validate product exists
         const productRes = await client.query(
             `SELECT id, name, min_stock FROM products WHERE id = $1`,
             [product_id]
         );
         if (productRes.rows.length === 0) {
-            throw new Error("Товар не найден");
+            throw createAppError(ERROR_CODES.MOVEMENT_PRODUCT_NOT_FOUND, 400);
         }
         const product = productRes.rows[0];
 
-        // Validate warehouses exist (only check warehouses that are required for this type)
-        // This validation is important because FK constraints will fail later if warehouse doesn't exist
         if (warehouse_from) {
             const warehouseFromRes = await client.query(
                 `SELECT id FROM warehouses WHERE id = $1`,
                 [warehouse_from]
             );
             if (warehouseFromRes.rows.length === 0) {
-                throw new Error(`Склад-источник с ID ${warehouse_from} не найден. Сначала создайте склад.`);
+                throw createAppError(ERROR_CODES.MOVEMENT_WAREHOUSE_FROM_NOT_FOUND, 400, {
+                    warehouseId: warehouse_from,
+                });
             }
         }
 
@@ -124,14 +96,13 @@ export async function applyMovement({
                 [warehouse_to]
             );
             if (warehouseToRes.rows.length === 0) {
-                throw new Error(`Склад-назначение с ID ${warehouse_to} не найден. Сначала создайте склад.`);
+                throw createAppError(ERROR_CODES.MOVEMENT_WAREHOUSE_TO_NOT_FOUND, 400, {
+                    warehouseId: warehouse_to,
+                });
             }
         }
 
-        // Handle stock operations based on movement type
         if (type === "IN" || type === "RETURN") {
-            // For IN and RETURN: work with warehouse_to, create if needed
-            // Use INSERT ... ON CONFLICT DO UPDATE to atomically create or update stock
             const targetWarehouseId = warehouse_to;
 
             await client.query(
@@ -142,66 +113,68 @@ export async function applyMovement({
                 [product_id, targetWarehouseId, qty]
             );
         } else if (type === "OUT" || type === "SALE") {
-            // For OUT and SALE: work with warehouse_from (stock must exist)
             const targetWarehouseId = warehouse_from;
-            
-            let stockRes = await client.query(
-                `SELECT id, quantity FROM stock 
+
+            const stockRes = await client.query(
+                `SELECT id, quantity FROM stock
                  WHERE product_id = $1 AND warehouse_id = $2
                  FOR UPDATE`,
                 [product_id, targetWarehouseId]
             );
 
             if (stockRes.rows.length === 0) {
-                throw new Error("Остаток не найден для данного товара и склада");
+                throw createAppError(ERROR_CODES.MOVEMENT_STOCK_NOT_FOUND, 400);
             }
 
             const stock = stockRes.rows[0];
-            
-            // Check availability
+
             if (stock.quantity < qty) {
-                throw new Error(
-                    `Недостаточно товара на складе. Доступно: ${stock.quantity}, требуется: ${qty}`
+                throw createAppError(
+                    ERROR_CODES.MOVEMENT_INSUFFICIENT_STOCK,
+                    type === "SALE" ? 409 : 400,
+                    {
+                        available: stock.quantity,
+                        required: qty,
+                    }
                 );
             }
 
-            // Calculate new quantity and update
             const newQty = stock.quantity - qty;
-            await client.query(
-                `UPDATE stock SET quantity = $1 WHERE id = $2`,
-                [newQty, stock.id]
-            );
+            await client.query(`UPDATE stock SET quantity = $1 WHERE id = $2`, [
+                newQty,
+                stock.id,
+            ]);
         } else if (type === "TRANSFER") {
-            // For TRANSFER: handle both warehouses
-            // First, warehouse_from (must exist)
-            let stockFromRes = await client.query(
-                `SELECT id, quantity FROM stock 
+            const stockFromRes = await client.query(
+                `SELECT id, quantity FROM stock
                  WHERE product_id = $1 AND warehouse_id = $2
                  FOR UPDATE`,
                 [product_id, warehouse_from]
             );
 
             if (stockFromRes.rows.length === 0) {
-                throw new Error("Остаток не найден для склада-источника");
+                throw createAppError(ERROR_CODES.MOVEMENT_STOCK_FROM_NOT_FOUND, 400);
             }
 
             const stockFrom = stockFromRes.rows[0];
-            
-            // Check availability
+
             if (stockFrom.quantity < qty) {
-                throw new Error(
-                    `Недостаточно товара на складе-источнике. Доступно: ${stockFrom.quantity}, требуется: ${qty}`
+                throw createAppError(
+                    ERROR_CODES.MOVEMENT_INSUFFICIENT_STOCK_FROM,
+                    400,
+                    {
+                        available: stockFrom.quantity,
+                        required: qty,
+                    }
                 );
             }
 
-            // Decrease from warehouse_from
             const newQtyFrom = stockFrom.quantity - qty;
-            await client.query(
-                `UPDATE stock SET quantity = $1 WHERE id = $2`,
-                [newQtyFrom, stockFrom.id]
-            );
+            await client.query(`UPDATE stock SET quantity = $1 WHERE id = $2`, [
+                newQtyFrom,
+                stockFrom.id,
+            ]);
 
-            // Second, warehouse_to (create if needed and increase quantity atomically)
             await client.query(
                 `INSERT INTO stock (product_id, warehouse_id, quantity)
                  VALUES ($1, $2, $3)
@@ -210,69 +183,67 @@ export async function applyMovement({
                 [product_id, warehouse_to, qty]
             );
         } else if (type === "ADJUST") {
-            // For ADJUST: stock must exist
             const targetWarehouseId = warehouse_to;
-            
-            let stockRes = await client.query(
-                `SELECT id, quantity FROM stock 
+
+            const stockRes = await client.query(
+                `SELECT id, quantity FROM stock
                  WHERE product_id = $1 AND warehouse_id = $2
                  FOR UPDATE`,
                 [product_id, targetWarehouseId]
             );
 
             if (stockRes.rows.length === 0) {
-                throw new Error("Запись stock не найдена для корректировки");
+                throw createAppError(ERROR_CODES.MOVEMENT_STOCK_ADJUST_NOT_FOUND, 400);
             }
 
             const stock = stockRes.rows[0];
-            
-            // Set to specific quantity
-            await client.query(
-                `UPDATE stock SET quantity = $1 WHERE id = $2`,
-                [qty, stock.id]
-            );
+
+            await client.query(`UPDATE stock SET quantity = $1 WHERE id = $2`, [
+                qty,
+                stock.id,
+            ]);
         }
 
-        // Create movement record
-        // warehouse_id is required (NOT NULL) - set based on movement type
-        // For IN, RETURN, ADJUST: use warehouse_to
-        // For OUT, SALE: use warehouse_from
-        // For TRANSFER: use warehouse_to (destination)
-        const warehouseId = 
+        const warehouseId =
             type === "IN" || type === "RETURN" || type === "ADJUST" || type === "TRANSFER"
                 ? warehouse_to
                 : warehouse_from;
-        
-        // direction is required (NOT NULL): +1 for increase, -1 for decrease
-        // For IN, RETURN, ADJUST, TRANSFER: direction = +1 (increase at destination)
-        // For OUT, SALE: direction = -1 (decrease from source)
-        const direction = 
+
+        const direction =
             type === "IN" || type === "RETURN" || type === "ADJUST" || type === "TRANSFER"
                 ? 1
                 : -1;
-        
+
         const reasonText = reason || null;
         const movementResult = await client.query(
             `INSERT INTO movements
                  (product_id, type, warehouse_id, direction, source_type, warehouse_from, warehouse_to, quantity, qty, reason, created_by)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
              RETURNING *`,
-            [product_id, type, warehouseId, direction, type, warehouse_from, warehouse_to, qty, qty, reasonText, user_id]
+            [
+                product_id,
+                type,
+                warehouseId,
+                direction,
+                type,
+                warehouse_from,
+                warehouse_to,
+                qty,
+                qty,
+                reasonText,
+                user_id,
+            ]
         );
 
         const movement = movementResult.rows[0];
 
-        // Check min_stock and create notifications if needed
-        // For IN, RETURN, ADJUST: use warehouse_to
-        // For OUT, SALE: use warehouse_from
-        // For TRANSFER: use warehouse_to (destination)
         let affectedWarehouseId = null;
         if (["IN", "RETURN", "ADJUST", "TRANSFER"].includes(type)) {
             affectedWarehouseId = warehouse_to;
         } else if (["OUT", "SALE"].includes(type)) {
             affectedWarehouseId = warehouse_from;
         }
-        
+
         if (affectedWarehouseId) {
             const stockAfterRes = await client.query(
                 `SELECT quantity
@@ -284,22 +255,20 @@ export async function applyMovement({
             const quantityAfter = stockAfterRes.rows[0]?.quantity || 0;
 
             if (quantityAfter <= product.min_stock) {
-                // Get users with owner/manager roles
                 const userIds = await getUsersByRoles(["owner", "manager"], client);
 
                 if (userIds.length > 0) {
-                    // Create notification for each user
                     await createNotification({
                         type: "LOW_STOCK",
                         userIds,
                         payload: {
-                            product_id: product_id,
+                            product_id,
                             product_name: product.name,
                             warehouse_id: affectedWarehouseId,
                             quantity: quantityAfter,
                             min_stock: product.min_stock,
                         },
-                        client, // Use existing transaction
+                        client,
                     });
                 }
             }
@@ -308,12 +277,12 @@ export async function applyMovement({
         if (!useExternalClient) {
             await client.query("COMMIT");
         }
+
         return {
             success: true,
             movement,
         };
     } catch (err) {
-        // Log detailed error information for debugging
         console.error("[applyMovement] SQL Error:", {
             message: err.message,
             code: err.code,
@@ -329,7 +298,7 @@ export async function applyMovement({
             line: err.line,
             routine: err.routine,
         });
-        
+
         if (!useExternalClient) {
             await client.query("ROLLBACK");
         }
@@ -340,11 +309,6 @@ export async function applyMovement({
         }
     }
 }
-
-/**
- * Legacy methods - kept for backward compatibility
- * These now use applyMovement internally
- */
 
 export async function createMovementIn({
     product_id,
@@ -382,9 +346,6 @@ export async function createMovementOut({
     return result.movement;
 }
 
-/**
- * Get movements with filters
- */
 export async function getMovements({
     limit = 100,
     offset = 0,
@@ -449,3 +410,4 @@ export async function getMovements({
     const result = await pool.query(query, params);
     return result.rows;
 }
+

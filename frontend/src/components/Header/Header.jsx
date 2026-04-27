@@ -318,7 +318,11 @@ export default function Header() {
             <HeaderInner>
                 {/* Left: Logo / Title */}
                 <LogoBlock>
-                    <Logo onClick={() => setActivePage(isAuthenticated ? "dashboard" : "landing")}>
+                    <Logo
+                        type="button"
+                        aria-label="Open landing page"
+                        onClick={() => setActivePage("landing")}
+                    >
                         Inventory System
                     </Logo>
                 </LogoBlock>

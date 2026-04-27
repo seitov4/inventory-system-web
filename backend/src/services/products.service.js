@@ -1,17 +1,15 @@
 import pool from "../utils/db.js";
+import { createAppError, resolveErrorMessage } from "../errors/app-error.js";
+import { ERROR_CODES } from "../errors/error-codes.js";
 
 /**
  * Get default warehouse (first available warehouse)
  * If no warehouses exist, throws an error
  */
 async function getDefaultWarehouse() {
-    const result = await pool.query(
-        `SELECT id FROM warehouses ORDER BY id LIMIT 1`
-    );
+    const result = await pool.query(`SELECT id FROM warehouses ORDER BY id LIMIT 1`);
     if (result.rows.length === 0) {
-        throw new Error(
-            "Не найден склад по умолчанию. Создайте хотя бы один склад перед добавлением товаров."
-        );
+        throw createAppError(ERROR_CODES.PRODUCT_DEFAULT_WAREHOUSE_NOT_FOUND, 400);
     }
     return result.rows[0].id;
 }
@@ -21,11 +19,11 @@ async function getDefaultWarehouse() {
  */
 function validateProductData({ name, sku, purchase_price, sale_price, min_stock }) {
     if (!name || typeof name !== "string" || name.trim() === "") {
-        throw new Error("Название товара обязательно и не может быть пустым");
+        throw createAppError(ERROR_CODES.PRODUCT_NAME_REQUIRED, 400);
     }
 
     if (!sku || typeof sku !== "string" || sku.trim() === "") {
-        throw new Error("SKU товара обязателен и не может быть пустым");
+        throw createAppError(ERROR_CODES.PRODUCT_SKU_REQUIRED, 400);
     }
 
     const purchasePrice = Number(purchase_price);
@@ -33,15 +31,15 @@ function validateProductData({ name, sku, purchase_price, sale_price, min_stock 
     const minStock = Number(min_stock);
 
     if (isNaN(purchasePrice) || purchasePrice < 0) {
-        throw new Error("Цена закупки должна быть неотрицательным числом");
+        throw createAppError(ERROR_CODES.PRODUCT_PURCHASE_PRICE_INVALID, 400);
     }
 
     if (isNaN(salePrice) || salePrice < 0) {
-        throw new Error("Цена продажи должна быть неотрицательным числом");
+        throw createAppError(ERROR_CODES.PRODUCT_SALE_PRICE_INVALID, 400);
     }
 
     if (isNaN(minStock) || minStock < 0) {
-        throw new Error("Минимальный остаток должен быть неотрицательным числом");
+        throw createAppError(ERROR_CODES.PRODUCT_MIN_STOCK_INVALID, 400);
     }
 }
 
@@ -65,7 +63,9 @@ async function checkSkuExists(sku, excludeId = null) {
  * Check if barcode already exists
  */
 async function checkBarcodeExists(barcode, excludeId = null) {
-    if (!barcode) return false; // barcode can be null
+    if (!barcode) {
+        return false; // barcode can be null
+    }
 
     let query = `SELECT id FROM products WHERE barcode = $1`;
     const params = [barcode];
@@ -191,11 +191,11 @@ export async function createProduct({
 
     // Check uniqueness
     if (await checkSkuExists(sku)) {
-        throw new Error(`Товар с SKU "${sku}" уже существует`);
+        throw createAppError(ERROR_CODES.PRODUCT_SKU_EXISTS, 409, { sku });
     }
 
     if (barcode && (await checkBarcodeExists(barcode))) {
-        throw new Error(`Товар с штрихкодом "${barcode}" уже существует`);
+        throw createAppError(ERROR_CODES.PRODUCT_BARCODE_EXISTS, 409, { barcode });
     }
 
     const client = await pool.connect();
@@ -261,11 +261,11 @@ export async function updateProduct(
 
     // Check uniqueness (excluding current product)
     if (await checkSkuExists(sku, id)) {
-        throw new Error(`Товар с SKU "${sku}" уже существует`);
+        throw createAppError(ERROR_CODES.PRODUCT_SKU_EXISTS, 409, { sku });
     }
 
     if (barcode && (await checkBarcodeExists(barcode, id))) {
-        throw new Error(`Товар с штрихкодом "${barcode}" уже существует`);
+        throw createAppError(ERROR_CODES.PRODUCT_BARCODE_EXISTS, 409, { barcode });
     }
 
     const result = await pool.query(
@@ -316,6 +316,9 @@ export async function importProducts(products) {
     const errors = [];
     let created = 0;
     let skipped = 0;
+    const addImportError = (code, params = {}) => {
+        errors.push(resolveErrorMessage(code, params));
+    };
 
     try {
         await client.query("BEGIN");
@@ -352,7 +355,10 @@ export async function importProducts(products) {
                 }
                 
                 if (missingFields.length > 0) {
-                    errors.push(`Row ${rowNum}: Missing required fields: ${missingFields.join(', ')}`);
+                    addImportError(ERROR_CODES.PRODUCT_IMPORT_ROW_MISSING_FIELDS, {
+                        row: rowNum,
+                        fields: missingFields,
+                    });
                     skipped++;
                     continue;
                 }
@@ -370,7 +376,9 @@ export async function importProducts(products) {
                 
                 // Validate sale_price is a valid number
                 if (isNaN(salePrice) || salePrice < 0) {
-                    errors.push(`Row ${rowNum}: sale_price must be a non-negative number`);
+                    addImportError(ERROR_CODES.PRODUCT_IMPORT_ROW_SALE_PRICE_INVALID, {
+                        row: rowNum,
+                    });
                     skipped++;
                     continue;
                 }
@@ -381,7 +389,10 @@ export async function importProducts(products) {
                     [sku]
                 );
                 if (skuCheck.rows.length > 0) {
-                    errors.push(`Row ${rowNum}: SKU "${sku}" already exists`);
+                    addImportError(ERROR_CODES.PRODUCT_IMPORT_ROW_SKU_EXISTS, {
+                        row: rowNum,
+                        sku,
+                    });
                     skipped++;
                     continue;
                 }
@@ -393,7 +404,10 @@ export async function importProducts(products) {
                         [barcode]
                     );
                     if (barcodeCheck.rows.length > 0) {
-                        errors.push(`Row ${rowNum}: Barcode "${barcode}" already exists`);
+                        addImportError(ERROR_CODES.PRODUCT_IMPORT_ROW_BARCODE_EXISTS, {
+                            row: rowNum,
+                            barcode,
+                        });
                         skipped++;
                         continue;
                     }
@@ -423,7 +437,9 @@ export async function importProducts(products) {
                 created++;
             } catch (err) {
                 console.error(`[Import] Error on row ${rowNum}:`, err.message);
-                errors.push(`Row ${rowNum}: ${err.message}`);
+                addImportError(ERROR_CODES.PRODUCT_IMPORT_ROW_PROCESS_FAILED, {
+                    row: rowNum,
+                });
                 skipped++;
             }
         }
@@ -443,3 +459,4 @@ export async function importProducts(products) {
         client.release();
     }
 }
+

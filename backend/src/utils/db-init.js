@@ -1,10 +1,8 @@
 import "dotenv/config";
 import pkg from "pg";
-import { DatabaseSync } from "node:sqlite";
-import { mkdirSync, readFileSync } from "fs";
-import { dirname, join, resolve } from "path";
+import { readFileSync } from "fs";
+import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { DB_PROVIDER } from "./db.js";
 
 const { Pool } = pkg;
 
@@ -18,12 +16,8 @@ const DB_USER = process.env.DB_USER;
 const DB_PASSWORD = process.env.DB_PASSWORD;
 const DB_SSL =
     process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false;
-const SQLITE_PATH = resolve(
-    __dirname,
-    "..",
-    "..",
-    process.env.DB_SQLITE_PATH || "data/inventory.sqlite"
-);
+const DB_INIT_MAX_RETRIES = Number(process.env.DB_INIT_MAX_RETRIES || 10);
+const DB_INIT_RETRY_DELAY_MS = Number(process.env.DB_INIT_RETRY_DELAY_MS || 3000);
 
 function validatePostgresEnv() {
     if (!DB_NAME || !DB_USER) {
@@ -61,7 +55,10 @@ function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function waitForDatabaseServer(maxRetries = 10, delayMs = 3000) {
+async function waitForDatabaseServer(
+    maxRetries = DB_INIT_MAX_RETRIES,
+    delayMs = DB_INIT_RETRY_DELAY_MS
+) {
     const adminPool = createAdminPool();
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -127,7 +124,7 @@ async function ensurePostgresSchema() {
         if (warehouseCount.rows[0].count === 0) {
             const defaultWarehousePath = join(
                 __dirname,
-                "../../db/create_default_warehouse.sql"
+                "../../../db/create_default_warehouse.sql"
             );
             const defaultWarehouseSql = readFileSync(
                 defaultWarehousePath,
@@ -154,36 +151,6 @@ async function initializePostgresDatabase() {
     console.log("PostgreSQL initialization completed");
 }
 
-async function initializeSqliteDatabase() {
-    mkdirSync(dirname(SQLITE_PATH), { recursive: true });
-
-    const db = new DatabaseSync(SQLITE_PATH);
-    try {
-        db.exec("PRAGMA foreign_keys = ON;");
-        db.exec("PRAGMA journal_mode = WAL;");
-
-        const initSqlPath = join(__dirname, "../db/init.sqlite.sql");
-        const initSql = readFileSync(initSqlPath, "utf-8");
-        db.exec(initSql);
-
-        console.log(`SQLite database initialized at ${SQLITE_PATH}`);
-    } finally {
-        db.close();
-    }
-}
-
 export async function initializeDatabase() {
-    if (DB_PROVIDER === "sqlite") {
-        await initializeSqliteDatabase();
-        return;
-    }
-
-    if (DB_PROVIDER === "postgres") {
-        await initializePostgresDatabase();
-        return;
-    }
-
-    throw new Error(
-        `Unsupported DB provider '${DB_PROVIDER}'. Use 'sqlite' or 'postgres'.`
-    );
+    await initializePostgresDatabase();
 }

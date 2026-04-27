@@ -8,8 +8,7 @@ This directory contains the database schema and migrations for the Inventory Man
 
 - `schema.sql` - Main database schema (supports both legacy and new structure)
 - `schema_v2.sql` - Complete v2.0 schema with all improvements
-- `backend/src/db/init.sql` - Canonical runtime init (Postgres). Preferred for automated setup and runtime init.
-- `backend/src/db/init.sqlite.sql` - Canonical runtime init for SQLite.
+- `backend/src/db/init.sql` - Canonical PostgreSQL runtime init. Preferred for automated setup and runtime init.
  - `schema.sql` - (moved) Legacy archived schema available in `db/legacy/`
  - `schema_v2.sql` - (moved) Legacy v2 archived schema available in `db/legacy/`
 - `migrations/` - Database migration scripts
