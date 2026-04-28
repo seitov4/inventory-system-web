@@ -11,7 +11,7 @@ import { fadeInUp, countUp } from "../../utils/animations";
  * - type: "metric" | "status" | "chart" | "info"
  * - value: string | number (for metric/status types)
  * - description: string (meta text below content)
- * - size: "small" | "medium" | "large"
+ * - size: "small" | "medium" | "large" | "panelMetric" | "panelChart"
  * - statusColor: string (for status type - green/yellow/red)
  * - tint: "blue" | "green" | "amber" | "neutral" (soft background tint)
  * - onClick: function (optional, makes card clickable)
@@ -28,6 +28,9 @@ const CardWrapper = styled.div`
     height: ${props => {
         if (props.$size === "small") return "120px";
         if (props.$size === "medium") return "160px";
+        if (props.$size === "square") return "280px";
+        if (props.$size === "panelMetric") return "100%";
+        if (props.$size === "panelChart") return "100%";
         return "220px";
     }};
     transition: ${props => props.$onClick ? "transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease" : "none"};

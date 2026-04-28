@@ -1,13 +1,15 @@
 import "dotenv/config";
 import pkg from "pg";
-import { readFileSync } from "fs";
-import { dirname, join } from "path";
+import { existsSync, readFileSync } from "fs";
+import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
 const { Pool } = pkg;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const BACKEND_ROOT = resolve(__dirname, "../..");
+const PROJECT_ROOT = resolve(BACKEND_ROOT, "..");
 
 const DB_NAME = process.env.DB_NAME;
 const DB_HOST = process.env.DB_HOST || "localhost";
@@ -53,6 +55,30 @@ function createAppPool() {
 
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function resolveOptionalPath(pathValue) {
+    if (!pathValue) {
+        return null;
+    }
+    return resolve(process.cwd(), pathValue);
+}
+
+function readSqlFile(label, candidatePaths) {
+    const existingPath = candidatePaths.filter(Boolean).find((candidatePath) =>
+        existsSync(candidatePath)
+    );
+
+    if (!existingPath) {
+        throw new Error(
+            `${label} SQL file not found. Looked in: ${candidatePaths
+                .filter(Boolean)
+                .join(", ")}`
+        );
+    }
+
+    console.log(`${label} SQL file: ${existingPath}`);
+    return readFileSync(existingPath, "utf-8");
 }
 
 async function waitForDatabaseServer(
@@ -112,8 +138,10 @@ async function ensurePostgresSchema() {
     const client = await appPool.connect();
 
     try {
-        const initSqlPath = join(__dirname, "../db/init.sql");
-        const initSql = readFileSync(initSqlPath, "utf-8");
+        const initSql = readSqlFile("Schema", [
+            resolveOptionalPath(process.env.DB_SCHEMA_SQL_PATH),
+            resolve(BACKEND_ROOT, "src/db/init.sql"),
+        ]);
         await client.query(initSql);
         console.log("PostgreSQL schema applied successfully");
 
@@ -122,16 +150,16 @@ async function ensurePostgresSchema() {
         );
 
         if (warehouseCount.rows[0].count === 0) {
-            const defaultWarehousePath = join(
-                __dirname,
-                "../../../db/create_default_warehouse.sql"
-            );
-            const defaultWarehouseSql = readFileSync(
-                defaultWarehousePath,
-                "utf-8"
-            );
+            const defaultWarehouseSql = readSqlFile("Default warehouse seed", [
+                resolveOptionalPath(process.env.DEFAULT_WAREHOUSE_SQL_PATH),
+                resolve(PROJECT_ROOT, "db/create_default_warehouse.sql"),
+                resolve(BACKEND_ROOT, "db/create_default_warehouse.sql"),
+                resolve(BACKEND_ROOT, "src/db/create_default_warehouse.sql"),
+            ]);
             await client.query(defaultWarehouseSql);
             console.log("Default warehouse created");
+        } else {
+            console.log("Default warehouse already exists");
         }
     } finally {
         client.release();

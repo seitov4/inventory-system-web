@@ -15,8 +15,6 @@ import {
     DragOverlay,
 } from '@dnd-kit/core';
 import {
-    arrayMove,
-    SortableContext,
     sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
 import Layout from "../../components/Layout/Layout";
@@ -25,7 +23,7 @@ import salesApi from "../../api/salesApi";
 import productsApi from "../../api/productsApi";
 import { useAuth } from "../../context/AuthContext";
 import { usePage } from "../../context/PageContext";
-import { getWidgetConfig, WIDGET_IDS } from "./dashboardWidgets";
+import { getWidgetConfig } from "./dashboardWidgets";
 import { ZONES } from "./dashboardWidgets";
 import {
     getDefaultZoneLayout,
@@ -46,7 +44,20 @@ const LoadingText = styled.div`
 const DashboardContainer = styled.div`
     display: flex;
     flex-direction: column;
+    gap: 28px;
+`;
+
+const TopZonesGrid = styled.div`
+    display: grid;
+    grid-template-columns: ${props => props.$single ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)'};
     gap: 24px;
+    align-items: stretch;
+    min-height: 650px;
+
+    @media (max-width: 1199px) {
+        grid-template-columns: 1fr;
+        min-height: auto;
+    }
 `;
 
 const HeaderActions = styled.div`
@@ -118,20 +129,111 @@ const DebugPanel = styled.div`
     }
 `;
 
-const MiniChart = styled.div`
-    display: flex;
-    align-items: flex-end;
-    gap: 4px;
-    height: 40px;
+const SalesChartPanel = styled.div`
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: 12px;
+    height: 100%;
+    min-height: 0;
 `;
 
-const MiniBar = styled.div`
-    flex: 1;
-    border-radius: 4px 4px 0 0;
-    background: var(--primary-color);
+const ChartYAxis = styled.div`
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 8px 0 24px;
+    color: var(--text-tertiary);
+    font-size: 10px;
+    line-height: 1;
+    text-align: right;
+`;
+
+const ChartBody = styled.div`
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(${props => props.$count || 1}, minmax(34px, 1fr));
+    align-items: end;
+    gap: 8px;
+    height: 100%;
+    padding: 8px 0 24px;
+    border-left: 1px solid var(--border-color-subtle);
+    border-bottom: 1px solid var(--border-color-subtle);
+
+    &::before,
+    &::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        border-top: 1px dashed rgba(148, 163, 184, 0.18);
+        pointer-events: none;
+    }
+
+    &::before {
+        top: 8px;
+    }
+
+    &::after {
+        top: 50%;
+    }
+`;
+
+const ChartBarGroup = styled.div`
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    height: 100%;
+    min-width: 0;
+`;
+
+const ChartValue = styled.div`
+    margin-bottom: 5px;
+    color: var(--text-secondary);
+    font-size: 10px;
+    line-height: 1;
+    white-space: nowrap;
+    opacity: ${props => props.$show ? 1 : 0};
+    transform: translateY(${props => props.$show ? "0" : "4px"});
+    transition: opacity 0.18s ease, transform 0.18s ease;
+`;
+
+const ChartBar = styled.div`
+    width: min(42px, 76%);
     height: ${props => props.$height || 0}%;
-    min-height: 4px;
-    opacity: 0.85;
+    min-height: ${props => props.$value > 0 ? "8px" : "2px"};
+    border-radius: 5px 5px 0 0;
+    background: linear-gradient(180deg, #73b5ff 0%, var(--primary-color) 100%);
+    box-shadow: 0 8px 18px rgba(88, 166, 255, 0.18);
+    opacity: ${props => props.$value > 0 ? 0.95 : 0.35};
+    transition: height 0.2s ease, opacity 0.2s ease;
+
+    ${ChartBarGroup}:hover & {
+        opacity: 1;
+        background: linear-gradient(180deg, #9cccff 0%, #58a6ff 100%);
+    }
+`;
+
+const ChartLabel = styled.div`
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 56px;
+    transform: translateX(-50%);
+    color: var(--text-tertiary);
+    font-size: 10px;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+`;
+
+const ChartEmpty = styled.div`
+    grid-column: 1 / -1;
+    align-self: center;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    text-align: center;
 `;
 
 const WidgetText = styled.div`
@@ -235,10 +337,16 @@ export default function DashboardPage() {
         load();
     }, [canSeeAnalytics]);
 
-    const miniChartHeights = useMemo(() => {
+    const miniChartData = useMemo(() => {
         if (!chartData.data.length) return [];
-        const max = Math.max(...chartData.data, 1);
-        return chartData.data.slice(-7).map((v) => Math.max(5, (v / max) * 100));
+        const labels = chartData.labels || [];
+        return chartData.data.slice(-7).map((value, index, visibleValues) => {
+            const sourceIndex = chartData.data.length - visibleValues.length + index;
+            return {
+                label: labels[sourceIndex] || "",
+                value: Number(value) || 0,
+            };
+        });
     }, [chartData]);
 
     // Initialize zone layout
@@ -256,7 +364,7 @@ export default function DashboardPage() {
             role,
             stats,
             canSeeAnalytics,
-            miniChartHeights,
+            miniChartData,
             setActivePage,
         };
         
@@ -273,7 +381,21 @@ export default function DashboardPage() {
         });
         
         return widgetMap;
-    }, [zoneLayout, role, stats, canSeeAnalytics, miniChartHeights, setActivePage]);
+    }, [zoneLayout, role, stats, canSeeAnalytics, miniChartData, setActivePage]);
+
+    const formatCurrencyCompact = useCallback((value) => {
+        const amount = Number(value) || 0;
+        if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
+        if (amount >= 1000) return `${Math.round(amount / 1000)}k`;
+        return amount.toLocaleString("ru-RU");
+    }, []);
+
+    const formatChartDate = useCallback((value) => {
+        if (!value) return "";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+        return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    }, []);
 
     // Get widgets for a specific zone
     const getZoneWidgets = useCallback((zone) => {
@@ -385,7 +507,7 @@ export default function DashboardPage() {
                 }
             }
         }
-    }, [zoneLayout, allWidgetConfigs, role]);
+    }, [editMode, zoneLayout, allWidgetConfigs, role]);
 
     // Handle drag cancel
     const handleDragCancel = useCallback(() => {
@@ -403,12 +525,38 @@ export default function DashboardPage() {
     // Render widget content
     const renderWidget = useCallback((widget) => {
         if (widget.type === 'chart' && widget.chartData) {
+            const points = widget.chartData;
+            const maxValue = Math.max(...points.map((point) => point.value), 1);
             return (
-                <MiniChart>
-                    {widget.chartData.map((h, i) => (
-                        <MiniBar key={i} $height={h} />
-                    ))}
-                </MiniChart>
+                <SalesChartPanel>
+                    <ChartYAxis>
+                        <span>{formatCurrencyCompact(maxValue)} ₸</span>
+                        <span>{formatCurrencyCompact(maxValue / 2)} ₸</span>
+                        <span>0 ₸</span>
+                    </ChartYAxis>
+                    <ChartBody $count={Math.max(points.length, 1)}>
+                        {points.length ? (
+                            points.map((point, index) => {
+                                const height = Math.max(4, (point.value / maxValue) * 100);
+                                const showValue = point.value === maxValue || index === points.length - 1;
+                                return (
+                                    <ChartBarGroup
+                                        key={`${point.label}-${index}`}
+                                        title={`${formatChartDate(point.label)}: ${point.value.toLocaleString("ru-RU")} ₸`}
+                                    >
+                                        <ChartValue $show={showValue}>
+                                            {formatCurrencyCompact(point.value)} ₸
+                                        </ChartValue>
+                                        <ChartBar $height={height} $value={point.value} />
+                                        <ChartLabel>{formatChartDate(point.label)}</ChartLabel>
+                                    </ChartBarGroup>
+                                );
+                            })
+                        ) : (
+                            <ChartEmpty>No sales data for the selected period</ChartEmpty>
+                        )}
+                    </ChartBody>
+                </SalesChartPanel>
             );
         }
         
@@ -417,7 +565,7 @@ export default function DashboardPage() {
         }
         
         return widget.children || null;
-    }, []);
+    }, [formatChartDate, formatCurrencyCompact]);
 
     // Get active widget for drag overlay
     const activeWidget = activeId ? allWidgetConfigs.get(activeId) : null;
@@ -467,28 +615,32 @@ export default function DashboardPage() {
                     onDragCancel={handleDragCancel}
                 >
                     <DashboardContainer>
-                        <DashboardZone
-                            zone={ZONES.KPI}
-                            widgets={getZoneWidgets(ZONES.KPI)}
-                            renderWidget={renderWidget}
-                            editMode={editMode}
-                            isDraggingOver={editMode && overZone === ZONES.KPI}
-                            isValidDrop={editMode && activeWidget && activeWidget.allowedZones?.includes(ZONES.KPI)}
-                            minHeight="120px"
-                        />
-                        
-                        {canSeeAnalytics && (
+                        <TopZonesGrid $single={!canSeeAnalytics}>
                             <DashboardZone
-                                zone={ZONES.WIDE}
-                                widgets={getZoneWidgets(ZONES.WIDE)}
+                                zone={ZONES.KPI}
+                                widgets={getZoneWidgets(ZONES.KPI)}
                                 renderWidget={renderWidget}
                                 editMode={editMode}
-                                isDraggingOver={editMode && overZone === ZONES.WIDE}
-                                isValidDrop={editMode && activeWidget && activeWidget.allowedZones?.includes(ZONES.WIDE)}
-                                minHeight="200px"
+                                isDraggingOver={editMode && overZone === ZONES.KPI}
+                                isValidDrop={editMode && activeWidget && activeWidget.allowedZones?.includes(ZONES.KPI)}
+                                minHeight="650px"
+                                layout="paired"
                             />
-                        )}
-                        
+
+                            {canSeeAnalytics && (
+                                <DashboardZone
+                                    zone={ZONES.WIDE}
+                                    widgets={getZoneWidgets(ZONES.WIDE)}
+                                    renderWidget={renderWidget}
+                                    editMode={editMode}
+                                    isDraggingOver={editMode && overZone === ZONES.WIDE}
+                                    isValidDrop={editMode && activeWidget && activeWidget.allowedZones?.includes(ZONES.WIDE)}
+                                    minHeight="650px"
+                                    layout="paired"
+                                />
+                            )}
+                        </TopZonesGrid>
+
                         <DashboardZone
                             zone={ZONES.INFO}
                             widgets={getZoneWidgets(ZONES.INFO)}

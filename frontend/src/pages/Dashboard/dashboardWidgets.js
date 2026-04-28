@@ -36,7 +36,7 @@ export const ZONES = {
  * @returns {object} Widget config
  */
 export function getWidgetConfig(widgetId, data = {}) {
-    const { stats = {}, widgets = [], canSeeAnalytics = false, miniChartHeights = [], setActivePage = () => {} } = data;
+    const { stats = {}, widgets = [], canSeeAnalytics = false, miniChartData = [], setActivePage = () => {} } = data;
     
     const configs = {
         [WIDGET_IDS.SALES_TODAY]: {
@@ -93,9 +93,9 @@ export function getWidgetConfig(widgetId, data = {}) {
             allowedZones: [ZONES.WIDE], // Chart locked to chart zone only
             title: 'Mini sales chart (last days)',
             type: 'chart',
-            size: 'large',
+            size: 'square',
             tint: 'blue-strong',
-            chartData: miniChartHeights,
+            chartData: miniChartData,
         },
         [WIDGET_IDS.SALES_TRENDS]: {
             id: WIDGET_IDS.SALES_TRENDS,

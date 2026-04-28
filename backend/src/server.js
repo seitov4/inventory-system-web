@@ -7,6 +7,7 @@ import { getDatabaseInfo, safeQuery, initDb, closeDb } from "./utils/db.js";
 
 const DEFAULT_PORT = parseInt(process.env.PORT, 10) || 5000;
 const MAX_PORT_ATTEMPTS = 10;
+const AUTO_INIT_DB = process.env.AUTO_INIT_DB === "true";
 
 /**
  * Check if a port is available
@@ -53,8 +54,8 @@ async function findAvailablePort(startPort, maxAttempts) {
 async function startServer() {
     try {
         // Initialize or validate database before starting server
-        // Development: keep auto-init convenience (apply schema + init runtime pool)
-        if (process.env.NODE_ENV !== "production") {
+        // Development keeps auto-init convenience. Docker can opt in with AUTO_INIT_DB=true.
+        if (process.env.NODE_ENV !== "production" || AUTO_INIT_DB) {
             await initializeDatabase();
             await initDb();
         } else {
@@ -76,13 +77,14 @@ async function startServer() {
         
         app.listen(PORT, () => {
             console.log(`===================================`);
+            console.log(`Server started on port ${PORT}`);
             console.log(`Backend running on http://localhost:${PORT}`);
             console.log(`Database: ${dbInfo.provider} (${dbInfo.target})`);
             console.log(`API Health Check: http://localhost:${PORT}/api/health`);
             console.log(`Auth Register: POST http://localhost:${PORT}/api/auth/register`);
             console.log(`Auth Login: POST http://localhost:${PORT}/api/auth/login`);
             if (PORT !== DEFAULT_PORT) {
-                console.log(`\n⚠️  Note: Using port ${PORT} instead of ${DEFAULT_PORT} (was in use)`);
+                console.log(`\nNote: Using port ${PORT} instead of ${DEFAULT_PORT} (was in use)`);
                 console.log(`   Update REACT_APP_API_URL in frontend if needed`);
             }
             console.log(`===================================`);
@@ -97,7 +99,7 @@ startServer();
 
 // Graceful shutdown handlers registered here (only when server.js is executed)
 process.on("SIGINT", async () => {
-    console.log("SIGINT received — shutting down...");
+    console.log("SIGINT received - shutting down...");
     try {
         await closeDb();
     } catch (err) {
@@ -107,7 +109,7 @@ process.on("SIGINT", async () => {
 });
 
 process.on("SIGTERM", async () => {
-    console.log("SIGTERM received — shutting down...");
+    console.log("SIGTERM received - shutting down...");
     try {
         await closeDb();
     } catch (err) {

@@ -258,10 +258,16 @@ export default function DashboardPage() {
         }
     }, [role, canSeeAnalytics, loading]);
 
-    const miniChartHeights = useMemo(() => {
+    const miniChartData = useMemo(() => {
         if (!chartData.data.length) return [];
-        const max = Math.max(...chartData.data, 1);
-        return chartData.data.slice(-7).map((v) => Math.max(5, (v / max) * 100));
+        const labels = chartData.labels || [];
+        return chartData.data.slice(-7).map((value, index, visibleValues) => {
+            const sourceIndex = chartData.data.length - visibleValues.length + index;
+            return {
+                label: labels[sourceIndex] || "",
+                value: Number(value) || 0,
+            };
+        });
     }, [chartData]);
 
     // Get all widgets with proper IDs
@@ -270,7 +276,7 @@ export default function DashboardPage() {
             role,
             stats,
             canSeeAnalytics,
-            miniChartHeights,
+            miniChartData,
             setActivePage,
         };
         
@@ -281,7 +287,7 @@ export default function DashboardPage() {
         widgets.push(...kpiWidgets);
         
         // Zone 2: Wide
-        if (canSeeAnalytics && miniChartHeights.length > 0) {
+        if (canSeeAnalytics && miniChartData.length > 0) {
             const wideWidgets = getWidgetsByZone('wide', data);
             widgets.push(...wideWidgets);
         }
@@ -299,7 +305,7 @@ export default function DashboardPage() {
             ...widget,
             id: widget.id || `widget-${idx}-${widget.title?.toLowerCase().replace(/\s+/g, '-')}`,
         }));
-    }, [role, stats, canSeeAnalytics, miniChartHeights, setActivePage]);
+    }, [role, stats, canSeeAnalytics, miniChartData, setActivePage]);
     
     // Sync layout with widgets after widgets are loaded
     useEffect(() => {
@@ -406,10 +412,12 @@ export default function DashboardPage() {
     // Render widget content
     const renderWidget = (widget) => {
         if (widget.type === 'chart' && widget.chartData) {
+            const values = widget.chartData.map((point) => point.value ?? 0);
+            const max = Math.max(...values, 1);
             return (
                 <MiniChart>
-                    {widget.chartData.map((h, i) => (
-                        <MiniBar key={i} $height={h} />
+                    {widget.chartData.map((point, i) => (
+                        <MiniBar key={i} $height={Math.max(5, ((point.value || 0) / max) * 100)} />
                     ))}
                 </MiniChart>
             );

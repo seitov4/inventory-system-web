@@ -105,6 +105,25 @@ Build the frontend from the root:
 npm run build
 ```
 
+### Docker production image
+Build a single production image that contains the Express API and the compiled React frontend:
+
+```bash
+docker build -t inventory-system-web:latest .
+```
+
+Run the production stack with PostgreSQL:
+
+```bash
+JWT_SECRET=change_me docker compose -f docker-compose.prod.yml up --build -d postgres
+JWT_SECRET=change_me docker compose -f docker-compose.prod.yml run --rm db-init
+JWT_SECRET=change_me docker compose -f docker-compose.prod.yml up -d app
+```
+
+The app is served on `http://localhost:5000` by default. Override the published port with `APP_PORT`, for example `APP_PORT=8080`.
+
+The production container does not apply database schema on normal app startup. Use the `db-init` command during provisioning or before the first `app` start.
+
 ### Test & Lint
 Run frontend tests from root:
 

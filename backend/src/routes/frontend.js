@@ -29,20 +29,20 @@ export function setupFrontend(app) {
 
     // Check if build directory exists
     if (!fs.existsSync(frontendBuildPath)) {
-        console.warn(`⚠️  Frontend build folder not found: ${frontendBuildPath}`);
-        console.warn("⚠️  Backend will continue running without serving frontend");
-        console.warn("⚠️  To serve frontend, build it with: cd frontend && npm run build");
+        console.warn(`Frontend build folder not found: ${frontendBuildPath}`);
+        console.warn("Backend will continue running without serving frontend");
+        console.warn("To serve frontend, build it with: npm --workspace frontend run build");
         return;
     }
 
     // Check if index.html exists
     if (!fs.existsSync(indexFile)) {
-        console.warn(`⚠️  index.html not found in frontend build: ${indexFile}`);
-        console.warn("⚠️  Frontend will NOT be served");
+        console.warn(`index.html not found in frontend build: ${indexFile}`);
+        console.warn("Frontend will NOT be served");
         return;
     }
 
-    console.log("✅ Frontend build found. Serving frontend static files...");
+    console.log("Frontend build found. Serving frontend static files...");
     console.log(`   Build path: ${frontendBuildPath}`);
 
     // Serve static files from frontend/build
@@ -66,5 +66,5 @@ export function setupFrontend(app) {
         });
     });
 
-    console.log("✅ Frontend SPA routing enabled");
+    console.log("Frontend SPA routing enabled");
 }
