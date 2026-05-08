@@ -8,7 +8,8 @@ const navItems = [
     { key: "dashboard", label: "Dashboard", icon: "📊", roles: ["cashier", "manager", "owner", "admin"] },
     { key: "products", label: "Products", icon: "📦", roles: ["cashier", "manager", "owner", "admin"] },
     { key: "warehouse", label: "Warehouse", icon: "🏭", roles: ["manager", "owner", "admin"] },
-    { key: "reconciliation", label: "Reconciliation", icon: "🔗", roles: ["manager", "owner", "admin"] },
+    // Temporarily hidden. Keep the feature source intact for easy restoration.
+    // { key: "reconciliation", label: "Reconciliation", icon: "🔗", roles: ["manager", "owner", "admin"] },
     { key: "stockIn", label: "Stock intake", icon: "📥", roles: ["manager", "owner", "admin"] },
     { key: "pos", label: "POS", icon: "🛒", roles: ["cashier", "manager", "owner", "admin"] },
     { key: "sales", label: "Analytics", icon: "📈", roles: ["owner", "admin"] },

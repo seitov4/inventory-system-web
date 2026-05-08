@@ -16,15 +16,14 @@ const router = Router();
 
 router.get("/", authRequired, listProducts);
 router.get("/left", authRequired, getProductsLeftController);
-router.get("/barcode/:code", authRequired, getProductByBarcodeController);
-router.get("/:id", authRequired, getProduct);
-
 router.get(
     "/low-stock",
     authRequired,
     requireRole("manager", "owner", "admin"),
     getLowStockController
 );
+router.get("/barcode/:code", authRequired, getProductByBarcodeController);
+router.get("/:id", authRequired, getProduct);
 
 router.post(
     "/",

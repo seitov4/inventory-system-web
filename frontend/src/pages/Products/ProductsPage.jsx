@@ -3,6 +3,7 @@ import styled from "styled-components";
 import Layout from "../../components/Layout/Layout";
 import productsApi from "../../api/productsApi";
 import movementsApi from "../../api/movementsApi";
+import { getApiErrorMessage } from "../../api/apiClient";
 import ProductImportModal from "../../components/Products/ProductImportModal";
 
 // ===== STYLED COMPONENTS =====
@@ -260,6 +261,33 @@ const BtnSecondary = styled.button`
         border-color: var(--text-tertiary);
     }
 `;
+
+function parseLocaleNumber(value, fallback = 0) {
+    if (value === null || value === undefined || value === "") {
+        return fallback;
+    }
+
+    if (typeof value === "number") {
+        return Number.isFinite(value) ? value : NaN;
+    }
+
+    const raw = String(value).trim().replace(/\s/g, "");
+    const lastComma = raw.lastIndexOf(",");
+    const lastDot = raw.lastIndexOf(".");
+
+    let normalized = raw;
+    if (lastComma >= 0 && lastDot >= 0) {
+        const decimalSeparator = lastComma > lastDot ? "," : ".";
+        const thousandsSeparator = decimalSeparator === "," ? "." : ",";
+        normalized = raw
+            .replace(new RegExp(`\\${thousandsSeparator}`, "g"), "")
+            .replace(decimalSeparator, ".");
+    } else if (lastComma >= 0) {
+        normalized = raw.replace(",", ".");
+    }
+
+    return Number(normalized);
+}
 
 // Table Section
 const SectionWrapper = styled.section`
@@ -752,7 +780,7 @@ export default function ProductsPage() {
             return;
         }
 
-        const numeric = Number(inlineEdit.value);
+        const numeric = parseLocaleNumber(inlineEdit.value);
         if (Number.isNaN(numeric) || numeric < 0) {
             alert("Value must be a non-negative number");
             return;
@@ -784,7 +812,7 @@ export default function ProductsPage() {
             await loadAll();
         } catch (e) {
             console.error(e);
-            setError("Failed to update product.");
+            setError(getApiErrorMessage(e, "Failed to update product."));
         } finally {
             setSaving(false);
         }
@@ -809,12 +837,12 @@ export default function ProductsPage() {
             setSaving(true);
             setError("");
             setMessage("");
-            await productsApi.remove(id);
-            setMessage("Product deleted.");
+            const result = await productsApi.remove(id);
+            setMessage(result?.message || "Product deleted.");
             await loadAll();
         } catch (e) {
             console.error(e);
-            setError("Failed to delete product.");
+            setError(getApiErrorMessage(e, "Failed to delete product."));
         } finally {
             setSaving(false);
         }
@@ -835,11 +863,20 @@ export default function ProductsPage() {
             sku: form.sku.trim() || null,
             barcode: form.barcode.trim() || null,
             purchase_price: form.purchase_price
-                ? Number(form.purchase_price)
-                : null,
-            sale_price: form.sale_price ? Number(form.sale_price) : null,
-            min_stock: form.min_stock ? Number(form.min_stock) : 0,
+                ? parseLocaleNumber(form.purchase_price)
+                : 0,
+            sale_price: form.sale_price ? parseLocaleNumber(form.sale_price) : 0,
+            min_stock: form.min_stock ? parseLocaleNumber(form.min_stock) : 0,
         };
+
+        if (
+            Number.isNaN(payload.purchase_price) ||
+            Number.isNaN(payload.sale_price) ||
+            Number.isNaN(payload.min_stock)
+        ) {
+            setError("Prices and min. stock must be valid numbers.");
+            return;
+        }
 
         try {
             setSaving(true);
@@ -863,7 +900,7 @@ export default function ProductsPage() {
             await loadAll();
         } catch (e) {
             console.error(e);
-            setError("Failed to save product.");
+            setError(getApiErrorMessage(e, "Failed to save product."));
         } finally {
             setSaving(false);
         }
@@ -1002,8 +1039,8 @@ export default function ProductsPage() {
                         <FormLabel>Purchase price</FormLabel>
                         <FormInput
                             name="purchase_price"
-                            type="number"
-                            step="0.01"
+                            type="text"
+                            inputMode="decimal"
                             value={form.purchase_price}
                             onChange={handleChange}
                             placeholder="0.00"
@@ -1014,8 +1051,8 @@ export default function ProductsPage() {
                         <FormLabel>Sale price</FormLabel>
                         <FormInput
                             name="sale_price"
-                            type="number"
-                            step="0.01"
+                            type="text"
+                            inputMode="decimal"
                             value={form.sale_price}
                             onChange={handleChange}
                             placeholder="0.00"
@@ -1118,8 +1155,8 @@ export default function ProductsPage() {
                                         {inlineEdit.id === p.id && inlineEdit.field === "sale_price" ? (
                                             <FormInput
                                                 as="input"
-                                                type="number"
-                                                step="0.01"
+                                                type="text"
+                                                inputMode="decimal"
                                                 value={inlineEdit.value}
                                                 onChange={handleInlineChange}
                                                 onBlur={commitInlineEdit}

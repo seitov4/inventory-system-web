@@ -3,6 +3,38 @@ import { createAppError } from "../errors/app-error.js";
 import { ERROR_CODES } from "../errors/error-codes.js";
 import { applyMovement } from "./movements.service.js";
 
+function parseDecimal(value, fallback = 0) {
+    if (value === null || value === undefined || value === "") {
+        return fallback;
+    }
+
+    if (typeof value === "number") {
+        return Number.isFinite(value) ? value : NaN;
+    }
+
+    const raw = String(value).trim().replace(/\s/g, "");
+    const lastComma = raw.lastIndexOf(",");
+    const lastDot = raw.lastIndexOf(".");
+
+    let normalized = raw;
+    if (lastComma >= 0 && lastDot >= 0) {
+        const decimalSeparator = lastComma > lastDot ? "," : ".";
+        const thousandsSeparator = decimalSeparator === "," ? "." : ",";
+        normalized = raw
+            .replace(new RegExp(`\\${thousandsSeparator}`, "g"), "")
+            .replace(decimalSeparator, ".");
+    } else if (lastComma >= 0) {
+        normalized = raw.replace(",", ".");
+    }
+
+    return Number(normalized);
+}
+
+function parsePositiveInteger(value) {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
 /**
  * Create sale - atomic transaction
  */
@@ -18,61 +50,72 @@ export async function createSale({
         throw createAppError(ERROR_CODES.SALES_ITEMS_REQUIRED, 400);
     }
 
-    for (const item of items) {
+    const normalizedItems = items.map((item) => ({
+        product_id: parsePositiveInteger(item.product_id),
+        qty: parsePositiveInteger(item.qty ?? item.quantity),
+        price: parseDecimal(item.price),
+        discount: parseDecimal(item.discount, 0),
+    }));
+
+    for (const item of normalizedItems) {
         if (!item.product_id) {
             throw createAppError(ERROR_CODES.SALES_ITEM_PRODUCT_ID_REQUIRED, 400);
         }
 
-        const qty = item.qty || item.quantity;
-        if (!qty || qty <= 0) {
+        if (!item.qty || item.qty <= 0) {
             throw createAppError(ERROR_CODES.SALES_ITEM_QTY_INVALID, 400);
         }
 
-        if (item.price === undefined || item.price === null || Number(item.price) < 0) {
+        if (!Number.isFinite(item.price) || item.price < 0) {
+            throw createAppError(ERROR_CODES.SALES_ITEM_PRICE_INVALID, 400);
+        }
+
+        if (!Number.isFinite(item.discount) || item.discount < 0) {
             throw createAppError(ERROR_CODES.SALES_ITEM_PRICE_INVALID, 400);
         }
     }
 
-    if (!warehouse_id && !store_id) {
+    const parsedWarehouseId = parsePositiveInteger(warehouse_id);
+    const parsedStoreId = parsePositiveInteger(store_id);
+
+    if (!parsedWarehouseId && !parsedStoreId) {
         throw createAppError(ERROR_CODES.SALES_WAREHOUSE_OR_STORE_REQUIRED, 400);
     }
 
-    const effectiveWarehouseId = warehouse_id || store_id;
+    const effectiveWarehouseId = parsedWarehouseId || parsedStoreId;
+    const normalizedDiscount = parseDecimal(discount, 0);
+    if (!Number.isFinite(normalizedDiscount) || normalizedDiscount < 0) {
+        throw createAppError(ERROR_CODES.SALES_ITEM_PRICE_INVALID, 400);
+    }
 
     const client = await pool.connect();
     try {
         await client.query("BEGIN");
 
-        for (const item of items) {
-            const { product_id } = item;
-            const qty = item.qty || item.quantity;
-
+        for (const item of normalizedItems) {
             const stockRes = await client.query(
                 `SELECT quantity
                  FROM stock
                  WHERE product_id = $1 AND warehouse_id = $2
                  FOR UPDATE`,
-                [product_id, effectiveWarehouseId]
+                [item.product_id, effectiveWarehouseId]
             );
 
             const currentQty = stockRes.rows[0]?.quantity || 0;
-            if (currentQty < qty) {
+            if (currentQty < item.qty) {
                 throw createAppError(ERROR_CODES.SALES_INSUFFICIENT_STOCK, 409, {
-                    productId: product_id,
+                    productId: item.product_id,
                     available: currentQty,
-                    required: qty,
+                    required: item.qty,
                 });
             }
         }
 
         let totalWithoutGlobalDiscount = 0;
-        for (const item of items) {
-            const qty = item.qty || item.quantity;
-            const linePrice = Number(item.price) || 0;
-            const lineDiscount = Number(item.discount || 0);
-            totalWithoutGlobalDiscount += (linePrice - lineDiscount) * qty;
+        for (const item of normalizedItems) {
+            totalWithoutGlobalDiscount += (item.price - item.discount) * item.qty;
         }
-        const total = Math.max(0, totalWithoutGlobalDiscount - Number(discount || 0));
+        const total = Math.max(0, totalWithoutGlobalDiscount - normalizedDiscount);
 
         const saleRes = await client.query(
             `INSERT INTO sales
@@ -82,33 +125,28 @@ export async function createSale({
             [
                 cashier_id,
                 effectiveWarehouseId,
-                store_id || effectiveWarehouseId,
+                effectiveWarehouseId,
                 total,
                 total,
-                discount,
+                normalizedDiscount,
                 payment_type,
             ]
         );
         const sale = saleRes.rows[0];
 
-        for (const item of items) {
-            const { product_id } = item;
-            const qty = item.qty || item.quantity;
-            const price = Number(item.price) || 0;
-            const itemDiscount = Number(item.discount || 0);
-
+        for (const item of normalizedItems) {
             await client.query(
                 `INSERT INTO sale_items
                      (sale_id, product_id, qty, quantity, price, discount)
                  VALUES ($1, $2, $3, $3, $4, $5)`,
-                [sale.id, product_id, qty, price, itemDiscount]
+                [sale.id, item.product_id, item.qty, item.price, item.discount]
             );
 
             await applyMovement({
                 type: "SALE",
-                product_id,
+                product_id: item.product_id,
                 warehouse_from: effectiveWarehouseId,
-                qty,
+                qty: item.qty,
                 reason: `Sale #${sale.id}`,
                 user_id: cashier_id || null,
                 client,
@@ -121,6 +159,14 @@ export async function createSale({
             total: sale.total,
         };
     } catch (err) {
+        console.error("[Sales Service] Failed to create sale:", {
+            message: err.message,
+            code: err.code,
+            detail: err.detail,
+            constraint: err.constraint,
+            warehouse_id: effectiveWarehouseId,
+            item_count: normalizedItems.length,
+        });
         await client.query("ROLLBACK");
         throw err;
     } finally {

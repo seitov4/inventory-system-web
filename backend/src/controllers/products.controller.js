@@ -127,8 +127,21 @@ export async function updateProductController(req, res, next) {
 export async function deleteProductController(req, res, next) {
     try {
         const { id } = req.params;
-        await deleteProduct(id);
-        return success(res, { message: "Товар успешно удален" }, 200);
+        const result = await deleteProduct(id);
+        if (!result) {
+            return next(createAppError(ERROR_CODES.PRODUCT_NOT_FOUND, 404));
+        }
+
+        return success(
+            res,
+            {
+                message: result.archived
+                    ? "Product archived because it is used in history."
+                    : "Product deleted.",
+                archived: result.archived,
+            },
+            200
+        );
     } catch (err) {
         return next(err);
     }
@@ -156,4 +169,3 @@ export async function importProductsController(req, res, next) {
         return next(err);
     }
 }
-

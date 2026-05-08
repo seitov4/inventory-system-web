@@ -14,6 +14,7 @@ import authRouter from "./routes/auth.routes.js";
 import movementsRouter from "./routes/movements.routes.js";
 import notificationsRouter from "./routes/notifications.routes.js";
 import reportsRouter from "./routes/reports.routes.js";
+import warehousesRouter from "./routes/warehouses.routes.js";
 import { setupFrontend } from "./routes/frontend.js";
 import platformRouter from "./routes/platform.routes.js";
 
@@ -68,6 +69,7 @@ app.use("/api/users", usersRouter);
 app.use("/api/products", productsRouter);
 app.use("/api/sales", salesRouter);
 app.use("/api/movements", movementsRouter);
+app.use("/api/warehouses", warehousesRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/reports", reportsRouter);
 app.use("/api/platform", platformRouter);

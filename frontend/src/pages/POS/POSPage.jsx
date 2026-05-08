@@ -3,6 +3,8 @@ import styled from "styled-components";
 import Layout from "../../components/Layout/Layout";
 import productsApi from "../../api/productsApi";
 import salesApi from "../../api/salesApi";
+import warehousesApi from "../../api/warehousesApi";
+import { getApiErrorMessage } from "../../api/apiClient";
 import { fadeInUp, fadeOutCollapse, slideIn } from "../../utils/animations";
 
 const POSContainer = styled.div`
@@ -208,6 +210,33 @@ const FormInput = styled.input`
     border-radius: 6px;
 `;
 
+function parseLocaleNumber(value, fallback = 0) {
+    if (value === null || value === undefined || value === "") {
+        return fallback;
+    }
+
+    if (typeof value === "number") {
+        return Number.isFinite(value) ? value : NaN;
+    }
+
+    const raw = String(value).trim().replace(/\s/g, "");
+    const lastComma = raw.lastIndexOf(",");
+    const lastDot = raw.lastIndexOf(".");
+
+    let normalized = raw;
+    if (lastComma >= 0 && lastDot >= 0) {
+        const decimalSeparator = lastComma > lastDot ? "," : ".";
+        const thousandsSeparator = decimalSeparator === "," ? "." : ",";
+        normalized = raw
+            .replace(new RegExp(`\\${thousandsSeparator}`, "g"), "")
+            .replace(decimalSeparator, ".");
+    } else if (lastComma >= 0) {
+        normalized = raw.replace(",", ".");
+    }
+
+    return Number(normalized);
+}
+
 export default function POSPage() {
     const [barcode, setBarcode] = useState("");
     const [cart, setCart] = useState([]);
@@ -216,6 +245,7 @@ export default function POSPage() {
     const [success, setSuccess] = useState("");
     const [warehouseId, setWarehouseId] = useState("1");
     const [storeId, setStoreId] = useState("1");
+    const [warehouses, setWarehouses] = useState([]);
     const [paymentType, setPaymentType] = useState("CASH");
     const [discount, setDiscount] = useState("0");
     
@@ -228,6 +258,37 @@ export default function POSPage() {
             barcodeInputRef.current.focus();
         }
     }, [loading, cart.length]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadWarehouses() {
+            try {
+                const rows = await warehousesApi.getAll();
+                if (cancelled || !Array.isArray(rows)) return;
+
+                setWarehouses(rows);
+                if (rows.length > 0) {
+                    const firstWithStock = rows.find((row) => Number(row.total_quantity || 0) > 0);
+                    const selected = firstWithStock || rows[0];
+                    const selectedId = String(selected.id);
+                    setWarehouseId(selectedId);
+                    setStoreId(selectedId);
+                }
+            } catch (e) {
+                console.error(e);
+                if (!cancelled) {
+                    setError(getApiErrorMessage(e, "Failed to load warehouses."));
+                }
+            }
+        }
+
+        loadWarehouses();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     // Play beep sound for scanner feedback (optional)
     const playBeep = () => {
@@ -322,7 +383,7 @@ export default function POSPage() {
                 }
             }, 100);
         } catch (e) {
-            setError(e?.response?.data?.error || e?.message || "Error while adding product");
+            setError(getApiErrorMessage(e, "Error while adding product"));
             // Return focus even on error
             setTimeout(() => {
                 if (barcodeInputRef.current) {
@@ -363,18 +424,31 @@ export default function POSPage() {
             setSuccess("");
             setLoading(true);
 
+            const selectedWarehouseId = parseInt(warehouseId, 10);
+            const discountValue = parseLocaleNumber(discount, 0);
+
+            if (!Number.isFinite(selectedWarehouseId) || selectedWarehouseId <= 0) {
+                setError("Select a valid warehouse before payment.");
+                return;
+            }
+
+            if (!Number.isFinite(discountValue) || discountValue < 0) {
+                setError("Discount must be a valid non-negative number.");
+                return;
+            }
+
             const items = cart.map((item) => ({
                 product_id: item.product_id,
-                qty: item.qty,
-                price: item.price,
-                discount: item.discount || 0,
+                qty: parseInt(item.qty, 10),
+                price: parseLocaleNumber(item.price, 0),
+                discount: parseLocaleNumber(item.discount, 0),
             }));
 
             const result = await salesApi.create({
-                store_id: parseInt(storeId) || 1,
-                warehouse_id: parseInt(warehouseId) || 1,
+                store_id: selectedWarehouseId,
+                warehouse_id: selectedWarehouseId,
                 items,
-                discount: parseFloat(discount) || 0,
+                discount: discountValue,
                 payment_type: paymentType,
             });
 
@@ -390,7 +464,7 @@ export default function POSPage() {
                 }
             }, 100);
         } catch (e) {
-            setError(e?.response?.data?.error || e?.message || "Error while creating sale");
+            setError(getApiErrorMessage(e, "Error while creating sale"));
             // Return focus on error
             setTimeout(() => {
                 if (barcodeInputRef.current) {
@@ -403,8 +477,10 @@ export default function POSPage() {
     };
 
     const total = cart.reduce((sum, item) => {
-        return sum + (item.price - (item.discount || 0)) * item.qty;
-    }, 0) - (parseFloat(discount) || 0);
+        const price = parseLocaleNumber(item.price, 0);
+        const itemDiscount = parseLocaleNumber(item.discount, 0);
+        return sum + (price - itemDiscount) * item.qty;
+    }, 0) - (parseLocaleNumber(discount, 0) || 0);
 
     // Global hotkeys for POS: Enter is handled in the input, F2 triggers payment
     useEffect(() => {
@@ -552,11 +628,34 @@ export default function POSPage() {
                             <FormRow>
                                 <FormField>
                                     <FormLabel>Warehouse ID</FormLabel>
-                                    <FormInput
-                                        type="number"
-                                        value={warehouseId}
-                                        onChange={(e) => setWarehouseId(e.target.value)}
-                                    />
+                                    {warehouses.length > 0 ? (
+                                        <FormInput
+                                            as="select"
+                                            value={warehouseId}
+                                            onChange={(e) => {
+                                                setWarehouseId(e.target.value);
+                                                setStoreId(e.target.value);
+                                            }}
+                                        >
+                                            {warehouses.map((warehouse) => (
+                                                <option key={warehouse.id} value={warehouse.id}>
+                                                    #{warehouse.id} {warehouse.name}
+                                                    {warehouse.total_quantity !== undefined
+                                                        ? ` (${warehouse.total_quantity} items)`
+                                                        : ""}
+                                                </option>
+                                            ))}
+                                        </FormInput>
+                                    ) : (
+                                        <FormInput
+                                            type="number"
+                                            value={warehouseId}
+                                            onChange={(e) => {
+                                                setWarehouseId(e.target.value);
+                                                setStoreId(e.target.value);
+                                            }}
+                                        />
+                                    )}
                                 </FormField>
                                 <FormField>
                                     <FormLabel>Store ID</FormLabel>
@@ -564,6 +663,7 @@ export default function POSPage() {
                                         type="number"
                                         value={storeId}
                                         onChange={(e) => setStoreId(e.target.value)}
+                                        disabled
                                     />
                                 </FormField>
                             </FormRow>
@@ -583,8 +683,8 @@ export default function POSPage() {
                                 <FormField>
                                     <FormLabel>Discount</FormLabel>
                                     <FormInput
-                                        type="number"
-                                        step="0.01"
+                                        type="text"
+                                        inputMode="decimal"
                                         value={discount}
                                         onChange={(e) => setDiscount(e.target.value)}
                                     />

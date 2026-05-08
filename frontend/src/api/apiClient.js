@@ -15,6 +15,24 @@ const apiClient = axios.create({
     },
 });
 
+export function getApiErrorMessage(error, fallback = "Request failed") {
+    const data = error?.response?.data;
+
+    if (typeof data?.error === "string") {
+        return data.error;
+    }
+
+    if (typeof data?.message === "string") {
+        return data.message;
+    }
+
+    if (typeof error?.message === "string") {
+        return error.message;
+    }
+
+    return fallback;
+}
+
 // Request interceptor - add auth token
 apiClient.interceptors.request.use(
     (config) => {

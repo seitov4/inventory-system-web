@@ -131,7 +131,7 @@ const DebugPanel = styled.div`
 
 const SalesChartPanel = styled.div`
     display: grid;
-    grid-template-columns: 56px minmax(0, 1fr);
+    grid-template-columns: 58px minmax(0, 1fr);
     gap: 12px;
     height: 100%;
     min-height: 0;
@@ -151,9 +151,9 @@ const ChartYAxis = styled.div`
 const ChartBody = styled.div`
     position: relative;
     display: grid;
-    grid-template-columns: repeat(${props => props.$count || 1}, minmax(34px, 1fr));
+    grid-template-columns: repeat(${props => props.$count || 1}, minmax(10px, 1fr));
     align-items: end;
-    gap: 8px;
+    gap: 5px;
     height: 100%;
     padding: 8px 0 24px;
     border-left: 1px solid var(--border-color-subtle);
@@ -189,9 +189,9 @@ const ChartBarGroup = styled.div`
 `;
 
 const ChartValue = styled.div`
-    margin-bottom: 5px;
+    margin-bottom: 6px;
     color: var(--text-secondary);
-    font-size: 10px;
+    font-size: 9px;
     line-height: 1;
     white-space: nowrap;
     opacity: ${props => props.$show ? 1 : 0};
@@ -200,7 +200,7 @@ const ChartValue = styled.div`
 `;
 
 const ChartBar = styled.div`
-    width: min(42px, 76%);
+    width: min(20px, 78%);
     height: ${props => props.$height || 0}%;
     min-height: ${props => props.$value > 0 ? "8px" : "2px"};
     border-radius: 5px 5px 0 0;
@@ -219,10 +219,10 @@ const ChartLabel = styled.div`
     position: absolute;
     bottom: 0;
     left: 50%;
-    width: 56px;
+    width: 22px;
     transform: translateX(-50%);
     color: var(--text-tertiary);
-    font-size: 10px;
+    font-size: 9px;
     line-height: 1;
     text-align: center;
     white-space: nowrap;
@@ -247,6 +247,39 @@ const WidgetText = styled.div`
     -webkit-box-orient: vertical;
     flex: 1;
 `;
+
+function getLocalDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+function buildCurrentMonthSeries(monthlySales = []) {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const totalsByDate = new Map();
+
+    for (const item of Array.isArray(monthlySales) ? monthlySales : []) {
+        if (!item?.date) continue;
+        const key = getLocalDateKey(new Date(item.date));
+        totalsByDate.set(key, Number(item.total) || 0);
+    }
+
+    const labels = [];
+    const data = [];
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        const key = getLocalDateKey(date);
+        labels.push(key);
+        data.push(totalsByDate.get(key) || 0);
+    }
+
+    return { labels, data };
+}
 
 // ===== MAIN COMPONENT =====
 export default function DashboardPage() {
@@ -292,19 +325,16 @@ export default function DashboardPage() {
                 const productsPromise = productsApi.getProductsLeft().catch(() => []);
                 let dailySalesPromise = Promise.resolve(null);
                 let monthlySalesPromise = Promise.resolve(null);
-                let chartPromise = Promise.resolve({ labels: [], data: [] });
 
                 if (canSeeAnalytics) {
                     dailySalesPromise = salesApi.getDaily().catch(() => null);
                     monthlySalesPromise = salesApi.getMonthly().catch(() => null);
-                    chartPromise = salesApi.getChart().catch(() => ({ labels: [], data: [] }));
                 }
 
-                const [products, dailySales, monthlySales, chart] = await Promise.all([
+                const [products, dailySales, monthlySales] = await Promise.all([
                     productsPromise,
                     dailySalesPromise,
                     monthlySalesPromise,
-                    chartPromise,
                 ]);
 
                 const productsArray = Array.isArray(products) ? products : [];
@@ -323,8 +353,8 @@ export default function DashboardPage() {
                     productsCount: productsArray.length,
                 });
 
-                if (canSeeAnalytics && chart && chart.labels && chart.data) {
-                    setChartData(chart);
+                if (canSeeAnalytics) {
+                    setChartData(buildCurrentMonthSeries(monthlySales));
                 } else {
                     setChartData({ labels: [], data: [] });
                 }
@@ -340,13 +370,11 @@ export default function DashboardPage() {
     const miniChartData = useMemo(() => {
         if (!chartData.data.length) return [];
         const labels = chartData.labels || [];
-        return chartData.data.slice(-7).map((value, index, visibleValues) => {
-            const sourceIndex = chartData.data.length - visibleValues.length + index;
-            return {
-                label: labels[sourceIndex] || "",
-                value: Number(value) || 0,
-            };
-        });
+        return chartData.data.map((value, index) => ({
+            label: labels[index] || "",
+            day: index + 1,
+            value: Number(value) || 0,
+        }));
     }, [chartData]);
 
     // Initialize zone layout
@@ -387,7 +415,14 @@ export default function DashboardPage() {
         const amount = Number(value) || 0;
         if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
         if (amount >= 1000) return `${Math.round(amount / 1000)}k`;
-        return amount.toLocaleString("ru-RU");
+        return amount.toLocaleString("en-US");
+    }, []);
+
+    const formatMoney = useCallback((value) => {
+        return `${new Intl.NumberFormat("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(Number(value) || 0)} ₸`;
     }, []);
 
     const formatChartDate = useCallback((value) => {
@@ -527,6 +562,7 @@ export default function DashboardPage() {
         if (widget.type === 'chart' && widget.chartData) {
             const points = widget.chartData;
             const maxValue = Math.max(...points.map((point) => point.value), 1);
+            const todayDay = new Date().getDate();
             return (
                 <SalesChartPanel>
                     <ChartYAxis>
@@ -538,17 +574,17 @@ export default function DashboardPage() {
                         {points.length ? (
                             points.map((point, index) => {
                                 const height = Math.max(4, (point.value / maxValue) * 100);
-                                const showValue = point.value === maxValue || index === points.length - 1;
+                                const showValue = point.value > 0 && (point.value === maxValue || point.day === todayDay);
                                 return (
                                     <ChartBarGroup
                                         key={`${point.label}-${index}`}
-                                        title={`${formatChartDate(point.label)}: ${point.value.toLocaleString("ru-RU")} ₸`}
+                                        title={`${formatChartDate(point.label)}: ${formatMoney(point.value)}`}
                                     >
                                         <ChartValue $show={showValue}>
                                             {formatCurrencyCompact(point.value)} ₸
                                         </ChartValue>
                                         <ChartBar $height={height} $value={point.value} />
-                                        <ChartLabel>{formatChartDate(point.label)}</ChartLabel>
+                                        <ChartLabel title={formatChartDate(point.label)}>{point.day}</ChartLabel>
                                     </ChartBarGroup>
                                 );
                             })
@@ -565,7 +601,7 @@ export default function DashboardPage() {
         }
         
         return widget.children || null;
-    }, [formatChartDate, formatCurrencyCompact]);
+    }, [formatChartDate, formatCurrencyCompact, formatMoney]);
 
     // Get active widget for drag overlay
     const activeWidget = activeId ? allWidgetConfigs.get(activeId) : null;
@@ -699,4 +735,5 @@ export default function DashboardPage() {
         </Layout>
     );
 }
+
 

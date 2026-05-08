@@ -200,13 +200,14 @@ const CardContent = styled.div`
 `;
 
 const MetricValue = styled.div`
-    font-size: 26px;
+    font-size: clamp(22px, 2.15vw, 34px);
     font-weight: 700;
     color: var(--text-primary);
-    line-height: 1.2;
+    line-height: 1.12;
     word-break: break-word;
     overflow-wrap: break-word;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
+    max-width: 100%;
 `;
 
 const StatusValue = styled.div`
@@ -303,14 +304,17 @@ export default function DashboardCard({
             }
             
             const numValue = typeof value === 'string' 
-                ? parseFloat(value.replace(/[^\d.-]/g, '')) || 0
+                ? parseFloat(value.replace(/,/g, "").replace(/[^\d.-]/g, '')) || 0
                 : Number(value) || 0;
             
             // Only animate when value changes from 0 or when first loaded
             if (!hasCountedUp.current && numValue > 0) {
                 const formatFn = typeof value === 'string' && value.includes('₸')
-                    ? (val) => `${Math.floor(val).toLocaleString("ru-RU")} ₸`
-                    : (val) => Math.floor(val).toLocaleString("ru-RU");
+                    ? (val) => `${new Intl.NumberFormat("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                    }).format(val)} ₸`
+                    : (val) => Math.floor(val).toLocaleString("en-US");
                 
                 const timeoutId = setTimeout(() => {
                     // Double-check ref is still valid before animating

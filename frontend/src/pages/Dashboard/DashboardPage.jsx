@@ -265,6 +265,7 @@ export default function DashboardPage() {
             const sourceIndex = chartData.data.length - visibleValues.length + index;
             return {
                 label: labels[sourceIndex] || "",
+                day: sourceIndex + 1,
                 value: Number(value) || 0,
             };
         });

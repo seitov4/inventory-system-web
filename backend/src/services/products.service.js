@@ -14,6 +14,33 @@ async function getDefaultWarehouse() {
     return result.rows[0].id;
 }
 
+function parseDecimal(value, fallback = 0) {
+    if (value === null || value === undefined || value === "") {
+        return fallback;
+    }
+
+    if (typeof value === "number") {
+        return Number.isFinite(value) ? value : NaN;
+    }
+
+    const raw = String(value).trim().replace(/\s/g, "");
+    const lastComma = raw.lastIndexOf(",");
+    const lastDot = raw.lastIndexOf(".");
+
+    let normalized = raw;
+    if (lastComma >= 0 && lastDot >= 0) {
+        const decimalSeparator = lastComma > lastDot ? "," : ".";
+        const thousandsSeparator = decimalSeparator === "," ? "." : ",";
+        normalized = raw
+            .replace(new RegExp(`\\${thousandsSeparator}`, "g"), "")
+            .replace(decimalSeparator, ".");
+    } else if (lastComma >= 0) {
+        normalized = raw.replace(",", ".");
+    }
+
+    return Number(normalized);
+}
+
 /**
  * Validate product data
  */
@@ -26,9 +53,9 @@ function validateProductData({ name, sku, purchase_price, sale_price, min_stock 
         throw createAppError(ERROR_CODES.PRODUCT_SKU_REQUIRED, 400);
     }
 
-    const purchasePrice = Number(purchase_price);
-    const salePrice = Number(sale_price);
-    const minStock = Number(min_stock);
+    const purchasePrice = parseDecimal(purchase_price);
+    const salePrice = parseDecimal(sale_price);
+    const minStock = parseDecimal(min_stock);
 
     if (isNaN(purchasePrice) || purchasePrice < 0) {
         throw createAppError(ERROR_CODES.PRODUCT_PURCHASE_PRICE_INVALID, 400);
@@ -41,6 +68,21 @@ function validateProductData({ name, sku, purchase_price, sale_price, min_stock 
     if (isNaN(minStock) || minStock < 0) {
         throw createAppError(ERROR_CODES.PRODUCT_MIN_STOCK_INVALID, 400);
     }
+}
+
+function normalizeProductData(data) {
+    return {
+        ...data,
+        name: typeof data.name === "string" ? data.name.trim() : data.name,
+        sku: typeof data.sku === "string" ? data.sku.trim() : data.sku,
+        barcode:
+            typeof data.barcode === "string" && data.barcode.trim() !== ""
+                ? data.barcode.trim()
+                : null,
+        purchase_price: parseDecimal(data.purchase_price),
+        sale_price: parseDecimal(data.sale_price),
+        min_stock: parseDecimal(data.min_stock, 0),
+    };
 }
 
 /**
@@ -92,6 +134,7 @@ export async function getAllProducts() {
                 created_at,
                 updated_at
          FROM products
+         WHERE is_active IS TRUE
          ORDER BY name`
     );
     return result.rows;
@@ -110,7 +153,7 @@ export async function getProductById(id) {
                 created_at,
                 updated_at
          FROM products
-         WHERE id = $1`,
+         WHERE id = $1 AND is_active IS TRUE`,
         [id]
     );
     return result.rows[0] || null;
@@ -129,7 +172,7 @@ export async function getProductByBarcode(barcode) {
                 created_at,
                 updated_at
          FROM products
-         WHERE barcode = $1`,
+         WHERE barcode = $1 AND is_active IS TRUE`,
         [barcode]
     );
     return result.rows[0] || null;
@@ -148,6 +191,7 @@ export async function getProductsWithLeft() {
                 CAST(COALESCE(SUM(s.quantity), 0) AS INTEGER) AS quantity
          FROM products p
                   LEFT JOIN stock s ON s.product_id = p.id
+         WHERE p.is_active IS TRUE
          GROUP BY p.id
          ORDER BY p.name`
     );
@@ -167,6 +211,7 @@ export async function getLowStockProducts() {
                 CAST(COALESCE(SUM(s.quantity), 0) AS INTEGER) AS quantity
          FROM products p
                   LEFT JOIN stock s ON s.product_id = p.id
+         WHERE p.is_active IS TRUE
          GROUP BY p.id
          HAVING COALESCE(SUM(s.quantity), 0) <= p.min_stock
          ORDER BY quantity ASC`
@@ -186,6 +231,17 @@ export async function createProduct({
     sale_price,
     min_stock = 0,
 }) {
+    const normalized = normalizeProductData({
+        name,
+        sku,
+        category,
+        barcode,
+        purchase_price,
+        sale_price,
+        min_stock,
+    });
+    ({ name, sku, category, barcode, purchase_price, sale_price, min_stock } = normalized);
+
     // Validate input
     validateProductData({ name, sku, purchase_price, sale_price, min_stock });
 
@@ -256,6 +312,17 @@ export async function updateProduct(
     id,
     { name, sku, category, barcode, purchase_price, sale_price, min_stock }
 ) {
+    const normalized = normalizeProductData({
+        name,
+        sku,
+        category,
+        barcode,
+        purchase_price,
+        sale_price,
+        min_stock,
+    });
+    ({ name, sku, category, barcode, purchase_price, sale_price, min_stock } = normalized);
+
     // Validate input
     validateProductData({ name, sku, purchase_price, sale_price, min_stock });
 
@@ -278,7 +345,7 @@ export async function updateProduct(
              sale_price     = $7,
              min_stock      = $8,
              updated_at     = CURRENT_TIMESTAMP
-         WHERE id = $1
+         WHERE id = $1 AND is_active IS TRUE
          RETURNING id,
                    name,
                    sku,
@@ -299,8 +366,46 @@ export async function updateProduct(
  * Delete product
  */
 export async function deleteProduct(id) {
-    // Stock will be deleted automatically due to ON DELETE CASCADE
-    await pool.query(`DELETE FROM products WHERE id = $1`, [id]);
+    const productResult = await pool.query(
+        `SELECT id FROM products WHERE id = $1 AND is_active IS TRUE`,
+        [id]
+    );
+
+    if (productResult.rows.length === 0) {
+        return null;
+    }
+
+    const referenceResult = await pool.query(
+        `SELECT
+             (SELECT COUNT(*) FROM sale_items WHERE product_id = $1) AS sale_items,
+             (SELECT COUNT(*) FROM movements WHERE product_id = $1) AS movements,
+             (SELECT COUNT(*) FROM stock WHERE product_id = $1) AS stock`,
+        [id]
+    );
+
+    const references = referenceResult.rows[0] || {};
+    const hasHistory =
+        Number(references.sale_items || 0) > 0 ||
+        Number(references.movements || 0) > 0 ||
+        Number(references.stock || 0) > 0;
+
+    if (hasHistory) {
+        const archivedResult = await pool.query(
+            `UPDATE products
+             SET is_active = FALSE,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = $1 AND is_active IS TRUE
+             RETURNING id`,
+            [id]
+        );
+        return { id: archivedResult.rows[0].id, archived: true };
+    }
+
+    const deletedResult = await pool.query(
+        `DELETE FROM products WHERE id = $1 RETURNING id`,
+        [id]
+    );
+    return deletedResult.rows[0] ? { id: deletedResult.rows[0].id, archived: false } : null;
 }
 
 /**
@@ -367,11 +472,11 @@ export async function importProducts(products) {
                 const sku = String(product.sku).trim();
                 const barcode = product.barcode ? String(product.barcode).trim() : null;
                 const purchasePrice = product.purchase_price !== null && product.purchase_price !== undefined
-                    ? Number(product.purchase_price) || 0
+                    ? parseDecimal(product.purchase_price, 0)
                     : 0;
-                const salePrice = Number(product.sale_price) || 0;
+                const salePrice = parseDecimal(product.sale_price, NaN);
                 const minStock = product.min_stock !== null && product.min_stock !== undefined
-                    ? Number(product.min_stock) || 0
+                    ? parseDecimal(product.min_stock, 0)
                     : 0;
                 
                 // Validate sale_price is a valid number

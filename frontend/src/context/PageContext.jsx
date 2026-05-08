@@ -15,6 +15,7 @@ const pathToPage = (pathname) => {
     if (!pathname) return "landing";
     const parts = pathname.split("/").filter(Boolean);
     if (parts[0] !== "app") return "landing";
+    if (parts[1] === "reconciliation") return "dashboard";
     return parts[1] || "landing";
 };
 
@@ -39,7 +40,6 @@ export const PageProvider = ({ children }) => {
             "pos",
             "sales",
             "warehouse",
-            "reconciliation",
             "reports",
             "movements",
             "notifications",

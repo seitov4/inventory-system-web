@@ -23,7 +23,6 @@ import AddEmployeePage from "../pages/AddEmployee/AddEmployeePage.jsx";
 import POSPage from "../pages/POS/POSPage.jsx";
 import NotificationsPage from "../pages/Notifications/NotificationsPage.jsx";
 import MovementsPage from "../pages/Movements/MovementsPage.jsx";
-import ReconciliationPage from "../pages/Reconciliation/ReconciliationPage.jsx";
 import ReportsPage from "../pages/Reports/ReportsPage.jsx";
 
 // ---------------- GLOBAL STYLES ----------------
@@ -260,7 +259,7 @@ function PageRenderer() {
         case "movements":
             return <MovementsPage />;
         case "reconciliation":
-            return <ReconciliationPage />;
+            return <DashboardPage />;
         case "reports":
             return <ReportsPage />;
         default:
