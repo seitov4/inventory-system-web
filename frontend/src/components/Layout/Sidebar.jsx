@@ -12,6 +12,7 @@ const navItems = [
     { key: "stockIn", label: "Stock intake", icon: "📥", roles: ["manager", "owner", "admin"] },
     { key: "pos", label: "POS", icon: "🛒", roles: ["cashier", "manager", "owner", "admin"] },
     { key: "sales", label: "Analytics", icon: "📈", roles: ["owner", "admin"] },
+    { key: "forecast", label: "Forecast", icon: "AI", roles: ["owner", "admin"] },
     { key: "reports", label: "Reports", icon: "📑", roles: ["owner", "admin"] },
     { key: "movements", label: "Movements", icon: "📜", roles: ["manager", "owner", "admin"] },
     { key: "notifications", label: "Notifications", icon: "🔔", roles: ["cashier", "manager", "owner", "admin"] },

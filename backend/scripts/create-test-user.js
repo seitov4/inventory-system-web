@@ -1,5 +1,6 @@
 import "dotenv/config";
-import pool, { getDatabaseInfo } from "../src/utils/db.js";
+import { closeDb, getDatabaseInfo, initDb } from "../src/utils/db.js";
+import { initializeDatabase } from "../src/utils/db-init.js";
 import {
     createUser,
     findUserByEmail,
@@ -58,11 +59,17 @@ async function ensureTestUser() {
     return user;
 }
 
-ensureTestUser()
+async function main() {
+    await initializeDatabase();
+    await initDb();
+    await ensureTestUser();
+}
+
+main()
     .catch((error) => {
         console.error("Failed to create test user:", error.message);
         process.exitCode = 1;
     })
     .finally(async () => {
-        await pool.end();
+        await closeDb();
     });
