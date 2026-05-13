@@ -15,16 +15,17 @@ const getSystemTheme = () => {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 };
 
-// Helper function to resolve theme (system -> actual theme)
-const resolveTheme = (theme) => {
-    return theme === 'system' ? getSystemTheme() : theme;
+// The store workspace now uses one fixed light enterprise theme.
+// Older saved "dark" / "system" preferences are normalized to light.
+const resolveTheme = () => {
+    return 'light';
 };
 
 export const ThemeProvider = ({ children }) => {
-    // Initialize theme from localStorage or default to 'dark'
+    // Initialize theme from localStorage or default to the fixed light theme
     const [theme, setTheme] = useState(() => {
         const saved = localStorage.getItem('theme');
-        return saved || 'dark';
+        return saved === 'light' ? saved : 'light';
     });
 
     const [systemTheme, setSystemTheme] = useState(() => getSystemTheme());
@@ -51,13 +52,10 @@ export const ThemeProvider = ({ children }) => {
         const handleChange = (event) => {
             setSystemTheme(event.matches ? 'dark' : 'light');
             // If current theme is 'system', re-apply
-            if (theme === 'system') {
-                const root = document.documentElement;
-                const body = document.body;
-                const resolvedTheme = event.matches ? 'dark' : 'light';
-                root.setAttribute('data-theme', resolvedTheme);
-                body.setAttribute('data-theme', resolvedTheme);
-            }
+            const root = document.documentElement;
+            const body = document.body;
+            root.setAttribute('data-theme', 'light');
+            body.setAttribute('data-theme', 'light');
         };
 
         mediaQuery.addEventListener('change', handleChange);
@@ -66,11 +64,11 @@ export const ThemeProvider = ({ children }) => {
 
     // Save theme to localStorage when it changes
     useEffect(() => {
-        localStorage.setItem('theme', theme);
+        localStorage.setItem('theme', 'light');
     }, [theme]);
 
     const changeTheme = (newTheme) => {
-        setTheme(newTheme);
+        setTheme('light');
     };
 
     const value = {

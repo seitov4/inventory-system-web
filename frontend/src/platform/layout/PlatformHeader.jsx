@@ -7,8 +7,8 @@ import { useNavigate } from "react-router-dom";
 
 const Wrapper = styled.header`
     height: 60px;
-    border-bottom: 1px solid rgba(15, 23, 42, 0.85);
-    background: rgba(15, 23, 42, 0.92);
+    border-bottom: 1px solid #E5E7EB;
+    background: rgba(255, 255, 255, 0.96);
     backdrop-filter: blur(10px);
 `;
 
@@ -30,12 +30,12 @@ const TitleBlock = styled.div`
 const Title = styled.div`
     font-size: 16px;
     font-weight: 600;
-    color: #e5e7eb;
+    color: #111827;
 `;
 
 const Subtitle = styled.div`
     font-size: 12px;
-    color: #9ca3af;
+    color: #6B7280;
 `;
 
 const RightBlock = styled.div`
@@ -49,12 +49,12 @@ const Avatar = styled.div`
     width: 28px;
     height: 28px;
     border-radius: 999px;
-    background: rgba(148, 163, 184, 0.25);
+    background: #EFF6FF;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 13px;
-    color: #e5e7eb;
+    color: #2563EB;
     font-weight: 600;
 `;
 
@@ -68,13 +68,13 @@ const OwnerInfo = styled.div`
 
 const OwnerEmail = styled.div`
     font-size: 12px;
-    color: #e5e7eb;
+    color: #111827;
     font-weight: 500;
 `;
 
 const OwnerRole = styled.div`
     font-size: 11px;
-    color: #9ca3af;
+    color: #6B7280;
 `;
 
 function getSectionTitle(section) {

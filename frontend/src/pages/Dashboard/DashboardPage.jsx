@@ -439,12 +439,6 @@ export default function DashboardPage() {
         <Layout title="Dashboard">
             {loading && <LoadingText>Loading...</LoadingText>}
             
-            <div style={{ position: 'relative', marginBottom: '20px' }}>
-                <ResetButton onClick={handleResetLayout} title="Reset to default layout">
-                    Reset Layout
-                </ResetButton>
-            </div>
-
             {!loading && layout.length > 0 && allWidgets.length > 0 && (
                 <GridContainer>
                     {/* Zone overlays for visual feedback */}

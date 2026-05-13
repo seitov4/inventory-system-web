@@ -2,7 +2,7 @@ import React from "react";
 import styled, { css } from "styled-components";
 
 const baseStyles = css`
-    border-radius: 999px;
+    border-radius: 8px;
     border: 1px solid transparent;
     font-size: 13px;
     font-weight: 500;
@@ -44,34 +44,34 @@ const sizes = {
 
 const tones = {
     primary: css`
-        background: linear-gradient(135deg, #22c55e, #0ea5e9);
-        color: #020617;
-        border-color: transparent;
-        box-shadow: 0 10px 25px rgba(16, 185, 129, 0.35);
+        background: #2563EB;
+        color: #FFFFFF;
+        border-color: #2563EB;
+        box-shadow: none;
 
         &:hover:not(:disabled) {
-            background: linear-gradient(135deg, #16a34a, #0284c7);
-            box-shadow: 0 12px 28px rgba(16, 185, 129, 0.45);
+            background: #1D4ED8;
+            border-color: #1D4ED8;
         }
     `,
     ghost: css`
-        background: transparent;
-        color: #e5e7eb;
-        border-color: rgba(148, 163, 184, 0.4);
+        background: #FFFFFF;
+        color: #4B5563;
+        border-color: #E5E7EB;
 
         &:hover:not(:disabled) {
-            background: rgba(15, 23, 42, 0.7);
-            border-color: rgba(148, 163, 184, 0.8);
+            background: #F1F5F9;
+            border-color: #CBD5E1;
         }
     `,
     danger: css`
-        background: rgba(248, 113, 113, 0.1);
-        color: #fca5a5;
-        border-color: rgba(248, 113, 113, 0.3);
+        background: #FEF2F2;
+        color: #DC2626;
+        border-color: #FECACA;
 
         &:hover:not(:disabled) {
-            background: rgba(248, 113, 113, 0.2);
-            border-color: rgba(248, 113, 113, 0.6);
+            background: #FEE2E2;
+            border-color: #FCA5A5;
         }
     `,
 };

@@ -1,68 +1,53 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { usePage } from "../../context/PageContext";
 import { useAuth } from "../../context/AuthContext";
+import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import WarehouseOutlinedIcon from "@mui/icons-material/WarehouseOutlined";
+import MoveToInboxOutlinedIcon from "@mui/icons-material/MoveToInboxOutlined";
+import PointOfSaleOutlinedIcon from "@mui/icons-material/PointOfSaleOutlined";
+import TrendingUpOutlinedIcon from "@mui/icons-material/TrendingUpOutlined";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
+import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
+import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 
-// ===== NAV ITEMS DATA =====
 const navItems = [
-    { key: "dashboard", label: "Dashboard", icon: "📊", roles: ["cashier", "manager", "owner", "admin"] },
-    { key: "products", label: "Products", icon: "📦", roles: ["cashier", "manager", "owner", "admin"] },
-    { key: "warehouse", label: "Warehouse", icon: "🏭", roles: ["manager", "owner", "admin"] },
-    // Temporarily hidden. Keep the feature source intact for easy restoration.
-    // { key: "reconciliation", label: "Reconciliation", icon: "🔗", roles: ["manager", "owner", "admin"] },
-    { key: "stockIn", label: "Stock intake", icon: "📥", roles: ["manager", "owner", "admin"] },
-    { key: "pos", label: "POS", icon: "🛒", roles: ["cashier", "manager", "owner", "admin"] },
-    { key: "sales", label: "Analytics", icon: "📈", roles: ["owner", "admin"] },
-    { key: "reports", label: "Reports", icon: "📑", roles: ["owner", "admin"] },
-    { key: "movements", label: "Movements", icon: "📜", roles: ["manager", "owner", "admin"] },
-    { key: "notifications", label: "Notifications", icon: "🔔", roles: ["cashier", "manager", "owner", "admin"] },
-    { key: "addEmployee", label: "Staff", icon: "👤", roles: ["owner", "admin"] },
-    { key: "settings", label: "Settings", icon: "⚙️", roles: ["owner", "admin"] },
+    { key: "dashboard", label: "Dashboard", icon: DashboardOutlinedIcon, roles: ["cashier", "manager", "owner", "admin"] },
+    { key: "products", label: "Products", icon: Inventory2OutlinedIcon, roles: ["cashier", "manager", "owner", "admin"] },
+    { key: "warehouse", label: "Warehouse", icon: WarehouseOutlinedIcon, roles: ["manager", "owner", "admin"] },
+    { key: "stockIn", label: "Stock intake", icon: MoveToInboxOutlinedIcon, roles: ["manager", "owner", "admin"] },
+    { key: "pos", label: "POS", icon: PointOfSaleOutlinedIcon, roles: ["cashier", "manager", "owner", "admin"] },
+    { key: "sales", label: "Analytics", icon: TrendingUpOutlinedIcon, roles: ["owner", "admin"] },
+    { key: "reports", label: "Reports", icon: DescriptionOutlinedIcon, roles: ["owner", "admin"] },
+    { key: "movements", label: "Movements", icon: SwapHorizOutlinedIcon, roles: ["manager", "owner", "admin"] },
+    { key: "notifications", label: "Notifications", icon: NotificationsNoneOutlinedIcon, roles: ["cashier", "manager", "owner", "admin"] },
+    { key: "addEmployee", label: "Staff", icon: GroupsOutlinedIcon, roles: ["owner", "admin"] },
+    { key: "settings", label: "Settings", icon: SettingsOutlinedIcon, roles: ["owner", "admin"] },
 ];
 
-// ===== STYLED COMPONENTS =====
 const SidebarWrapper = styled.aside`
     background: var(--bg-sidebar);
     border-right: 1px solid var(--border-color);
     color: var(--text-primary);
-    transition: width 0.3s ease;
-    width: ${props => props.$collapsed ? '64px' : '240px'};
+    transition: width 0.25s ease;
+    width: ${(props) => (props.$collapsed ? "64px" : "240px")};
     position: relative;
-    
-    /* Subtle neutral tint for sidebar */
-    &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: var(--tint-neutral);
-        pointer-events: none;
-        z-index: 0;
-    }
-    
-    /* Subtle right edge highlight */
-    &::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        width: 1px;
-        background: linear-gradient(180deg, transparent, rgba(88, 166, 255, 0.15), transparent);
-        pointer-events: none;
-        z-index: 1;
-    }
-    
-    /* Ensure content is above tint */
-    > * {
-        position: relative;
-        z-index: 1;
-    }
+    box-shadow: 8px 0 24px rgba(15, 23, 42, 0.035);
 
     @media (max-width: 720px) {
-        display: none;
+        display: block;
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        overflow-x: auto;
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
     }
 `;
 
@@ -70,18 +55,31 @@ const SidebarInner = styled.div`
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 16px 14px 14px;
+    padding: 18px 14px 14px;
+
+    @media (max-width: 720px) {
+        height: auto;
+        padding: 10px 12px;
+    }
 `;
 
 const SidebarSectionTop = styled.div`
     flex: 1;
+
+    @media (max-width: 720px) {
+        min-width: max-content;
+    }
 `;
 
 const SidebarHeader = styled.div`
     display: flex;
-    justify-content: ${props => props.$collapsed ? 'center' : 'space-between'};
+    justify-content: ${(props) => (props.$collapsed ? "center" : "space-between")};
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+
+    @media (max-width: 720px) {
+        display: none;
+    }
 `;
 
 const SidebarLabel = styled.div`
@@ -89,96 +87,112 @@ const SidebarLabel = styled.div`
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--text-tertiary);
+    font-weight: 800;
 `;
 
 const ToggleButton = styled.button`
-    background: var(--bg-tertiary);
+    background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: 12px;
     color: var(--text-secondary);
     cursor: pointer;
     font-size: 14px;
+    font-weight: 800;
     padding: 4px 8px;
-    transition: all 0.2s ease;
-    width: 28px;
-    height: 28px;
+    transition: all 0.18s ease;
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
 
     &:hover {
         background: var(--bg-hover);
-        border-color: var(--primary-color);
-        color: var(--text-primary);
+        color: var(--primary-color);
     }
 `;
 
 const Nav = styled.nav`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
+
+    @media (max-width: 720px) {
+        flex-direction: row;
+        gap: 8px;
+    }
 `;
 
 const NavLink = styled.button`
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 12px;
-    border-radius: 6px;
+    padding: 9px 10px;
+    border-radius: 16px;
     font-size: 14px;
-    color: var(--text-secondary);
-    background: ${props => props.$active ? 'var(--primary-color)' : 'transparent'};
-    color: ${props => props.$active ? '#FFFFFF' : 'var(--text-secondary)'};
-    font-weight: ${props => props.$active ? '600' : '500'};
-    border: none;
+    color: ${(props) => (props.$active ? "var(--primary-color)" : "var(--text-secondary)")};
+    background: ${(props) => (props.$active ? "var(--accent-gradient-soft)" : "transparent")};
+    font-weight: ${(props) => (props.$active ? "800" : "650")};
+    border: 1px solid ${(props) => (props.$active ? "rgba(22, 141, 255, 0.14)" : "transparent")};
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.18s ease;
     position: relative;
-    justify-content: ${props => props.$collapsed ? 'center' : 'flex-start'};
+    justify-content: ${(props) => (props.$collapsed ? "center" : "flex-start")};
     width: 100%;
     text-align: left;
-    margin-bottom: 2px;
 
-    /* Active indicator */
-    ${props => props.$active && `
-        &::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 3px;
-            height: 60%;
-            background: var(--primary-color);
-            border-radius: 0 2px 2px 0;
-        }
-    `}
+    @media (max-width: 720px) {
+        width: auto;
+        min-width: max-content;
+        justify-content: flex-start;
+    }
 
     &:hover {
-        background: ${props => props.$active ? 'var(--primary-hover)' : 'var(--bg-hover)'};
-        color: ${props => props.$active ? '#FFFFFF' : 'var(--text-primary)'};
-        transform: ${props => props.$active ? 'none' : 'translateX(2px)'};
+        background: ${(props) => (props.$active ? "var(--accent-gradient-soft)" : "var(--bg-hover)")};
+        color: ${(props) => (props.$active ? "var(--primary-color)" : "var(--text-primary)")};
+        transform: translateX(1px);
     }
 `;
 
 const NavIcon = styled.span`
-    font-size: 18px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    opacity: ${props => props.$active ? '1' : '0.8'};
-    transition: opacity 0.15s ease;
+    width: 32px;
+    height: 32px;
+    border-radius: 12px;
+    background: ${(props) => (props.$active ? "#ffffff" : "transparent")};
+    color: ${(props) => (props.$active ? "var(--primary-color)" : "var(--text-tertiary)")};
+    box-shadow: ${(props) => (props.$active ? "0 8px 18px rgba(22, 141, 255, 0.12)" : "none")};
+    transition: all 0.18s ease;
+
+    svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    ${NavLink}:hover & {
+        color: ${(props) => (props.$active ? "var(--primary-color)" : "var(--text-primary)")};
+        background: #ffffff;
+    }
 `;
 
 const NavText = styled.span`
     white-space: nowrap;
-    display: ${props => props.$collapsed ? 'none' : 'block'};
+    display: ${(props) => (props.$collapsed ? "none" : "block")};
+
+    @media (max-width: 720px) {
+        display: block;
+    }
 `;
 
 const SidebarSectionBottom = styled.div`
-    margin-top: 12px;
+    margin-top: 14px;
+
+    @media (max-width: 720px) {
+        display: none;
+    }
 `;
 
 const SidebarFootnote = styled.div`
@@ -186,7 +200,6 @@ const SidebarFootnote = styled.div`
     color: var(--text-tertiary);
 `;
 
-// ===== COMPONENT =====
 export default function Sidebar({ onCollapseChange }) {
     const { activePage, setActivePage } = usePage();
     const { role } = useAuth();
@@ -197,53 +210,51 @@ export default function Sidebar({ onCollapseChange }) {
 
     useEffect(() => {
         localStorage.setItem("sidebarCollapsed", collapsed.toString());
-        if (onCollapseChange) {
-            onCollapseChange(collapsed);
-        }
+        onCollapseChange?.(collapsed);
     }, [collapsed, onCollapseChange]);
-
-    const toggleCollapse = () => {
-        setCollapsed(!collapsed);
-    };
 
     return (
         <SidebarWrapper $collapsed={collapsed}>
             <SidebarInner>
                 <SidebarSectionTop>
                     <SidebarHeader $collapsed={collapsed}>
-                        {!collapsed && (
-                            <SidebarLabel>Navigation</SidebarLabel>
-                        )}
+                        {!collapsed && <SidebarLabel>Navigation</SidebarLabel>}
                         <ToggleButton
-                            onClick={toggleCollapse}
+                            onClick={() => setCollapsed((value) => !value)}
                             title={collapsed ? "Expand menu" : "Collapse menu"}
+                            type="button"
                         >
-                            {collapsed ? "→" : "←"}
+                            {collapsed ? ">" : "<"}
                         </ToggleButton>
                     </SidebarHeader>
                     <Nav>
                         {navItems
                             .filter((item) => !item.roles || item.roles.includes(role))
-                            .map((item) => (
-                                <NavLink
-                                    key={item.key}
-                                    onClick={() => setActivePage(item.key)}
-                                    $active={activePage === item.key}
-                                    $collapsed={collapsed}
-                                    title={collapsed ? item.label : undefined}
-                                >
-                                    <NavIcon $active={activePage === item.key}>{item.icon}</NavIcon>
-                                    <NavText $collapsed={collapsed}>{item.label}</NavText>
-                                </NavLink>
-                            ))}
+                            .map((item) => {
+                                const Icon = item.icon;
+                                const active = activePage === item.key;
+                                return (
+                                    <NavLink
+                                        key={item.key}
+                                        onClick={() => setActivePage(item.key)}
+                                        $active={active}
+                                        $collapsed={collapsed}
+                                        title={collapsed ? item.label : undefined}
+                                        type="button"
+                                    >
+                                        <NavIcon $active={active}>
+                                            <Icon />
+                                        </NavIcon>
+                                        <NavText $collapsed={collapsed}>{item.label}</NavText>
+                                    </NavLink>
+                                );
+                            })}
                     </Nav>
                 </SidebarSectionTop>
 
                 {!collapsed && (
                     <SidebarSectionBottom>
-                        <SidebarFootnote>
-                            RetailSystem · v1.0
-                        </SidebarFootnote>
+                        <SidebarFootnote>RetailSystem v1.0</SidebarFootnote>
                     </SidebarSectionBottom>
                 )}
             </SidebarInner>

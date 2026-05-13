@@ -5,7 +5,7 @@ import styled from "styled-components";
 const CardWrapper = styled.div`
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 16px;
+    border-radius: var(--radius-md);
     padding: 24px;
     transition: all 0.2s ease;
     cursor: ${props => props.$enabled ? 'pointer' : 'not-allowed'};
@@ -15,7 +15,7 @@ const CardWrapper = styled.div`
     ${props => props.$enabled && `
         &:hover {
             border-color: var(--primary-color);
-            transform: translateY(-2px);
+            transform: translateY(-1px);
             box-shadow: var(--shadow-md);
         }
     `}
@@ -73,7 +73,16 @@ const Tooltip = styled.div`
 `;
 
 const ReportIcon = styled.div`
-    font-size: 36px;
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: var(--primary-light);
+    color: var(--primary-color);
+    font-size: 12px;
+    font-weight: 800;
     margin-bottom: 16px;
 `;
 

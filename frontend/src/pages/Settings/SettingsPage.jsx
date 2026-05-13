@@ -248,17 +248,17 @@ const BtnPrimary = styled.button`
     padding: 11px 24px;
     border-radius: 10px;
     border: none;
-    background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+    background: var(--primary-color);
     color: #ffffff;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: none;
 
     &:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(14, 165, 233, 0.4);
+        background: var(--primary-hover);
+        box-shadow: var(--shadow-sm);
     }
 
     &:disabled {
@@ -321,7 +321,7 @@ const BtnDanger = styled.button`
 // Theme Options
 const ThemeOptions = styled.div`
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 16px;
     margin-bottom: 16px;
 
@@ -359,11 +359,7 @@ const ThemePreview = styled.div`
     height: 40px;
     border-radius: 8px;
     border: 2px solid #cbd5e1;
-    background: ${props => {
-        if (props.$theme === 'light') return 'linear-gradient(to bottom, #ffffff 50%, #f8fafc 50%)';
-        if (props.$theme === 'dark') return 'linear-gradient(to bottom, #1e293b 50%, #0f172a 50%)';
-        return 'linear-gradient(to bottom, #ffffff 50%, #1e293b 50%)';
-    }};
+    background: #f8fafc;
 `;
 
 // Table Styles
@@ -742,7 +738,7 @@ function AppearanceTab() {
         <TabContent>
             <SectionTitle>Appearance</SectionTitle>
             <SectionSubtitle>
-                Configure interface color theme. Changes are applied instantly.
+                The store workspace uses a fixed light enterprise theme.
             </SectionSubtitle>
 
             <SettingsCard>
@@ -754,23 +750,9 @@ function AppearanceTab() {
                         <ThemePreview $theme="light" />
                         <span>Light theme</span>
                     </ThemeOption>
-                    <ThemeOption
-                        $active={theme === "dark"}
-                        onClick={() => changeTheme("dark")}
-                    >
-                        <ThemePreview $theme="dark" />
-                        <span>Dark theme</span>
-                    </ThemeOption>
-                    <ThemeOption
-                        $active={theme === "system"}
-                        onClick={() => changeTheme("system")}
-                    >
-                        <ThemePreview $theme="system" />
-                        <span>System theme</span>
-                    </ThemeOption>
                 </ThemeOptions>
                 <SettingsNote>
-                    Theme is applied instantly and saved for your next visit
+                    The light theme is saved for your next visit
                 </SettingsNote>
             </SettingsCard>
         </TabContent>

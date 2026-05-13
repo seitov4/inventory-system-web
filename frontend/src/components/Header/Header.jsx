@@ -3,60 +3,32 @@ import styled from "styled-components";
 import { usePage } from "../../context/PageContext";
 import { useAuth } from "../../context/AuthContext";
 import notificationsApi from "../../api/notificationsApi";
+import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
+import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 
 // ===== STYLED COMPONENTS =====
 const HeaderWrapper = styled.header`
     position: sticky;
     top: 0;
     z-index: 1000;
-    height: 64px;
+    min-height: 68px;
     background: var(--bg-header);
     border-bottom: 1px solid var(--border-color);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.15);
-    backdrop-filter: blur(8px);
-    position: relative;
-    
-    /* Subtle cool blue tint */
-    &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: var(--tint-blue);
-        pointer-events: none;
-        z-index: 0;
-    }
-    
-    /* Subtle top highlight */
-    &::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(88, 166, 255, 0.2), transparent);
-        z-index: 1;
-    }
-    
-    /* Ensure content is above tint */
-    > * {
-        position: relative;
-        z-index: 1;
-    }
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.045);
+    backdrop-filter: blur(16px);
 `;
 
 const HeaderInner = styled.div`
     max-width: 1280px;
     margin: 0 auto;
-    padding: 0 24px;
-    height: 100%;
+    padding: 0 28px;
+    min-height: 68px;
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: minmax(210px, auto) minmax(240px, 1fr) auto;
     align-items: center;
-    gap: 32px;
+    gap: 22px;
 
     @media (max-width: 768px) {
         grid-template-columns: auto 1fr;
@@ -72,10 +44,13 @@ const LogoBlock = styled.div`
 `;
 
 const Logo = styled.button`
-    font-size: 22px;
-    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 800;
     color: var(--text-primary);
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
     background: none;
     border: none;
     cursor: pointer;
@@ -83,7 +58,13 @@ const Logo = styled.button`
     white-space: nowrap;
 
     &:hover {
-        opacity: 0.8;
+        color: var(--primary-color);
+    }
+
+    @media (max-width: 430px) {
+        span:last-child {
+            display: none;
+        }
     }
 `;
 
@@ -99,14 +80,70 @@ const NavBlock = styled.nav`
     }
 `;
 
+const LogoMark = styled.span`
+    width: 32px;
+    height: 32px;
+    border-radius: 12px;
+    background: var(--accent-gradient);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 900;
+    box-shadow: 0 12px 24px rgba(22, 141, 255, 0.22);
+`;
+
+const SearchForm = styled.form`
+    width: min(100%, 420px);
+    position: relative;
+`;
+
+const SearchIconWrap = styled.span`
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    display: inline-flex;
+
+    svg {
+        width: 18px;
+        height: 18px;
+    }
+`;
+
+const SearchInput = styled.input`
+    width: 100%;
+    padding: 11px 14px 11px 40px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    font-size: 13px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.035);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+
+    &::placeholder {
+        color: var(--text-tertiary);
+    }
+
+    &:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 4px rgba(22, 141, 255, 0.12);
+    }
+`;
+
 // Right block: User Info
 const UserBlock = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 
     @media (max-width: 768px) {
         gap: 8px;
+        justify-content: flex-end;
     }
 `;
 
@@ -114,9 +151,11 @@ const UserInfo = styled.div`
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 6px 12px;
-    background: var(--bg-tertiary);
-    border-radius: 8px;
+    padding: 6px 12px 6px 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
 
     @media (max-width: 640px) {
         display: none;
@@ -126,14 +165,14 @@ const UserInfo = styled.div`
 const UserIcon = styled.div`
     width: 32px;
     height: 32px;
-    border-radius: 50%;
-    background: var(--primary-color);
+    border-radius: 12px;
+    background: var(--accent-gradient);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: #ffffff;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     flex-shrink: 0;
 `;
 
@@ -145,7 +184,7 @@ const UserDetails = styled.div`
 
 const UserName = styled.span`
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 800;
     color: var(--text-primary);
     line-height: 1.2;
 `;
@@ -157,36 +196,52 @@ const UserRole = styled.span`
 `;
 
 const ActionButton = styled.button`
-    padding: 8px 16px;
+    padding: 10px 13px;
     font-size: 14px;
-    font-weight: 500;
-    color: var(--text-primary);
-    background: var(--bg-tertiary);
+    font-weight: 700;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: 16px;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.18s ease;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.035);
+
+    svg {
+        width: 17px;
+        height: 17px;
+    }
 
     &:hover {
         background: var(--bg-hover);
         border-color: var(--border-color);
+        color: var(--text-primary);
+        transform: translateY(-1px);
     }
 
     @media (max-width: 640px) {
-        padding: 8px 12px;
+        padding: 9px 10px;
         font-size: 13px;
+
+        span {
+            display: none;
+        }
     }
 `;
 
 const BtnLogin = styled(ActionButton)`
-    background: var(--primary-color);
+    background: var(--accent-gradient);
     color: white;
-    border-color: var(--primary-color);
+    border-color: transparent;
 
     &:hover {
-        background: var(--primary-hover);
-        border-color: var(--primary-hover);
+        border-color: transparent;
+        color: #ffffff;
+        box-shadow: 0 14px 28px rgba(22, 141, 255, 0.22);
     }
 `;
 
@@ -201,40 +256,57 @@ const BtnLogout = styled(ActionButton)`
 
 const NotificationsButton = styled.button`
     position: relative;
-    padding: 8px 12px;
-    border-radius: 999px;
+    padding: 10px 14px;
+    border-radius: 16px;
     border: 1px solid var(--border-color);
-    background: var(--bg-tertiary);
+    background: var(--bg-secondary);
     cursor: pointer;
     font-size: 14px;
-    color: var(--text-secondary);
+    font-weight: 700;
+    color: var(--text-primary);
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.035);
+    transition: all 0.18s ease;
+
+    svg {
+        width: 18px;
+        height: 18px;
+        color: var(--primary-color);
+    }
 
     &:hover {
         background: var(--bg-hover);
+        color: var(--text-primary);
+        transform: translateY(-1px);
     }
-`;
 
-const BellIcon = styled.span`
-    font-size: 16px;
+    @media (max-width: 560px) {
+        padding: 9px 10px;
+
+        span {
+            display: none;
+        }
+    }
 `;
 
 const Badge = styled.span`
     position: absolute;
-    top: -4px;
-    right: -4px;
+    top: -6px;
+    right: -5px;
     min-width: 18px;
     height: 18px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: var(--error-color);
     color: #fff;
     font-size: 11px;
+    font-weight: 800;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0 4px;
+    border: 2px solid #ffffff;
 `;
 
 // ===== COMPONENT =====
@@ -257,7 +329,7 @@ export default function Header() {
                 if (cancelled) return;
                 const list = Array.isArray(data) ? data : [];
                 const count = list.filter(
-                    (n) => n.status === "UNREAD" || n.is_read === false
+                    (n) => n.status === "UNREAD" || n.status === "NEW" || n.is_read === false
                 ).length;
                 setUnreadCount(count);
             } catch (e) {
@@ -323,39 +395,25 @@ export default function Header() {
                         aria-label="Open landing page"
                         onClick={() => setActivePage("landing")}
                     >
-                        Inventory System
+                        <LogoMark>IX</LogoMark>
+                        <span>Inventory System</span>
                     </Logo>
                 </LogoBlock>
 
                 {/* Center: global search only (main navigation in sidebar) */}
                 {isAuthenticated && (
                     <NavBlock>
-                        <form onSubmit={handleGlobalSearch} style={{ marginLeft: 8 }}>
-                            <input
+                        <SearchForm onSubmit={handleGlobalSearch}>
+                            <SearchIconWrap aria-hidden="true">
+                                <SearchOutlinedIcon />
+                            </SearchIconWrap>
+                            <SearchInput
                                 type="search"
-                                placeholder="Search (products, receipts, movements)"
+                                placeholder="Search products by name, SKU or barcode"
                                 value={searchValue}
                                 onChange={(e) => setSearchValue(e.target.value)}
-                                style={{
-                                    padding: "6px 12px",
-                                    borderRadius: 6,
-                                    border: "1px solid var(--border-color-light)",
-                                    fontSize: 13,
-                                    minWidth: 200,
-                                    background: "var(--bg-primary)",
-                                    color: "var(--text-primary)",
-                                    transition: "all 0.15s ease",
-                                }}
-                                onFocus={(e) => {
-                                    e.target.style.borderColor = "var(--primary-color)";
-                                    e.target.style.background = "var(--bg-secondary)";
-                                }}
-                                onBlur={(e) => {
-                                    e.target.style.borderColor = "var(--border-color-light)";
-                                    e.target.style.background = "var(--bg-primary)";
-                                }}
                             />
-                        </form>
+                        </SearchForm>
                     </NavBlock>
                 )}
 
@@ -364,7 +422,8 @@ export default function Header() {
                     {isAuthenticated ? (
                         <>
                             <NotificationsButton onClick={() => setActivePage("notifications")}>
-                                <BellIcon>🔔</BellIcon>
+                                <NotificationsNoneOutlinedIcon />
+                                <span>Alerts</span>
                                 {unreadCount > 0 && <Badge>{unreadCount}</Badge>}
                             </NotificationsButton>
                             {user && (
@@ -379,7 +438,8 @@ export default function Header() {
                                 </UserInfo>
                             )}
                             <ActionButton onClick={() => setActivePage("settings")}>
-                                Settings
+                                <SettingsOutlinedIcon />
+                                <span>Settings</span>
                             </ActionButton>
                             <BtnLogout
                                 onClick={() => {
@@ -387,7 +447,8 @@ export default function Header() {
                                     setActivePage("login");
                                 }}
                             >
-                                Logout
+                                <LogoutOutlinedIcon />
+                                <span>Logout</span>
                             </BtnLogout>
                         </>
                     ) : (
@@ -403,4 +464,3 @@ export default function Header() {
         </HeaderWrapper>
     );
 }
-

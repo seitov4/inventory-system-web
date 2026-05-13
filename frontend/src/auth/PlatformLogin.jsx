@@ -8,19 +8,19 @@ const Wrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    background: radial-gradient(circle at top left, #0ea5e9 0, #020617 55%);
-    color: #e5e7eb;
+    background: #F6F7F9;
+    color: #111827;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 `;
 
 const Card = styled.div`
     width: 100%;
     max-width: 420px;
-    background: rgba(15, 23, 42, 0.96);
-    border-radius: 18px;
+    background: #FFFFFF;
+    border-radius: 8px;
     padding: 26px 24px 20px;
-    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.7);
-    border: none;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+    border: 1px solid #E5E7EB;
 `;
 
 const Title = styled.h1`
@@ -32,7 +32,7 @@ const Title = styled.h1`
 const Subtitle = styled.p`
     margin: 0 0 16px;
     font-size: 13px;
-    color: #9ca3af;
+    color: #6B7280;
 `;
 
 const Form = styled.form`
@@ -46,35 +46,36 @@ const Label = styled.label`
     flex-direction: column;
     gap: 4px;
     font-size: 13px;
-    color: #e5e7eb;
+    color: #4B5563;
 `;
 
 const Input = styled.input`
-    border-radius: 10px;
-    border: none;
+    border-radius: 8px;
+    border: 1px solid #CBD5E1;
     padding: 9px 11px;
     font-size: 13px;
-    background: rgba(15, 23, 42, 0.9);
-    color: #e5e7eb;
+    background: #FFFFFF;
+    color: #111827;
 
     &:focus {
         outline: none;
-        box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.5);
+        border-color: #2563EB;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 `;
 
 const Button = styled.button`
     margin-top: 8px;
     width: 100%;
-    border-radius: 999px;
+    border-radius: 8px;
     border: none;
     padding: 10px 16px;
-    background: linear-gradient(135deg, #22c55e, #0ea5e9);
-    color: #020617;
+    background: #2563EB;
+    color: #FFFFFF;
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
-    box-shadow: 0 16px 40px rgba(16, 185, 129, 0.45);
+    box-shadow: none;
 
     &:disabled {
         opacity: 0.7;
@@ -86,7 +87,7 @@ const Button = styled.button`
 const Error = styled.div`
     margin-top: 6px;
     font-size: 12px;
-    color: #fecaca;
+    color: #DC2626;
 `;
 
 export default function PlatformLogin() {

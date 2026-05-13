@@ -18,28 +18,28 @@ const reportsConfig = {
 const reportsData = [
     {
         key: 'sales',
-        icon: '📊',
+        icon: 'SA',
         title: 'Sales Report',
         description: 'Detailed sales data by product for a selected period. Includes quantities, prices, and totals.',
         formats: ['XLSX', 'TXT']
     },
     {
         key: 'inventory',
-        icon: '📦',
+        icon: 'IN',
         title: 'Inventory Report',
         description: 'Current stock levels, low stock alerts, and inventory valuation.',
         formats: ['XLSX', 'PDF']
     },
     {
         key: 'profit',
-        icon: '💰',
+        icon: 'PL',
         title: 'Profit & Loss',
         description: 'Revenue, costs, and profit margins analysis by period.',
         formats: ['XLSX', 'PDF']
     },
     {
         key: 'movement',
-        icon: '📈',
+        icon: 'MV',
         title: 'Movement History',
         description: 'Complete log of all stock movements: sales, purchases, transfers.',
         formats: ['XLSX', 'CSV']

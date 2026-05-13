@@ -1,11 +1,10 @@
 import React from "react";
 import styled from "styled-components";
 
-// ===== STYLED COMPONENTS =====
 const FooterWrapper = styled.footer`
     margin-top: auto;
-    height: 56px;
-    background: var(--bg-secondary);
+    height: 52px;
+    background: rgba(255, 255, 255, 0.74);
     border-top: 1px solid var(--border-color);
 `;
 
@@ -30,10 +29,6 @@ const FooterInner = styled.div`
     }
 `;
 
-const FooterText = styled.span`
-    color: var(--text-secondary);
-`;
-
 const FooterSeparator = styled.span`
     color: var(--text-tertiary);
     margin: 0 4px;
@@ -44,7 +39,7 @@ const FooterSeparator = styled.span`
 `;
 
 const FooterProjectName = styled.span`
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-primary);
 `;
 
@@ -52,7 +47,6 @@ const FooterYear = styled.span`
     color: var(--text-secondary);
 `;
 
-// ===== COMPONENT =====
 export default function Footer() {
     const currentYear = new Date().getFullYear();
 
@@ -60,10 +54,9 @@ export default function Footer() {
         <FooterWrapper>
             <FooterInner>
                 <FooterProjectName>Inventory Management System</FooterProjectName>
-                <FooterSeparator>•</FooterSeparator>
-                <FooterYear>© {currentYear}</FooterYear>
+                <FooterSeparator>|</FooterSeparator>
+                <FooterYear>(c) {currentYear}</FooterYear>
             </FooterInner>
         </FooterWrapper>
     );
 }
-

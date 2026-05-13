@@ -5,7 +5,7 @@ import { usePage } from "../../context/PageContext";
 
 // ===== STYLED COMPONENTS =====
 const PageWrapper = styled.div`
-    background: #f7f8ff;
+    background: var(--bg-primary, #f6f7f9);
     min-height: 100vh;
     display: flex;
     justify-content: center;
@@ -17,7 +17,7 @@ const Card = styled.div`
     width: 100%;
     max-width: 640px;
     background: #ffffff;
-    border-radius: 18px;
+    border-radius: 8px;
     padding: 28px 28px 24px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
 
@@ -62,8 +62,8 @@ const Input = styled.input`
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
     &:focus {
-        border-color: #4f46e5;
-        box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.18);
+        border-color: var(--primary-color, #2563eb);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 `;
 
@@ -77,8 +77,8 @@ const Select = styled.select`
     cursor: pointer;
 
     &:focus {
-        border-color: #4f46e5;
-        box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.18);
+        border-color: var(--primary-color, #2563eb);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 `;
 
@@ -96,14 +96,14 @@ const SubmitButton = styled.button`
     margin-top: 8px;
     width: 100%;
     border: none;
-    border-radius: 999px;
+    border-radius: 8px;
     padding: 11px 16px;
     font-size: 15px;
     font-weight: 600;
-    background: linear-gradient(135deg, #4f46e5, #6366f1);
+    background: var(--primary-color, #2563eb);
     color: #ffffff;
     cursor: pointer;
-    transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
+    transition: background 0.15s ease;
 
     &:disabled {
         opacity: 0.7;
@@ -112,8 +112,7 @@ const SubmitButton = styled.button`
     }
 
     &:not(:disabled):hover {
-        transform: translateY(-1px);
-        box-shadow: 0 8px 22px rgba(79, 70, 229, 0.3);
+        background: var(--primary-hover, #1d4ed8);
     }
 `;
 
@@ -135,7 +134,7 @@ const FooterLinks = styled.div`
 `;
 
 const FooterLink = styled.button`
-    color: ${props => props.$muted ? '#6b7280' : '#4f46e5'};
+    color: ${props => props.$muted ? '#6b7280' : 'var(--primary-color, #2563eb)'};
     text-decoration: none;
     background: none;
     border: none;

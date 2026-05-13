@@ -2,10 +2,10 @@ import React from "react";
 import styled from "styled-components";
 
 const Shell = styled.div`
-    background: rgba(15, 23, 42, 0.95);
-    border-radius: 16px;
-    border: 1px solid rgba(31, 41, 55, 0.9);
-    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.65);
+    background: #FFFFFF;
+    border-radius: 8px;
+    border: 1px solid #E5E7EB;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     padding: 14px 16px;
 `;
 
@@ -19,18 +19,18 @@ const Header = styled.div`
 const Title = styled.div`
     font-size: 14px;
     font-weight: 600;
-    color: #e5e7eb;
+    color: #111827;
 `;
 
 const Description = styled.div`
     font-size: 12px;
-    color: #9ca3af;
+    color: #6B7280;
     margin-top: 2px;
 `;
 
 const Body = styled.div`
     font-size: 13px;
-    color: #e5e7eb;
+    color: #111827;
 `;
 
 export default function Card({ title, description, actions, children }) {

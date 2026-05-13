@@ -22,7 +22,8 @@ const PlatformGlobalStyle = createGlobalStyle`
     }
 
     body {
-        background: #020617;
+        background: #F6F7F9;
+        color: #111827;
     }
 `;
 

@@ -18,21 +18,21 @@ const Brand = styled.div`
 const BrandMark = styled.div`
     width: 28px;
     height: 28px;
-    border-radius: 999px;
-    background: linear-gradient(135deg, #22c55e, #0ea5e9);
+    border-radius: 8px;
+    background: #EFF6FF;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 14px;
     font-weight: 700;
-    color: #0f172a;
+    color: #2563EB;
     margin-right: 10px;
 `;
 
 const BrandTitle = styled.div`
     font-size: 14px;
     font-weight: 600;
-    color: #e5e7eb;
+    color: #111827;
 `;
 
 const BrandSubtitle = styled.div`
@@ -62,11 +62,8 @@ const NavItem = styled.button`
     padding: 9px 10px;
     border-radius: 8px;
     font-size: 13px;
-    color: ${(props) => (props.$active ? "#0f172a" : "#e5e7eb")};
-    background: ${(props) =>
-        props.$active
-            ? "linear-gradient(90deg, #0ea5e9, #22c55e)"
-            : "transparent"};
+    color: ${(props) => (props.$active ? "#2563EB" : "#4B5563")};
+    background: ${(props) => (props.$active ? "#EFF6FF" : "transparent")};
     border: none;
     cursor: pointer;
     transition: 0.15s ease;
@@ -75,14 +72,18 @@ const NavItem = styled.button`
     text-align: left;
 
     &:hover {
-        background: ${(props) =>
-            props.$active ? "linear-gradient(90deg, #0ea5e9, #22c55e)" : "rgba(148, 163, 184, 0.18)"};
+        background: ${(props) => (props.$active ? "#EFF6FF" : "#F1F5F9")};
     }
 `;
 
 const NavIcon = styled.span`
-    font-size: 16px;
-    width: 22px;
+    font-size: 10px;
+    font-weight: 800;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: #F1F5F9;
+    color: #6B7280;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -95,7 +96,7 @@ const NavText = styled.span`
 const Footer = styled.div`
     margin-top: auto;
     padding-top: 12px;
-    border-top: 1px solid rgba(15, 23, 42, 0.8);
+    border-top: 1px solid #E5E7EB;
     font-size: 11px;
     color: #6b7280;
 `;
@@ -108,37 +109,37 @@ const navItems = [
     {
         key: "dashboard",
         label: "Dashboard",
-        icon: "📊",
+        icon: "DB",
         group: "overview",
     },
     {
         key: "stores",
         label: "Stores",
-        icon: "🏬",
+        icon: "ST",
         group: "core",
     },
     {
         key: "store-create",
         label: "Create store",
-        icon: "➕",
+        icon: "CR",
         group: "core",
     },
     {
         key: "monitoring",
         label: "Monitoring",
-        icon: "🩺",
+        icon: "MO",
         group: "ops",
     },
     {
         key: "logs",
         label: "Logs",
-        icon: "📜",
+        icon: "LG",
         group: "ops",
     },
     {
         key: "settings",
         label: "Settings",
-        icon: "⚙️",
+        icon: "SE",
         group: "ops",
     },
 ];

@@ -7,15 +7,15 @@ import PlatformContent from "./PlatformContent.jsx";
 const Root = styled.div`
     display: flex;
     min-height: 100vh;
-    background: #020617;
-    color: #e5e7eb;
+    background: #F6F7F9;
+    color: #111827;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 `;
 
 const SidebarWrapper = styled.div`
     width: 260px;
-    background: radial-gradient(circle at top left, #020617 0, #020617 40%, #020617 100%);
-    border-right: 1px solid rgba(15, 23, 42, 0.9);
+    background: #FFFFFF;
+    border-right: 1px solid #E5E7EB;
 
     @media (max-width: 900px) {
         display: none;
@@ -26,7 +26,7 @@ const Main = styled.div`
     flex: 1;
     display: flex;
     flex-direction: column;
-    background: radial-gradient(circle at top left, #020617 0, #020617 40%, #020617 100%);
+    background: #F6F7F9;
 `;
 
 const HeaderWrapper = styled.div`
@@ -36,7 +36,7 @@ const HeaderWrapper = styled.div`
 const ContentWrapper = styled.div`
     flex: 1;
     padding: 16px 20px 20px;
-    background: radial-gradient(circle at top left, #020617 0, #020617 40%, #020617 100%);
+    background: #F6F7F9;
     overflow: auto;
 `;
 

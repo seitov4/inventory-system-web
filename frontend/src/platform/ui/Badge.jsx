@@ -3,24 +3,24 @@ import styled, { css } from "styled-components";
 
 const tones = {
     green: css`
-        background: rgba(22, 163, 74, 0.16);
-        color: #4ade80;
+        background: #ECFDF3;
+        color: #15803D;
     `,
     yellow: css`
-        background: rgba(234, 179, 8, 0.16);
-        color: #facc15;
+        background: #FFFBEB;
+        color: #B45309;
     `,
     red: css`
-        background: rgba(248, 113, 113, 0.16);
-        color: #fca5a5;
+        background: #FEF2F2;
+        color: #DC2626;
     `,
     blue: css`
-        background: rgba(59, 130, 246, 0.16);
-        color: #93c5fd;
+        background: #EFF6FF;
+        color: #2563EB;
     `,
     gray: css`
-        background: rgba(148, 163, 184, 0.16);
-        color: #e5e7eb;
+        background: #F1F5F9;
+        color: #4B5563;
     `,
 };
 

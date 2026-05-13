@@ -9,23 +9,27 @@ const LayoutWrapper = styled.div`
 `;
 
 const LayoutHeader = styled.div`
-    padding: 18px 20px 12px;
+    padding: 18px 24px 12px;
     border-bottom: 1px solid var(--border-color-subtle);
-    background: transparent;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(244, 245, 250, 0));
 `;
 
 const LayoutTitle = styled.h1`
     margin: 0;
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 700;
     color: var(--text-primary);
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
 `;
 
 const LayoutContent = styled.div`
-    padding: 18px 20px 24px;
+    padding: 18px 24px 26px;
     flex: 1;
     background: transparent;
+
+    @media (max-width: 720px) {
+        padding: 16px;
+    }
 `;
 
 // ===== COMPONENT =====

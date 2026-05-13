@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext.js";
 
 // ===== STYLED COMPONENTS =====
 const PageWrapper = styled.div`
-    background: #f7f8ff;
+    background: var(--bg-primary, #f6f7f9);
     min-height: 100vh;
     display: flex;
     justify-content: center;
@@ -17,7 +17,7 @@ const Card = styled.div`
     width: 100%;
     max-width: 480px;
     background: #ffffff;
-    border-radius: 18px;
+    border-radius: 8px;
     padding: 32px 32px 24px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
 
@@ -75,8 +75,8 @@ const Input = styled.input`
     box-sizing: border-box;
 
     &:focus {
-        border-color: #4f46e5;
-        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        border-color: var(--primary-color, #2563eb);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 
     &::placeholder {
@@ -88,15 +88,15 @@ const SubmitButton = styled.button`
     margin-top: 4px;
     width: 100%;
     border: none;
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 12px 20px;
     font-size: 15px;
     font-weight: 600;
-    background: linear-gradient(135deg, #4f46e5, #6366f1);
+    background: var(--primary-color, #2563eb);
     color: #ffffff;
     cursor: pointer;
-    transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+    transition: background 0.15s ease;
+    box-shadow: none;
 
     &:disabled {
         opacity: 0.7;
@@ -106,8 +106,7 @@ const SubmitButton = styled.button`
     }
 
     &:not(:disabled):hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 18px rgba(79, 70, 229, 0.3);
+        background: var(--primary-hover, #1d4ed8);
     }
 `;
 

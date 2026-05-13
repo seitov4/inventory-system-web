@@ -1,7 +1,11 @@
-/**
- * Dashboard Widget Configuration
- * Defines all available widgets with their metadata and zone assignments
- */
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
+import PointOfSaleOutlinedIcon from "@mui/icons-material/PointOfSaleOutlined";
+import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
+import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
+import TrendingUpOutlinedIcon from "@mui/icons-material/TrendingUpOutlined";
+import WarehouseOutlinedIcon from "@mui/icons-material/WarehouseOutlined";
+import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
 
 export const WIDGET_IDS = {
     SALES_TODAY: "sales-today",
@@ -28,7 +32,7 @@ const moneyFormatter = new Intl.NumberFormat("en-US", {
 });
 
 function formatMoney(value) {
-    return `${moneyFormatter.format(Number(value) || 0)} ₸`;
+    return `${moneyFormatter.format(Number(value) || 0)} KZT`;
 }
 
 export function getWidgetConfig(widgetId, data = {}) {
@@ -50,6 +54,7 @@ export function getWidgetConfig(widgetId, data = {}) {
             value: formatMoney(stats.dailySales),
             description: canSeeAnalytics ? "Completed sales today" : "Available to owner and admin",
             tint: "blue",
+            icon: ReceiptLongOutlinedIcon,
             animateCountUp: true,
         },
         [WIDGET_IDS.SALES_MONTH]: {
@@ -61,7 +66,8 @@ export function getWidgetConfig(widgetId, data = {}) {
             size: "small",
             value: formatMoney(stats.monthlySales),
             description: canSeeAnalytics ? "Current month revenue" : "Available to owner and admin",
-            tint: "blue-strong",
+            tint: "purple",
+            icon: TrendingUpOutlinedIcon,
             animateCountUp: true,
         },
         [WIDGET_IDS.LOW_STOCK]: {
@@ -74,6 +80,7 @@ export function getWidgetConfig(widgetId, data = {}) {
             value: stats.lowStockCount || 0,
             description: "Based on min stock and movement journal",
             tint: "amber",
+            icon: ReportProblemOutlinedIcon,
             animateCountUp: true,
         },
         [WIDGET_IDS.TOTAL_PRODUCTS]: {
@@ -86,6 +93,7 @@ export function getWidgetConfig(widgetId, data = {}) {
             value: stats.productsCount || 0,
             description: "Number of catalog entries",
             tint: "green",
+            icon: Inventory2OutlinedIcon,
             animateCountUp: true,
         },
         [WIDGET_IDS.MINI_CHART]: {
@@ -95,7 +103,8 @@ export function getWidgetConfig(widgetId, data = {}) {
             title: "Monthly sales by day",
             type: "chart",
             size: "square",
-            tint: "blue-strong",
+            tint: "blue",
+            icon: TrendingUpOutlinedIcon,
             chartData: miniChartData,
         },
         [WIDGET_IDS.SALES_TRENDS]: {
@@ -106,7 +115,8 @@ export function getWidgetConfig(widgetId, data = {}) {
             type: "info",
             size: "medium",
             badge: { text: "Analytics", variant: "default" },
-            tint: "blue",
+            tint: "purple",
+            icon: TrendingUpOutlinedIcon,
             onClick: () => setActivePage("sales"),
             text: "Open sales analytics by day, week and month.",
         },
@@ -119,6 +129,7 @@ export function getWidgetConfig(widgetId, data = {}) {
             size: "medium",
             badge: { text: `${stats.lowStockCount || 0} low stock`, variant: "default" },
             tint: "green",
+            icon: WarehouseOutlinedIcon,
             onClick: () => setActivePage("warehouse"),
             text: "See where you lose money because items are out of stock.",
         },
@@ -131,6 +142,7 @@ export function getWidgetConfig(widgetId, data = {}) {
             size: "medium",
             badge: { text: "Alerts", variant: "default" },
             tint: "amber",
+            icon: NotificationsNoneOutlinedIcon,
             onClick: () => setActivePage("notifications"),
             text: "See important events: low stock, errors, system reminders.",
         },
@@ -142,8 +154,9 @@ export function getWidgetConfig(widgetId, data = {}) {
             type: "info",
             size: "medium",
             description:
-                "The dashboard shows key metrics of store performance: daily and monthly revenue, low-stock items and catalog size. All figures are built from Sales, Warehouse and Movements modules.",
+                "The dashboard shows store performance: daily and monthly revenue, low-stock items and catalog size. Figures are built from Sales, Warehouse and Movements modules.",
             tint: "neutral",
+            icon: Inventory2OutlinedIcon,
         },
     };
 
@@ -189,6 +202,7 @@ export function getWidgetsByZone(zone, data = {}) {
                     size: "medium",
                     badge: { text: "IN / OUT / TRANSFER", variant: "default" },
                     tint: "amber",
+                    icon: SwapHorizOutlinedIcon,
                     onClick: () => data.setActivePage?.("movements"),
                     text: "Review recent transfers and write-offs for key items.",
                 },
@@ -200,6 +214,7 @@ export function getWidgetsByZone(zone, data = {}) {
                     size: "medium",
                     badge: { text: `${data.stats?.productsCount || 0} items`, variant: "default" },
                     tint: "green",
+                    icon: Inventory2OutlinedIcon,
                     onClick: () => data.setActivePage?.("products"),
                     text: "Manage product cards, barcodes and minimum stock levels.",
                 }
@@ -214,6 +229,7 @@ export function getWidgetsByZone(zone, data = {}) {
                     size: "medium",
                     badge: { text: "Shift / cashier", variant: "default" },
                     tint: "blue",
+                    icon: PointOfSaleOutlinedIcon,
                     onClick: () => data.setActivePage?.("pos"),
                     text: "Open the POS screen, scan barcodes and issue receipts without extra forms.",
                 },
@@ -225,6 +241,7 @@ export function getWidgetsByZone(zone, data = {}) {
                     size: "medium",
                     badge: { text: `${data.stats?.productsCount || 0} products`, variant: "default" },
                     tint: "green",
+                    icon: Inventory2OutlinedIcon,
                     onClick: () => data.setActivePage?.("products"),
                     text: "Quickly find an item, check price and stock before selling.",
                 },
@@ -240,6 +257,7 @@ export function getWidgetsByZone(zone, data = {}) {
                     size: "medium",
                     badge: { text: `${data.stats?.productsCount || 0} products`, variant: "default" },
                     tint: "green",
+                    icon: Inventory2OutlinedIcon,
                     onClick: () => data.setActivePage?.("products"),
                     text: "Browse catalog and basic warehouse stock.",
                 },
@@ -251,6 +269,7 @@ export function getWidgetsByZone(zone, data = {}) {
                     size: "medium",
                     badge: { text: "Sale", variant: "default" },
                     tint: "blue",
+                    icon: PointOfSaleOutlinedIcon,
                     onClick: () => data.setActivePage?.("pos"),
                     text: "Quick checkout by barcode or item name.",
                 }
