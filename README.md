@@ -38,7 +38,7 @@ npm run dev:backend
 The `dev:mobile` script prints information because the mobile app is currently not included in the workspace.
 
 ### Database
-The backend uses PostgreSQL for local development, tests, and AWS/RDS deployment.
+The backend uses PostgreSQL running on this machine, either through Docker Compose or a native local PostgreSQL service.
 
 ```env
 DB_HOST=localhost
@@ -60,17 +60,6 @@ Then start the app:
 
 ```bash
 npm run dev
-```
-
-For AWS RDS, switch the connection values:
-
-```env
-DB_HOST=your-rds-host.amazonaws.com
-DB_PORT=5432
-DB_NAME=inventory
-DB_USER=inventory_app
-DB_PASSWORD=your-password
-DB_SSL=true
 ```
 
 See `backend/docs/postgres-local.md` for a focused local PostgreSQL checklist.
@@ -105,24 +94,43 @@ Build the frontend from the root:
 npm run build
 ```
 
-### Docker production image
+### Docker server image
 Build a single production image that contains the Express API and the compiled React frontend:
 
 ```bash
 docker build -t inventory-system-web:latest .
 ```
 
-Run the production stack with PostgreSQL:
+Run the local server stack with PostgreSQL:
 
 ```bash
 JWT_SECRET=change_me docker compose -f docker-compose.prod.yml up --build -d postgres
 JWT_SECRET=change_me docker compose -f docker-compose.prod.yml run --rm db-init
 JWT_SECRET=change_me docker compose -f docker-compose.prod.yml up -d app
+JWT_SECRET=change_me npm --workspace backend run create:test-user
 ```
 
-The app is served on `http://localhost:5000` by default. Override the published port with `APP_PORT`, for example `APP_PORT=8080`.
+The app is served on `http://localhost:5000` by default. Other devices on your LAN can open `http://YOUR_LAPTOP_IP:5000`. Override the published port with `APP_PORT`, for example `APP_PORT=8080`.
 
-The production container does not apply database schema on normal app startup. Use the `db-init` command during provisioning or before the first `app` start.
+The app container does not apply database schema on normal startup. Use the `db-init` command before the first `app` start.
+PostgreSQL in the production stack is published only to `127.0.0.1`, so host-side maintenance scripts work but the database is not exposed to the LAN.
+
+### Local server deployment
+To use this laptop as the always-on server:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml --profile init run --rm db-init
+```
+
+Then open:
+
+```text
+http://localhost:5000
+http://YOUR_LAPTOP_IP:5000
+```
+
+If you want frontend dev mode on the network too, run CRA with `HOST=0.0.0.0`.
 
 ### Test & Lint
 Run frontend tests from root:
@@ -159,4 +167,3 @@ Action taken:
 - `/api/items` route and `items` controller were removed. `/api/products` is the canonical API for product/item CRUD and imports in the frontend have been verified to use it.
 
 If you need a backward-compatible alias for external integrators, we can add `/api/items` as a temporary proxy that logs a deprecation warning and forwards requests to `/api/products`.
-

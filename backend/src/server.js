@@ -1,6 +1,5 @@
 // backend/src/server.js
 import app from "./app.js";
-import "dotenv/config";
 import net from "net";
 import { initializeDatabase } from "./utils/db-init.js";
 import { getDatabaseInfo, safeQuery, initDb, closeDb } from "./utils/db.js";

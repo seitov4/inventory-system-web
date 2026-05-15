@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "../src/utils/load-env.js";
 import bcrypt from "bcryptjs";
 import { closeDb, getDatabaseInfo, initDb, safeQuery } from "../src/utils/db.js";
 import {

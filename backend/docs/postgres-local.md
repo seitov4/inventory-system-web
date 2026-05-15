@@ -1,7 +1,7 @@
 # Local PostgreSQL Setup
 
 ## Why
-Use local PostgreSQL for day-to-day development so SQL behavior, schema checks, transactions, and future AWS RDS deployment stay close to production.
+Use local PostgreSQL on this machine so the laptop can act as both the app server and the database server.
 
 ## Local Docker PostgreSQL
 The root `docker-compose.yml` already exposes PostgreSQL on `localhost:5432`.
@@ -68,23 +68,19 @@ npm --workspace backend run db:check-sync
 npm --workspace backend run test
 ```
 
-## AWS RDS Mapping
-For AWS RDS keep the provider the same and change only connection details:
+## Server Mode
+For a local server on this laptop, keep these values:
 
 ```env
-DB_HOST=<rds-endpoint>
+DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=inventory
-DB_USER=inventory_app
-DB_PASSWORD=<secure-password>
-DB_SSL=true
+DB_NAME=inventory_db
+DB_USER=postgres
+DB_PASSWORD=postgres_password_here
+DB_SSL=false
 ```
 
-Run schema initialization during provisioning/deployment, not on every production server startup:
-
-```bash
-npm --workspace backend run db:init
-```
+To make the app available to other devices on the same network, run the production compose stack and open `http://<laptop-ip>:5000`.
 
 ## Notes
 - Do not commit real passwords in `.env`.

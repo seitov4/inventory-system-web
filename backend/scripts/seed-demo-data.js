@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "../src/utils/load-env.js";
 import bcrypt from "bcryptjs";
 import { closeDb, getDatabaseInfo, initDb, withTransaction } from "../src/utils/db.js";
 
@@ -7,7 +7,7 @@ const STORE = {
     slug: "inventix-demo-market",
     ownerEmail: "owner@test.local",
     plan: "standard",
-    region: "aws-eu-north-1",
+    region: "local-lan",
     address: "Astana demo district, 10",
 };
 
@@ -63,7 +63,7 @@ const PRODUCTS = [
 const NOTIFICATIONS = [
     ["LOW_STOCK", "Receipt paper is below target stock"],
     ["LOW_STOCK", "Granola needs replenishment this week"],
-    ["INFO", "AWS RDS demo dataset has been refreshed"],
+    ["INFO", "Local demo dataset has been refreshed"],
     ["SALES_SUMMARY", "Daily sales summary is ready"],
 ];
 

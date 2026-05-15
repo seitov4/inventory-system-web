@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import "dotenv/config";
+import "../src/utils/load-env.js";
 import { initializeDatabase } from "../src/utils/db-init.js";
 
 (async () => {

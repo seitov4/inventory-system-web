@@ -1,17 +1,15 @@
 /**
  * Database Setup Script
- * 
- * This script helps set up the database for the first time.
+ *
+ * This script helps set up the local PostgreSQL database for the first time.
  * Run: node scripts/setup-db.js
  */
 
-import dotenv from "dotenv";
+import "../src/utils/load-env.js";
 import pkg from "pg";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-
-dotenv.config();
 
 const { Pool } = pkg;
 const __filename = fileURLToPath(import.meta.url);
@@ -23,7 +21,7 @@ const adminPool = new Pool({
     port: Number(process.env.DB_PORT || 5432),
     database: "postgres", // Connect to default postgres database
     user: process.env.DB_USER || "postgres",
-    password: process.env.DB_PASSWORD || "postgres",
+    password: process.env.DB_PASSWORD || "postgres_password_here",
     ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false,
 });
 
@@ -65,7 +63,7 @@ async function setupDatabase() {
         port: Number(process.env.DB_PORT || 5432),
         database: dbName,
         user: process.env.DB_USER || "postgres",
-        password: process.env.DB_PASSWORD || "postgres",
+        password: process.env.DB_PASSWORD || "postgres_password_here",
         ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false,
     });
     
@@ -102,6 +100,7 @@ async function setupDatabase() {
         console.log(`   1. Make sure your .env file has correct DB credentials`);
         console.log(`   2. Start the backend server: npm run dev`);
         console.log(`   3. Register a user via POST /api/auth/register`);
+        console.log(`   4. Or create the local test user: npm --workspace backend run create:test-user`);
         
     } catch (error) {
         console.error("❌ Error applying schema:", error.message);
@@ -117,4 +116,3 @@ setupDatabase().catch((error) => {
     console.error("Fatal error:", error);
     process.exit(1);
 });
-

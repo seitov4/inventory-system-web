@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./load-env.js";
 import pkg from "pg";
 
 const { Pool } = pkg;

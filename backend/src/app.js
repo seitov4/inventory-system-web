@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
-import "dotenv/config";
+import "./utils/load-env.js";
 
 import { errorHandler } from "./middleware/error.middleware.js";
 import { success } from "./utils/response.js";
@@ -20,14 +20,55 @@ import platformRouter from "./routes/platform.routes.js";
 
 const app = express();
 
+function parseAllowedOrigins() {
+    const configuredOrigins = (process.env.CORS_ORIGINS || "")
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean);
+
+    return Array.from(
+        new Set([
+            process.env.FRONTEND_URL || "http://localhost:5000",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            ...configuredOrigins,
+        ])
+    );
+}
+
+function originMatchesPattern(origin, pattern) {
+    if (!origin || !pattern) {
+        return false;
+    }
+
+    if (pattern.includes("*")) {
+        const escapedPattern = pattern
+            .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+            .replace(/\*/g, ".*");
+        const regex = new RegExp(`^${escapedPattern}$`);
+        return regex.test(origin);
+    }
+
+    return origin === pattern;
+}
+
+const allowedOrigins = parseAllowedOrigins();
+
 // CORS - allow frontend origins
 app.use(
     cors({
-        origin: [
-            process.env.FRONTEND_URL || "http://localhost:3000",
-            "http://localhost:3000",
-            "http://127.0.0.1:3000",
-        ],
+        origin(origin, callback) {
+            if (
+                !origin ||
+                allowedOrigins.some((allowedOrigin) =>
+                    originMatchesPattern(origin, allowedOrigin)
+                )
+            ) {
+                return callback(null, true);
+            }
+
+            return callback(new Error(`Origin '${origin}' is not allowed by CORS`));
+        },
         credentials: true,
         methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allowedHeaders: ["Content-Type", "Authorization"],
