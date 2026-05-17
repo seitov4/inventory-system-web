@@ -39,6 +39,7 @@ export const PageProvider = ({ children }) => {
             "stockIn",
             "pos",
             "sales",
+            "forecast",
             "warehouse",
             "reports",
             "movements",

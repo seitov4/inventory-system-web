@@ -17,6 +17,7 @@ import DashboardPage from "../pages/Dashboard/DashboardPageZoneBased.jsx";
 import ProductsPage from "../pages/Products/ProductsPage.jsx";
 import StockInPage from "../pages/StockIn/StockInPage.jsx";
 import SalesPage from "../pages/Sales/SalesPage.jsx";
+import ForecastPage from "../pages/Forecast/ForecastPage.jsx";
 import WarehousePage from "../pages/Warehouse/WarehousePage.jsx";
 import SettingsPage from "../pages/Settings/SettingsPage.jsx";
 import AddEmployeePage from "../pages/AddEmployee/AddEmployeePage.jsx";
@@ -49,9 +50,7 @@ const GlobalStyle = createGlobalStyle`
 
     :root,
     :root[data-theme="light"],
-    body[data-theme="light"],
-    :root[data-theme="dark"],
-    body[data-theme="dark"] {
+    body[data-theme="light"] {
         --bg-primary: #F4F5FA;
         --bg-secondary: #FFFFFF;
         --bg-tertiary: #F7F8FC;
@@ -106,6 +105,70 @@ const GlobalStyle = createGlobalStyle`
         --tint-amber-strong: #FEF3C7;
         --tint-neutral: #F8FAFC;
         --tint-neutral-strong: #F1F5F9;
+
+        --radius-sm: 10px;
+        --radius-md: 14px;
+        --radius-lg: 20px;
+        --radius-xl: 26px;
+        --radius-pill: 999px;
+    }
+
+    :root[data-theme="dark"],
+    body[data-theme="dark"] {
+        --bg-primary: #0F172A;
+        --bg-secondary: #111827;
+        --bg-tertiary: #1E293B;
+        --bg-hover: #1F2A44;
+        --bg-card: #111827;
+        --bg-sidebar: #0B1220;
+        --bg-header: rgba(15, 23, 42, 0.92);
+
+        --text-primary: #F8FAFC;
+        --text-secondary: #CBD5E1;
+        --text-tertiary: #94A3B8;
+        --text-muted: #64748B;
+        --text-inverse: #0F172A;
+
+        --border-color: #263447;
+        --border-color-light: #334155;
+        --border-color-subtle: #1F2A3B;
+
+        --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.24);
+        --shadow-md: 0 12px 28px rgba(0, 0, 0, 0.32);
+        --shadow-lg: 0 22px 52px rgba(0, 0, 0, 0.42);
+        --shadow-card: 0 10px 26px rgba(0, 0, 0, 0.28);
+
+        --primary-color: #60A5FA;
+        --primary-hover: #3B82F6;
+        --primary-light: rgba(96, 165, 250, 0.14);
+        --primary-soft: rgba(96, 165, 250, 0.22);
+        --accent-purple: #A78BFA;
+        --accent-purple-soft: rgba(167, 139, 250, 0.18);
+        --accent-gradient: linear-gradient(135deg, #60A5FA 0%, #A78BFA 100%);
+        --accent-gradient-soft: linear-gradient(135deg, rgba(96, 165, 250, 0.16) 0%, rgba(167, 139, 250, 0.16) 100%);
+
+        --success-color: #86EFAC;
+        --success-bg: rgba(22, 101, 52, 0.28);
+        --success-border: rgba(134, 239, 172, 0.36);
+
+        --error-color: #FCA5A5;
+        --error-bg: rgba(127, 29, 29, 0.28);
+        --error-border: rgba(252, 165, 165, 0.36);
+
+        --warning-color: #FCD34D;
+        --warning-bg: rgba(120, 53, 15, 0.28);
+        --warning-border: rgba(252, 211, 77, 0.36);
+
+        --tint-blue: rgba(96, 165, 250, 0.12);
+        --tint-blue-strong: rgba(96, 165, 250, 0.2);
+        --tint-purple: rgba(167, 139, 250, 0.12);
+        --tint-purple-strong: rgba(167, 139, 250, 0.2);
+        --tint-green: rgba(34, 197, 94, 0.12);
+        --tint-green-strong: rgba(34, 197, 94, 0.2);
+        --tint-amber: rgba(245, 158, 11, 0.12);
+        --tint-amber-strong: rgba(245, 158, 11, 0.2);
+        --tint-neutral: #182235;
+        --tint-neutral-strong: #263447;
 
         --radius-sm: 10px;
         --radius-md: 14px;
@@ -199,6 +262,8 @@ function PageRenderer() {
             return <StockInPage />;
         case "sales":
             return <SalesPage />;
+        case "forecast":
+            return <ForecastPage />;
         case "warehouse":
             return <WarehousePage />;
         case "addEmployee":

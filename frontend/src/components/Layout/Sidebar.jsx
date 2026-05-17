@@ -8,6 +8,7 @@ import WarehouseOutlinedIcon from "@mui/icons-material/WarehouseOutlined";
 import MoveToInboxOutlinedIcon from "@mui/icons-material/MoveToInboxOutlined";
 import PointOfSaleOutlinedIcon from "@mui/icons-material/PointOfSaleOutlined";
 import TrendingUpOutlinedIcon from "@mui/icons-material/TrendingUpOutlined";
+import AutoGraphOutlinedIcon from "@mui/icons-material/AutoGraphOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
@@ -21,6 +22,7 @@ const navItems = [
     { key: "stockIn", label: "Stock intake", icon: MoveToInboxOutlinedIcon, roles: ["manager", "owner", "admin"] },
     { key: "pos", label: "POS", icon: PointOfSaleOutlinedIcon, roles: ["cashier", "manager", "owner", "admin"] },
     { key: "sales", label: "Analytics", icon: TrendingUpOutlinedIcon, roles: ["owner", "admin"] },
+    { key: "forecast", label: "Forecast", icon: AutoGraphOutlinedIcon, roles: ["owner", "admin"] },
     { key: "reports", label: "Reports", icon: DescriptionOutlinedIcon, roles: ["owner", "admin"] },
     { key: "movements", label: "Movements", icon: SwapHorizOutlinedIcon, roles: ["manager", "owner", "admin"] },
     { key: "notifications", label: "Notifications", icon: NotificationsNoneOutlinedIcon, roles: ["cashier", "manager", "owner", "admin"] },

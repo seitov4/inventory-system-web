@@ -321,7 +321,7 @@ const BtnDanger = styled.button`
 // Theme Options
 const ThemeOptions = styled.div`
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
     margin-bottom: 16px;
 
@@ -337,20 +337,20 @@ const ThemeOption = styled.button`
     gap: 12px;
     padding: 20px;
     border-radius: 12px;
-    border: 2px solid ${props => props.$active ? '#0ea5e9' : '#e2e8f0'};
-    background: ${props => props.$active ? '#eff6ff' : '#ffffff'};
+    border: 2px solid ${props => props.$active ? 'var(--primary-color)' : 'var(--border-color)'};
+    background: ${props => props.$active ? 'var(--primary-light)' : 'var(--bg-secondary)'};
     cursor: pointer;
     transition: border-color 0.2s ease, transform 0.2s ease;
 
     &:hover {
-        border-color: #cbd5e1;
+        border-color: var(--primary-color);
         transform: translateY(-2px);
     }
 
     span {
         font-size: 13px;
         font-weight: 600;
-        color: #475569;
+        color: var(--text-secondary);
     }
 `;
 
@@ -358,8 +358,16 @@ const ThemePreview = styled.div`
     width: 60px;
     height: 40px;
     border-radius: 8px;
-    border: 2px solid #cbd5e1;
-    background: #f8fafc;
+    border: 2px solid var(--border-color);
+    background: ${(props) => {
+        if (props.$theme === "dark") {
+            return "linear-gradient(135deg, #0F172A 0 55%, #1E293B 55% 100%)";
+        }
+        if (props.$theme === "system") {
+            return "linear-gradient(135deg, #F8FAFC 0 50%, #0F172A 50% 100%)";
+        }
+        return "linear-gradient(135deg, #F8FAFC 0 55%, #E2E8F0 55% 100%)";
+    }};
 `;
 
 // Table Styles
@@ -732,13 +740,13 @@ function ProfileTab({ user, onUpdate }) {
 
 // ===== APPEARANCE TAB =====
 function AppearanceTab() {
-    const { theme, changeTheme } = useTheme();
+    const { theme, resolvedTheme, changeTheme } = useTheme();
 
     return (
         <TabContent>
             <SectionTitle>Appearance</SectionTitle>
             <SectionSubtitle>
-                The store workspace uses a fixed light enterprise theme.
+                Choose how the store workspace should look.
             </SectionSubtitle>
 
             <SettingsCard>
@@ -750,9 +758,23 @@ function AppearanceTab() {
                         <ThemePreview $theme="light" />
                         <span>Light theme</span>
                     </ThemeOption>
+                    <ThemeOption
+                        $active={theme === "dark"}
+                        onClick={() => changeTheme("dark")}
+                    >
+                        <ThemePreview $theme="dark" />
+                        <span>Dark theme</span>
+                    </ThemeOption>
+                    <ThemeOption
+                        $active={theme === "system"}
+                        onClick={() => changeTheme("system")}
+                    >
+                        <ThemePreview $theme="system" />
+                        <span>System theme</span>
+                    </ThemeOption>
                 </ThemeOptions>
                 <SettingsNote>
-                    The light theme is saved for your next visit
+                    Current appearance: {resolvedTheme}
                 </SettingsNote>
             </SettingsCard>
         </TabContent>

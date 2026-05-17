@@ -25,6 +25,7 @@ services:
       args:
         REACT_APP_API_URL: ${REACT_APP_API_URL:-/api}
         REACT_APP_PLATFORM_API_URL: ${REACT_APP_PLATFORM_API_URL:-/api/platform}
+        REACT_APP_ML_API_URL: ${REACT_APP_ML_API_URL:-http://localhost:8000}
         REACT_APP_ENV: ${REACT_APP_ENV:-production}
     image: inventory-system-web:latest
     container_name: inventory-app-prod
@@ -47,6 +48,27 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      ml-service:
+        condition: service_healthy
+    networks:
+      - inventory-network
+
+  ml-service:
+    build:
+      context: .
+      dockerfile: ml-service/Dockerfile
+    image: inventory-ml-service:latest
+    container_name: inventory-ml-service-prod
+    environment:
+      MODEL_DIR: /app/models
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - "${ML_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - inventory-network
 
@@ -58,6 +80,7 @@ services:
       args:
         REACT_APP_API_URL: ${REACT_APP_API_URL:-/api}
         REACT_APP_PLATFORM_API_URL: ${REACT_APP_PLATFORM_API_URL:-/api/platform}
+        REACT_APP_ML_API_URL: ${REACT_APP_ML_API_URL:-http://localhost:8000}
         REACT_APP_ENV: ${REACT_APP_ENV:-production}
     profiles:
       - init

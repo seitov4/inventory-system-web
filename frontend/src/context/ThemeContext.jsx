@@ -15,17 +15,19 @@ const getSystemTheme = () => {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 };
 
-// The store workspace now uses one fixed light enterprise theme.
-// Older saved "dark" / "system" preferences are normalized to light.
-const resolveTheme = () => {
-    return 'light';
+const THEMES = ['light', 'dark', 'system'];
+
+const resolveTheme = (theme, systemTheme) => {
+    if (theme === 'system') {
+        return systemTheme;
+    }
+    return theme === 'dark' ? 'dark' : 'light';
 };
 
 export const ThemeProvider = ({ children }) => {
-    // Initialize theme from localStorage or default to the fixed light theme
     const [theme, setTheme] = useState(() => {
         const saved = localStorage.getItem('theme');
-        return saved === 'light' ? saved : 'light';
+        return THEMES.includes(saved) ? saved : 'light';
     });
 
     const [systemTheme, setSystemTheme] = useState(() => getSystemTheme());
@@ -34,16 +36,16 @@ export const ThemeProvider = ({ children }) => {
     useEffect(() => {
         const root = document.documentElement;
         const body = document.body;
-        const resolvedTheme = resolveTheme(theme);
+        const resolvedTheme = resolveTheme(theme, systemTheme);
 
-        // Set data-theme attribute (source of truth)
         root.setAttribute('data-theme', resolvedTheme);
         body.setAttribute('data-theme', resolvedTheme);
 
-        // Remove old classes (if any)
         root.classList.remove('theme-light', 'theme-dark', 'theme-system');
         body.classList.remove('theme-light', 'theme-dark', 'theme-system');
-    }, [theme]);
+        root.classList.add(`theme-${theme}`);
+        body.classList.add(`theme-${theme}`);
+    }, [theme, systemTheme]);
 
     // Listen to system theme changes
     useEffect(() => {
@@ -51,28 +53,23 @@ export const ThemeProvider = ({ children }) => {
 
         const handleChange = (event) => {
             setSystemTheme(event.matches ? 'dark' : 'light');
-            // If current theme is 'system', re-apply
-            const root = document.documentElement;
-            const body = document.body;
-            root.setAttribute('data-theme', 'light');
-            body.setAttribute('data-theme', 'light');
         };
 
         mediaQuery.addEventListener('change', handleChange);
         return () => mediaQuery.removeEventListener('change', handleChange);
-    }, [theme]);
+    }, []);
 
-    // Save theme to localStorage when it changes
     useEffect(() => {
-        localStorage.setItem('theme', 'light');
+        localStorage.setItem('theme', theme);
     }, [theme]);
 
     const changeTheme = (newTheme) => {
-        setTheme('light');
+        setTheme(THEMES.includes(newTheme) ? newTheme : 'light');
     };
 
     const value = {
         theme,
+        resolvedTheme: resolveTheme(theme, systemTheme),
         changeTheme,
         systemTheme,
     };
