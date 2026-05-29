@@ -1,45 +1,40 @@
 {
-  "name": "inventory-system-web",
-  "version": "1.0.0",
-  "private": true,
-  "description": "Retail inventory management system (frontend + backend monorepo)",
-  "workspaces": [
-    "frontend",
-    "backend",
-    "packages/*"
-  ],
-  "scripts": {
-    "bootstrap": "npm install",
-
-    "dev": "concurrently \"npm --workspace backend run dev\" \"npm --workspace frontend run start\"",
-    "dev:frontend": "npm --workspace frontend run start",
-    "dev:backend": "npm --workspace backend run dev",
-    "dev:mobile": "echo \"mobile is currently excluded from the workspace. See README.md\"",
-
-    "db:postgres:up": "docker compose up -d postgres",
-    "db:postgres:down": "docker compose stop postgres",
-    "db:postgres:logs": "docker compose logs -f postgres",
-    "db:postgres:init": "npm --workspace backend run db:init",
-
-    "build": "npm run build:frontend",
-    "build:frontend": "npm --workspace frontend run build",
-
-    "start:frontend": "npm --workspace frontend run start",
-    "start:backend": "npm --workspace backend run start",
-
-    "test": "npm --workspace frontend run test -- --passWithNoTests --coverage || echo \"Frontend tests completed\"",
-    "test:watch": "npm --workspace frontend run test",
-
-    "lint": "eslint frontend/src backend/src --ext .js,.jsx --max-warnings 0",
-    "lint:fix": "eslint frontend/src backend/src --ext .js,.jsx --fix",
-    "format": "prettier --write \"frontend/src/**/*.{js,jsx,json,css}\" \"backend/src/**/*.{js,json}\" \"./*.{json,md}\"",
-    "format:check": "prettier --check \"frontend/src/**/*.{js,jsx,json,css}\" \"backend/src/**/*.{js,json}\" \"./*.{json,md}\"",
-
-    "deploy:frontend": "npm --workspace frontend run build && echo \"Upload ./frontend/build to S3 manually or via CI/CD\""
-  },
-  "devDependencies": {
-    "concurrently": "^8.2.2",
-    "eslint": "^8.57.0",
-    "prettier": "^3.2.5"
-  }
+    "name": "inventory-system-web",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Retail inventory management system (frontend + backend monorepo)",
+    "workspaces": [
+        "frontend",
+        "backend",
+        "packages/*"
+    ],
+    "scripts": {
+        "bootstrap": "npm install",
+        "dev": "concurrently \"npm --workspace backend run dev\" \"npm --workspace frontend run start\"",
+        "dev:frontend": "npm --workspace frontend run start",
+        "dev:backend": "npm --workspace backend run dev",
+        "dev:mobile": "echo \"mobile is currently excluded from the workspace. See README.md\"",
+        "db:postgres:up": "docker compose up -d postgres",
+        "db:postgres:down": "docker compose stop postgres",
+        "db:postgres:logs": "docker compose logs -f postgres",
+        "db:postgres:init": "npm --workspace backend run db:init",
+        "seed:admin": "npm --workspace backend run seed:platform-admin",
+        "seed:platform-admin": "npm --workspace backend run seed:platform-admin",
+        "build": "npm run build:frontend",
+        "build:frontend": "npm --workspace frontend run build",
+        "start:frontend": "npm --workspace frontend run start",
+        "start:backend": "npm --workspace backend run start",
+        "test": "npm --workspace frontend run test -- --passWithNoTests --coverage || echo \"Frontend tests completed\"",
+        "test:watch": "npm --workspace frontend run test",
+        "lint": "eslint frontend/src backend/src --ext .js,.jsx --max-warnings 0",
+        "lint:fix": "eslint frontend/src backend/src --ext .js,.jsx --fix",
+        "format": "prettier --write \"frontend/src/**/*.{js,jsx,json,css}\" \"backend/src/**/*.{js,json}\" \"./*.{json,md}\"",
+        "format:check": "prettier --check \"frontend/src/**/*.{js,jsx,json,css}\" \"backend/src/**/*.{js,json}\" \"./*.{json,md}\"",
+        "deploy:frontend": "npm --workspace frontend run build && echo \"Upload ./frontend/build to S3 manually or via CI/CD\""
+    },
+    "devDependencies": {
+        "concurrently": "^8.2.2",
+        "eslint": "^8.57.0",
+        "prettier": "^3.2.5"
+    }
 }

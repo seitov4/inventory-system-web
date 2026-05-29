@@ -2,12 +2,15 @@ import pool from "../utils/db.js";
 import { createAppError, resolveErrorMessage } from "../errors/app-error.js";
 import { ERROR_CODES } from "../errors/error-codes.js";
 
-/**
- * Get default warehouse (first available warehouse)
- * If no warehouses exist, throws an error
- */
-async function getDefaultWarehouse() {
-    const result = await pool.query(`SELECT id FROM warehouses ORDER BY id LIMIT 1`);
+async function getDefaultWarehouse(storeId, client = pool) {
+    const result = await client.query(
+        `SELECT id
+         FROM warehouses
+         WHERE store_id = $1
+         ORDER BY id
+         LIMIT 1`,
+        [storeId]
+    );
     if (result.rows.length === 0) {
         throw createAppError(ERROR_CODES.PRODUCT_DEFAULT_WAREHOUSE_NOT_FOUND, 400);
     }
@@ -15,13 +18,8 @@ async function getDefaultWarehouse() {
 }
 
 function parseDecimal(value, fallback = 0) {
-    if (value === null || value === undefined || value === "") {
-        return fallback;
-    }
-
-    if (typeof value === "number") {
-        return Number.isFinite(value) ? value : NaN;
-    }
+    if (value === null || value === undefined || value === "") {return fallback;}
+    if (typeof value === "number") {return Number.isFinite(value) ? value : NaN;}
 
     const raw = String(value).trim().replace(/\s/g, "");
     const lastComma = raw.lastIndexOf(",");
@@ -41,9 +39,6 @@ function parseDecimal(value, fallback = 0) {
     return Number(normalized);
 }
 
-/**
- * Validate product data
- */
 function validateProductData({ name, sku, purchase_price, sale_price, min_stock }) {
     if (!name || typeof name !== "string" || name.trim() === "") {
         throw createAppError(ERROR_CODES.PRODUCT_NAME_REQUIRED, 400);
@@ -85,102 +80,83 @@ function normalizeProductData(data) {
     };
 }
 
-/**
- * Check if SKU already exists
- */
-async function checkSkuExists(sku, excludeId = null) {
-    let query = `SELECT id FROM products WHERE sku = $1`;
-    const params = [sku];
+async function checkSkuExists(storeId, sku, excludeId = null, client = pool) {
+    let query = `SELECT id FROM products WHERE store_id = $1 AND sku = $2`;
+    const params = [storeId, sku];
 
     if (excludeId) {
-        query += ` AND id != $2`;
+        query += ` AND id <> $3`;
         params.push(excludeId);
     }
 
-    const result = await pool.query(query, params);
+    const result = await client.query(query, params);
     return result.rows.length > 0;
 }
 
-/**
- * Check if barcode already exists
- */
-async function checkBarcodeExists(barcode, excludeId = null) {
-    if (!barcode) {
-        return false; // barcode can be null
-    }
+async function checkBarcodeExists(storeId, barcode, excludeId = null, client = pool) {
+    if (!barcode) {return false;}
 
-    let query = `SELECT id FROM products WHERE barcode = $1`;
-    const params = [barcode];
+    let query = `SELECT id FROM products WHERE store_id = $1 AND barcode = $2`;
+    const params = [storeId, barcode];
 
     if (excludeId) {
-        query += ` AND id != $2`;
+        query += ` AND id <> $3`;
         params.push(excludeId);
     }
 
-    const result = await pool.query(query, params);
+    const result = await client.query(query, params);
     return result.rows.length > 0;
 }
 
-export async function getAllProducts() {
+function productSelect() {
+    return `id,
+            store_id,
+            name,
+            sku,
+            category,
+            barcode,
+            purchase_price,
+            sale_price,
+            min_stock,
+            created_at,
+            updated_at`;
+}
+
+export async function getAllProducts(storeId) {
     const result = await pool.query(
-        `SELECT id,
-                name,
-                sku,
-                category,
-                barcode,
-                purchase_price,
-                sale_price,
-                min_stock,
-                created_at,
-                updated_at
+        `SELECT ${productSelect()}
          FROM products
-         WHERE is_active IS TRUE
-         ORDER BY name`
+         WHERE store_id = $1 AND is_active IS TRUE
+         ORDER BY name`,
+        [storeId]
     );
     return result.rows;
 }
 
-export async function getProductById(id) {
+export async function getProductById(storeId, id) {
     const result = await pool.query(
-        `SELECT id,
-                name,
-                sku,
-                category,
-                barcode,
-                purchase_price,
-                sale_price,
-                min_stock,
-                created_at,
-                updated_at
+        `SELECT ${productSelect()}
          FROM products
-         WHERE id = $1 AND is_active IS TRUE`,
-        [id]
+         WHERE id = $1 AND store_id = $2 AND is_active IS TRUE`,
+        [id, storeId]
     );
     return result.rows[0] || null;
 }
 
-export async function getProductByBarcode(barcode) {
+export async function getProductByBarcode(storeId, barcode) {
     const result = await pool.query(
-        `SELECT id,
-                name,
-                sku,
-                category,
-                barcode,
-                purchase_price,
-                sale_price,
-                min_stock,
-                created_at,
-                updated_at
+        `SELECT ${productSelect()}
          FROM products
-         WHERE barcode = $1 AND is_active IS TRUE`,
-        [barcode]
+         WHERE barcode = $1 AND store_id = $2 AND is_active IS TRUE`,
+        [barcode, storeId]
     );
     return result.rows[0] || null;
 }
 
-export async function getProductsWithLeft() {
+export async function getProductsWithLeft(storeId) {
     const result = await pool.query(
         `SELECT p.id,
+                p.store_id,
                 p.name,
                 p.sku,
                 p.category,
@@ -190,17 +166,20 @@ export async function getProductsWithLeft() {
                 p.min_stock,
                 CAST(COALESCE(SUM(s.quantity), 0) AS INTEGER) AS quantity
          FROM products p
-                  LEFT JOIN stock s ON s.product_id = p.id
-         WHERE p.is_active IS TRUE
+         LEFT JOIN stock s ON s.product_id = p.id
+             AND s.warehouse_id IN (SELECT id FROM warehouses WHERE store_id = $1)
+         WHERE p.store_id = $1 AND p.is_active IS TRUE
          GROUP BY p.id
-         ORDER BY p.name`
+         ORDER BY p.name`,
+        [storeId]
     );
     return result.rows;
 }
 
-export async function getLowStockProducts() {
+export async function getLowStockProducts(storeId) {
     const result = await pool.query(
         `SELECT p.id,
+                p.store_id,
                 p.name,
                 p.sku,
                 p.category,
@@ -210,19 +189,18 @@ export async function getLowStockProducts() {
                 p.min_stock,
                 CAST(COALESCE(SUM(s.quantity), 0) AS INTEGER) AS quantity
          FROM products p
-                  LEFT JOIN stock s ON s.product_id = p.id
-         WHERE p.is_active IS TRUE
+         LEFT JOIN stock s ON s.product_id = p.id
+             AND s.warehouse_id IN (SELECT id FROM warehouses WHERE store_id = $1)
+         WHERE p.store_id = $1 AND p.is_active IS TRUE
          GROUP BY p.id
          HAVING COALESCE(SUM(s.quantity), 0) <= p.min_stock
-         ORDER BY quantity ASC`
+         ORDER BY quantity ASC`,
+        [storeId]
     );
     return result.rows;
 }
 
-/**
- * Create product and automatically create stock record with quantity = 0
- */
-export async function createProduct({
+export async function createProduct(storeId, {
     name,
     sku,
     category,
@@ -242,45 +220,32 @@ export async function createProduct({
     });
     ({ name, sku, category, barcode, purchase_price, sale_price, min_stock } = normalized);
 
-    // Validate input
     validateProductData({ name, sku, purchase_price, sale_price, min_stock });
-
-    // Check uniqueness
-    if (await checkSkuExists(sku)) {
-        throw createAppError(ERROR_CODES.PRODUCT_SKU_EXISTS, 409, { sku });
-    }
-
-    if (barcode && (await checkBarcodeExists(barcode))) {
-        throw createAppError(ERROR_CODES.PRODUCT_BARCODE_EXISTS, 409, { barcode });
-    }
 
     const client = await pool.connect();
     try {
         await client.query("BEGIN");
 
-        // Create product
+        if (await checkSkuExists(storeId, sku, null, client)) {
+            throw createAppError(ERROR_CODES.PRODUCT_SKU_EXISTS, 409, { sku });
+        }
+
+        if (barcode && (await checkBarcodeExists(storeId, barcode, null, client))) {
+            throw createAppError(ERROR_CODES.PRODUCT_BARCODE_EXISTS, 409, { barcode });
+        }
+
         const productResult = await client.query(
             `INSERT INTO products
-                 (name, sku, category, barcode, purchase_price, sale_price, min_stock)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
-             RETURNING id,
-                       name,
-                       sku,
-                       category,
-                       barcode,
-                       purchase_price,
-                       sale_price,
-                       min_stock,
-                       created_at,
-                       updated_at`,
-            [name, sku, category || null, barcode || null, purchase_price, sale_price, min_stock]
+                 (store_id, name, sku, category, barcode, purchase_price, sale_price, min_stock)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             RETURNING ${productSelect()}`,
+            [storeId, name, sku, category || null, barcode || null, purchase_price, sale_price, min_stock]
         );
 
         const product = productResult.rows[0];
 
-        // Get default warehouse and create stock record
         try {
-            const warehouseId = await getDefaultWarehouse();
+            const warehouseId = await getDefaultWarehouse(storeId, client);
             await client.query(
                 `INSERT INTO stock (product_id, warehouse_id, quantity)
                  VALUES ($1, $2, 0)
@@ -288,7 +253,6 @@ export async function createProduct({
                 [product.id, warehouseId]
             );
         } catch (warehouseError) {
-            // If no warehouse exists, continue without stock (product is still created)
             console.warn(
                 `[Products Service] Could not create stock for product ${product.id}:`,
                 warehouseError.message
@@ -305,13 +269,15 @@ export async function createProduct({
     }
 }
 
-/**
- * Update product
- */
-export async function updateProduct(
-    id,
-    { name, sku, category, barcode, purchase_price, sale_price, min_stock }
-) {
+export async function updateProduct(storeId, id, {
+    name,
+    sku,
+    category,
+    barcode,
+    purchase_price,
+    sale_price,
+    min_stock,
+}) {
     const normalized = normalizeProductData({
         name,
         sku,
@@ -323,64 +289,48 @@ export async function updateProduct(
     });
     ({ name, sku, category, barcode, purchase_price, sale_price, min_stock } = normalized);
 
-    // Validate input
     validateProductData({ name, sku, purchase_price, sale_price, min_stock });
 
-    // Check uniqueness (excluding current product)
-    if (await checkSkuExists(sku, id)) {
+    if (await checkSkuExists(storeId, sku, id)) {
         throw createAppError(ERROR_CODES.PRODUCT_SKU_EXISTS, 409, { sku });
     }
 
-    if (barcode && (await checkBarcodeExists(barcode, id))) {
+    if (barcode && (await checkBarcodeExists(storeId, barcode, id))) {
         throw createAppError(ERROR_CODES.PRODUCT_BARCODE_EXISTS, 409, { barcode });
     }
 
     const result = await pool.query(
         `UPDATE products
-         SET name           = $2,
-             sku            = $3,
-             category       = $4,
-             barcode        = $5,
-             purchase_price = $6,
-             sale_price     = $7,
-             min_stock      = $8,
+         SET name           = $3,
+             sku            = $4,
+             category       = $5,
+             barcode        = $6,
+             purchase_price = $7,
+             sale_price     = $8,
+             min_stock      = $9,
              updated_at     = CURRENT_TIMESTAMP
-         WHERE id = $1 AND is_active IS TRUE
-         RETURNING id,
-                   name,
-                   sku,
-                   category,
-                   barcode,
-                   purchase_price,
-                   sale_price,
-                   min_stock,
-                   created_at,
-                   updated_at`,
-        [id, name, sku, category || null, barcode || null, purchase_price, sale_price, min_stock]
+         WHERE id = $1 AND store_id = $2 AND is_active IS TRUE
+         RETURNING ${productSelect()}`,
+        [id, storeId, name, sku, category || null, barcode || null, purchase_price, sale_price, min_stock]
     );
 
     return result.rows[0] || null;
 }
 
-/**
- * Delete product
- */
-export async function deleteProduct(id) {
+export async function deleteProduct(storeId, id) {
     const productResult = await pool.query(
-        `SELECT id FROM products WHERE id = $1 AND is_active IS TRUE`,
-        [id]
+        `SELECT id FROM products WHERE id = $1 AND store_id = $2 AND is_active IS TRUE`,
+        [id, storeId]
     );
 
-    if (productResult.rows.length === 0) {
-        return null;
-    }
+    if (productResult.rows.length === 0) {return null;}
 
     const referenceResult = await pool.query(
         `SELECT
-             (SELECT COUNT(*) FROM sale_items WHERE product_id = $1) AS sale_items,
-             (SELECT COUNT(*) FROM movements WHERE product_id = $1) AS movements,
-             (SELECT COUNT(*) FROM stock WHERE product_id = $1) AS stock`,
-        [id]
+             (SELECT COUNT(*) FROM sale_items si JOIN sales sa ON sa.id = si.sale_id WHERE si.product_id = $1 AND sa.store_id = $2) AS sale_items,
+             (SELECT COUNT(*) FROM movements WHERE product_id = $1 AND store_id = $2) AS movements,
+             (SELECT COUNT(*) FROM stock st JOIN warehouses w ON w.id = st.warehouse_id WHERE st.product_id = $1 AND w.store_id = $2) AS stock`,
+        [id, storeId]
     );
 
     const references = referenceResult.rows[0] || {};
@@ -394,29 +344,21 @@ export async function deleteProduct(id) {
             `UPDATE products
              SET is_active = FALSE,
                  updated_at = CURRENT_TIMESTAMP
-             WHERE id = $1 AND is_active IS TRUE
+             WHERE id = $1 AND store_id = $2 AND is_active IS TRUE
              RETURNING id`,
-            [id]
+            [id, storeId]
         );
         return { id: archivedResult.rows[0].id, archived: true };
     }
 
     const deletedResult = await pool.query(
-        `DELETE FROM products WHERE id = $1 RETURNING id`,
-        [id]
+        `DELETE FROM products WHERE id = $1 AND store_id = $2 RETURNING id`,
+        [id, storeId]
     );
     return deletedResult.rows[0] ? { id: deletedResult.rows[0].id, archived: false } : null;
 }
 
-/**
- * Bulk import products
- * Creates multiple products in a single transaction
- * Skips products with duplicate SKU/barcode
- * 
- * @param {Array} products - Array of product objects
- * @returns {Object} { created: number, skipped: number, errors: Array }
- */
-export async function importProducts(products) {
+export async function importProducts(storeId, products) {
     const client = await pool.connect();
     const errors = [];
     let created = 0;
@@ -428,17 +370,11 @@ export async function importProducts(products) {
     try {
         await client.query("BEGIN");
 
-        // Get default warehouse for stock records
         let warehouseId = null;
         try {
-            const whResult = await client.query(
-                `SELECT id FROM warehouses ORDER BY id LIMIT 1`
-            );
-            if (whResult.rows.length > 0) {
-                warehouseId = whResult.rows[0].id;
-            }
+            warehouseId = await getDefaultWarehouse(storeId, client);
         } catch (e) {
-            console.warn("[Import] No warehouse found, skipping stock creation");
+            console.warn("[Import] No warehouse found for store, skipping stock creation");
         }
 
         for (let i = 0; i < products.length; i++) {
@@ -446,24 +382,15 @@ export async function importProducts(products) {
             const rowNum = i + 1;
 
             try {
-                // Validate required fields: name, sku, sale_price
                 const missingFields = [];
-                
-                if (!product.name || String(product.name).trim() === '') {
-                    missingFields.push('name');
+                if (!product.name || String(product.name).trim() === "") {missingFields.push("name");}
+                if (!product.sku || String(product.sku).trim() === "") {missingFields.push("sku");}
+                if (product.sale_price === null || product.sale_price === undefined || product.sale_price === "") {
+                    missingFields.push("sale_price");
                 }
-                if (!product.sku || String(product.sku).trim() === '') {
-                    missingFields.push('sku');
-                }
-                if (product.sale_price === null || product.sale_price === undefined || product.sale_price === '') {
-                    missingFields.push('sale_price');
-                }
-                
+
                 if (missingFields.length > 0) {
-                    addImportError(ERROR_CODES.PRODUCT_IMPORT_ROW_MISSING_FIELDS, {
-                        row: rowNum,
-                        fields: missingFields,
-                    });
+                    addImportError(ERROR_CODES.PRODUCT_IMPORT_ROW_MISSING_FIELDS, { row: rowNum, fields: missingFields });
                     skipped++;
                     continue;
                 }
@@ -478,58 +405,35 @@ export async function importProducts(products) {
                 const minStock = product.min_stock !== null && product.min_stock !== undefined
                     ? parseDecimal(product.min_stock, 0)
                     : 0;
-                
-                // Validate sale_price is a valid number
+
                 if (isNaN(salePrice) || salePrice < 0) {
-                    addImportError(ERROR_CODES.PRODUCT_IMPORT_ROW_SALE_PRICE_INVALID, {
-                        row: rowNum,
-                    });
+                    addImportError(ERROR_CODES.PRODUCT_IMPORT_ROW_SALE_PRICE_INVALID, { row: rowNum });
                     skipped++;
                     continue;
                 }
 
-                // Check for duplicate SKU
-                const skuCheck = await client.query(
-                    `SELECT id FROM products WHERE sku = $1`,
-                    [sku]
-                );
-                if (skuCheck.rows.length > 0) {
-                    addImportError(ERROR_CODES.PRODUCT_IMPORT_ROW_SKU_EXISTS, {
-                        row: rowNum,
-                        sku,
-                    });
+                if (await checkSkuExists(storeId, sku, null, client)) {
+                    addImportError(ERROR_CODES.PRODUCT_IMPORT_ROW_SKU_EXISTS, { row: rowNum, sku });
                     skipped++;
                     continue;
                 }
 
-                // Check for duplicate barcode
-                if (barcode) {
-                    const barcodeCheck = await client.query(
-                        `SELECT id FROM products WHERE barcode = $1`,
-                        [barcode]
-                    );
-                    if (barcodeCheck.rows.length > 0) {
-                        addImportError(ERROR_CODES.PRODUCT_IMPORT_ROW_BARCODE_EXISTS, {
-                            row: rowNum,
-                            barcode,
-                        });
-                        skipped++;
-                        continue;
-                    }
+                if (barcode && (await checkBarcodeExists(storeId, barcode, null, client))) {
+                    addImportError(ERROR_CODES.PRODUCT_IMPORT_ROW_BARCODE_EXISTS, { row: rowNum, barcode });
+                    skipped++;
+                    continue;
                 }
 
-                // Insert product
                 const insertResult = await client.query(
                     `INSERT INTO products
-                         (name, sku, barcode, purchase_price, sale_price, min_stock)
-                     VALUES ($1, $2, $3, $4, $5, $6)
+                         (store_id, name, sku, barcode, purchase_price, sale_price, min_stock)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7)
                      RETURNING id`,
-                    [name, sku, barcode, purchasePrice, salePrice, minStock]
+                    [storeId, name, sku, barcode, purchasePrice, salePrice, minStock]
                 );
 
                 const productId = insertResult.rows[0].id;
 
-                // Create stock record if warehouse exists
                 if (warehouseId) {
                     await client.query(
                         `INSERT INTO stock (product_id, warehouse_id, quantity)
@@ -542,9 +446,7 @@ export async function importProducts(products) {
                 created++;
             } catch (err) {
                 console.error(`[Import] Error on row ${rowNum}:`, err.message);
-                addImportError(ERROR_CODES.PRODUCT_IMPORT_ROW_PROCESS_FAILED, {
-                    row: rowNum,
-                });
+                addImportError(ERROR_CODES.PRODUCT_IMPORT_ROW_PROCESS_FAILED, { row: rowNum });
                 skipped++;
             }
         }
@@ -554,8 +456,8 @@ export async function importProducts(products) {
         return {
             created,
             skipped,
-            errors: errors.slice(0, 50), // Limit error list
-            total: products.length
+            errors: errors.slice(0, 50),
+            total: products.length,
         };
     } catch (err) {
         await client.query("ROLLBACK");
@@ -564,4 +466,3 @@ export async function importProducts(products) {
         client.release();
     }
 }
-

@@ -590,7 +590,7 @@ export default function SettingsPage() {
         );
     }
 
-    const isAdmin = currentUser?.role === "admin" || currentUser?.role === "owner";
+    const canManageEmployees = currentUser?.role === "owner";
 
     return (
         <Layout title="Settings">
@@ -608,7 +608,7 @@ export default function SettingsPage() {
                     >
                         Appearance
                     </Tab>
-                    {isAdmin && (
+                    {canManageEmployees && (
                         <Tab
                             $active={activeTab === TABS.EMPLOYEES}
                             onClick={() => setActiveTab(TABS.EMPLOYEES)}
@@ -629,7 +629,7 @@ export default function SettingsPage() {
                         <ProfileTab user={currentUser} onUpdate={loadCurrentUser} />
                     )}
                     {activeTab === TABS.APPEARANCE && <AppearanceTab />}
-                    {activeTab === TABS.EMPLOYEES && isAdmin && <EmployeesTab />}
+                    {activeTab === TABS.EMPLOYEES && canManageEmployees && <EmployeesTab />}
                     {activeTab === TABS.SYSTEM && <SystemTab onLogout={handleLogout} />}
                 </ContentContainer>
             </SettingsPageWrapper>
@@ -1058,7 +1058,7 @@ function AddEmployeeForm({ onSuccess }) {
                         >
                             <option value="cashier">Cashier</option>
                             <option value="manager">Manager</option>
-                            <option value="admin">Administrator</option>
+                            <option value="staff">Staff</option>
                         </FormSelect>
                     </FormGroup>
                 </FormRow>
@@ -1235,7 +1235,7 @@ function EmployeeEditModal({ employee, onClose, onSuccess }) {
                             >
                                 <option value="cashier">Cashier</option>
                                 <option value="manager">Manager</option>
-                                <option value="admin">Administrator</option>
+                                <option value="staff">Staff</option>
                             </FormSelect>
                         </FormGroup>
                     </FormRow>
@@ -1253,4 +1253,5 @@ function EmployeeEditModal({ employee, onClose, onSuccess }) {
         </ModalOverlay>
     );
 }
+
 

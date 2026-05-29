@@ -16,7 +16,7 @@ export async function registrationGuard(req, res, next) {
             return next(createAppError(ERROR_CODES.AUTH_REQUIRED, 401));
         }
 
-        return authRequired(req, res, () => requireRole("admin")(req, res, next));
+        return authRequired(req, res, () => requireRole("owner")(req, res, next));
     } catch (err) {
         return next(err);
     }

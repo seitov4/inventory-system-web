@@ -4,13 +4,8 @@ import { ERROR_CODES } from "../errors/error-codes.js";
 import { applyMovement } from "./movements.service.js";
 
 function parseDecimal(value, fallback = 0) {
-    if (value === null || value === undefined || value === "") {
-        return fallback;
-    }
-
-    if (typeof value === "number") {
-        return Number.isFinite(value) ? value : NaN;
-    }
+    if (value === null || value === undefined || value === "") {return fallback;}
+    if (typeof value === "number") {return Number.isFinite(value) ? value : NaN;}
 
     const raw = String(value).trim().replace(/\s/g, "");
     const lastComma = raw.lastIndexOf(",");
@@ -35,17 +30,44 @@ function parsePositiveInteger(value) {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
-/**
- * Create sale - atomic transaction
- */
+async function ensureWarehouseBelongsToStore(client, warehouseId, storeId) {
+    const result = await client.query(
+        `SELECT id
+         FROM warehouses
+         WHERE id = $1 AND store_id = $2`,
+        [warehouseId, storeId]
+    );
+    if (!result.rows.length) {
+        throw createAppError(ERROR_CODES.MOVEMENT_WAREHOUSE_FROM_NOT_FOUND, 400, {
+            warehouseId,
+        });
+    }
+}
+
+async function ensureProductBelongsToStore(client, productId, storeId) {
+    const result = await client.query(
+        `SELECT id
+         FROM products
+         WHERE id = $1 AND store_id = $2 AND is_active IS TRUE`,
+        [productId, storeId]
+    );
+    if (!result.rows.length) {
+        throw createAppError(ERROR_CODES.MOVEMENT_PRODUCT_NOT_FOUND, 400);
+    }
+}
+
 export async function createSale({
-    cashier_id,
     store_id,
+    cashier_id,
     warehouse_id,
     items,
     discount = 0,
     payment_type = "CASH",
 }) {
+    if (!store_id) {
+        throw createAppError(ERROR_CODES.AUTH_FORBIDDEN, 403);
+    }
+
     if (!items || !Array.isArray(items) || items.length === 0) {
         throw createAppError(ERROR_CODES.SALES_ITEMS_REQUIRED, 400);
     }
@@ -58,31 +80,17 @@ export async function createSale({
     }));
 
     for (const item of normalizedItems) {
-        if (!item.product_id) {
-            throw createAppError(ERROR_CODES.SALES_ITEM_PRODUCT_ID_REQUIRED, 400);
-        }
-
-        if (!item.qty || item.qty <= 0) {
-            throw createAppError(ERROR_CODES.SALES_ITEM_QTY_INVALID, 400);
-        }
-
-        if (!Number.isFinite(item.price) || item.price < 0) {
-            throw createAppError(ERROR_CODES.SALES_ITEM_PRICE_INVALID, 400);
-        }
-
-        if (!Number.isFinite(item.discount) || item.discount < 0) {
-            throw createAppError(ERROR_CODES.SALES_ITEM_PRICE_INVALID, 400);
-        }
+        if (!item.product_id) {throw createAppError(ERROR_CODES.SALES_ITEM_PRODUCT_ID_REQUIRED, 400);}
+        if (!item.qty || item.qty <= 0) {throw createAppError(ERROR_CODES.SALES_ITEM_QTY_INVALID, 400);}
+        if (!Number.isFinite(item.price) || item.price < 0) {throw createAppError(ERROR_CODES.SALES_ITEM_PRICE_INVALID, 400);}
+        if (!Number.isFinite(item.discount) || item.discount < 0) {throw createAppError(ERROR_CODES.SALES_ITEM_PRICE_INVALID, 400);}
     }
 
-    const parsedWarehouseId = parsePositiveInteger(warehouse_id);
-    const parsedStoreId = parsePositiveInteger(store_id);
-
-    if (!parsedWarehouseId && !parsedStoreId) {
+    const effectiveWarehouseId = parsePositiveInteger(warehouse_id);
+    if (!effectiveWarehouseId) {
         throw createAppError(ERROR_CODES.SALES_WAREHOUSE_OR_STORE_REQUIRED, 400);
     }
 
-    const effectiveWarehouseId = parsedWarehouseId || parsedStoreId;
     const normalizedDiscount = parseDecimal(discount, 0);
     if (!Number.isFinite(normalizedDiscount) || normalizedDiscount < 0) {
         throw createAppError(ERROR_CODES.SALES_ITEM_PRICE_INVALID, 400);
@@ -91,14 +99,22 @@ export async function createSale({
     const client = await pool.connect();
     try {
         await client.query("BEGIN");
+        await ensureWarehouseBelongsToStore(client, effectiveWarehouseId, store_id);
 
         for (const item of normalizedItems) {
+            await ensureProductBelongsToStore(client, item.product_id, store_id);
+
             const stockRes = await client.query(
-                `SELECT quantity
-                 FROM stock
-                 WHERE product_id = $1 AND warehouse_id = $2
+                `SELECT st.quantity
+                 FROM stock st
+                 JOIN warehouses w ON w.id = st.warehouse_id
+                 JOIN products p ON p.id = st.product_id
+                 WHERE st.product_id = $1
+                   AND st.warehouse_id = $2
+                   AND w.store_id = $3
+                   AND p.store_id = $3
                  FOR UPDATE`,
-                [item.product_id, effectiveWarehouseId]
+                [item.product_id, effectiveWarehouseId, store_id]
             );
 
             const currentQty = stockRes.rows[0]?.quantity || 0;
@@ -119,18 +135,10 @@ export async function createSale({
 
         const saleRes = await client.query(
             `INSERT INTO sales
-                 (cashier_id, warehouse_id, store_id, total, total_amount, discount, payment_type, status)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, 'COMPLETED')
+                 (store_id, cashier_id, warehouse_id, total, total_amount, discount, payment_type, status)
+             VALUES ($1, $2, $3, $4, $4, $5, $6, 'COMPLETED')
              RETURNING id, cashier_id, warehouse_id, store_id, total, total_amount, discount, payment_type, status, created_at`,
-            [
-                cashier_id,
-                effectiveWarehouseId,
-                effectiveWarehouseId,
-                total,
-                total,
-                normalizedDiscount,
-                payment_type,
-            ]
+            [store_id, cashier_id, effectiveWarehouseId, total, normalizedDiscount, payment_type]
         );
         const sale = saleRes.rows[0];
 
@@ -143,21 +151,20 @@ export async function createSale({
             );
 
             await applyMovement({
+                store_id,
                 type: "SALE",
                 product_id: item.product_id,
                 warehouse_from: effectiveWarehouseId,
                 qty: item.qty,
                 reason: `Sale #${sale.id}`,
                 user_id: cashier_id || null,
+                related_entity_id: sale.id,
                 client,
             });
         }
 
         await client.query("COMMIT");
-        return {
-            sale_id: sale.id,
-            total: sale.total,
-        };
+        return { sale_id: sale.id, total: sale.total };
     } catch (err) {
         console.error("[Sales Service] Failed to create sale:", {
             message: err.message,
@@ -174,10 +181,7 @@ export async function createSale({
     }
 }
 
-/**
- * Get sale by ID with items
- */
-export async function getSaleById(id) {
+export async function getSaleById(storeId, id) {
     const saleRes = await pool.query(
         `SELECT s.id,
                 s.status,
@@ -188,14 +192,12 @@ export async function getSaleById(id) {
                 s.cashier_id,
                 s.store_id
          FROM sales s
-         WHERE s.id = $1`,
-        [id]
+         WHERE s.id = $1 AND s.store_id = $2`,
+        [id, storeId]
     );
 
     const sale = saleRes.rows[0];
-    if (!sale) {
-        return null;
-    }
+    if (!sale) {return null;}
 
     const itemsRes = await pool.query(
         `SELECT si.product_id,
@@ -206,10 +208,10 @@ export async function getSaleById(id) {
                 p.sku,
                 p.barcode
          FROM sale_items si
-         JOIN products p ON p.id = si.product_id
+         JOIN products p ON p.id = si.product_id AND p.store_id = $2
          WHERE si.sale_id = $1
          ORDER BY si.id`,
-        [id]
+        [id, storeId]
     );
 
     return {
@@ -231,10 +233,7 @@ export async function getSaleById(id) {
     };
 }
 
-/**
- * Return sale - atomic transaction
- */
-export async function returnSale({ sale_id, user_id, warehouse_id }) {
+export async function returnSale({ store_id, sale_id, user_id, warehouse_id }) {
     if (!warehouse_id) {
         throw createAppError(ERROR_CODES.SALES_RETURN_WAREHOUSE_REQUIRED, 400);
     }
@@ -242,45 +241,41 @@ export async function returnSale({ sale_id, user_id, warehouse_id }) {
     const client = await pool.connect();
     try {
         await client.query("BEGIN");
+        await ensureWarehouseBelongsToStore(client, warehouse_id, store_id);
 
         const saleRes = await client.query(
             `SELECT id, status, store_id
              FROM sales
-             WHERE id = $1
+             WHERE id = $1 AND store_id = $2
              FOR UPDATE`,
-            [sale_id]
+            [sale_id, store_id]
         );
 
         const sale = saleRes.rows[0];
-        if (!sale) {
-            throw createAppError(ERROR_CODES.SALES_NOT_FOUND, 404);
-        }
-
-        if (sale.status === "RETURNED") {
-            throw createAppError(ERROR_CODES.SALES_ALREADY_RETURNED, 409);
-        }
+        if (!sale) {throw createAppError(ERROR_CODES.SALES_NOT_FOUND, 404);}
+        if (sale.status === "RETURNED") {throw createAppError(ERROR_CODES.SALES_ALREADY_RETURNED, 409);}
 
         const itemsRes = await client.query(
-            `SELECT product_id, quantity
-             FROM sale_items
-             WHERE sale_id = $1`,
-            [sale_id]
+            `SELECT si.product_id, si.quantity
+             FROM sale_items si
+             JOIN products p ON p.id = si.product_id AND p.store_id = $2
+             WHERE si.sale_id = $1`,
+            [sale_id, store_id]
         );
         const items = itemsRes.rows;
 
-        if (items.length === 0) {
-            throw createAppError(ERROR_CODES.SALES_NO_ITEMS, 400);
-        }
+        if (items.length === 0) {throw createAppError(ERROR_CODES.SALES_NO_ITEMS, 400);}
 
         for (const item of items) {
-            const { product_id, quantity } = item;
             await applyMovement({
+                store_id,
                 type: "RETURN",
-                product_id,
+                product_id: item.product_id,
                 warehouse_to: warehouse_id,
-                qty: quantity,
+                qty: item.quantity,
                 reason: `Return of sale #${sale_id}`,
                 user_id: user_id || null,
+                related_entity_id: sale_id,
                 client,
             });
         }
@@ -288,15 +283,12 @@ export async function returnSale({ sale_id, user_id, warehouse_id }) {
         await client.query(
             `UPDATE sales
              SET status = 'RETURNED'
-             WHERE id = $1`,
-            [sale_id]
+             WHERE id = $1 AND store_id = $2`,
+            [sale_id, store_id]
         );
 
         await client.query("COMMIT");
-        return {
-            sale_id: sale.id,
-            status: "RETURNED",
-        };
+        return { sale_id: sale.id, status: "RETURNED" };
     } catch (err) {
         await client.query("ROLLBACK");
         throw err;

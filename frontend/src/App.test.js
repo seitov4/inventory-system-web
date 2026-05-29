@@ -12,7 +12,7 @@ describe("App Component", () => {
         const { container } = render(<App />);
         // AppRouter renders a BrowserRouter, which contains routes
         // At minimum, we should have a router provider in the DOM
-        expect(container.firstChild).toBeInTheDocument();
+        expect(container).not.toBeEmptyDOMElement();
     });
 
     test("app structure is properly mounted", () => {

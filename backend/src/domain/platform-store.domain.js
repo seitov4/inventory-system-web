@@ -1,15 +1,13 @@
 export const STORE_STATUSES = Object.freeze({
     ACTIVE: "active",
     SUSPENDED: "suspended",
-    ARCHIVED: "archived",
-    PROVISIONING: "provisioning",
+    INACTIVE: "inactive",
 });
 
 export const STORE_STATUS_TRANSITIONS = Object.freeze({
-    [STORE_STATUSES.PROVISIONING]: [STORE_STATUSES.ACTIVE],
-    [STORE_STATUSES.ACTIVE]: [STORE_STATUSES.SUSPENDED, STORE_STATUSES.ARCHIVED],
-    [STORE_STATUSES.SUSPENDED]: [STORE_STATUSES.ACTIVE, STORE_STATUSES.ARCHIVED],
-    [STORE_STATUSES.ARCHIVED]: [],
+    [STORE_STATUSES.ACTIVE]: [STORE_STATUSES.SUSPENDED, STORE_STATUSES.INACTIVE],
+    [STORE_STATUSES.SUSPENDED]: [STORE_STATUSES.ACTIVE, STORE_STATUSES.INACTIVE],
+    [STORE_STATUSES.INACTIVE]: [],
 });
 
 export function normalizeStoreStatus(status) {
@@ -31,8 +29,8 @@ export function statusToWarehouseType(status) {
     if (normalized === STORE_STATUSES.SUSPENDED) {
         return "suspended";
     }
-    if (normalized === STORE_STATUSES.ARCHIVED) {
-        return "archived";
+    if (normalized === STORE_STATUSES.INACTIVE) {
+        return "inactive";
     }
     return "store";
 }

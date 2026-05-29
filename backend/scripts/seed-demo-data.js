@@ -74,14 +74,15 @@ function daysAgo(days, hour = 10, minute = 0) {
     return date;
 }
 
-async function upsertUser(client, user) {
+async function upsertUser(client, store, user) {
     const passwordHash = await bcrypt.hash(user.password, 10);
     const result = await client.query(
         `INSERT INTO users
-             (email, phone, first_name, last_name, store_name, password_hash, role)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+             (store_id, email, phone, first_name, last_name, store_name, password_hash, role)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          ON CONFLICT (email)
          DO UPDATE SET
+             store_id = EXCLUDED.store_id,
              phone = EXCLUDED.phone,
              first_name = EXCLUDED.first_name,
              last_name = EXCLUDED.last_name,
@@ -89,13 +90,14 @@ async function upsertUser(client, user) {
              password_hash = EXCLUDED.password_hash,
              role = EXCLUDED.role,
              updated_at = CURRENT_TIMESTAMP
-         RETURNING id, email, phone, first_name, last_name, store_name, role`,
+         RETURNING id, store_id, email, phone, first_name, last_name, store_name, role`,
         [
+            store.id,
             user.email,
             user.phone,
             user.firstName,
             user.lastName,
-            STORE.name,
+            store.name,
             passwordHash,
             user.role,
         ]
@@ -149,12 +151,12 @@ async function upsertStore(client) {
     return { ...store, primary_warehouse_id: warehouseId };
 }
 
-async function upsertProduct(client, product, warehouseId) {
+async function upsertProduct(client, storeId, product, warehouseId) {
     const productResult = await client.query(
         `INSERT INTO products
-             (name, sku, barcode, category, purchase_price, sale_price, min_stock, is_active, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-         ON CONFLICT (sku)
+             (store_id, name, sku, barcode, category, purchase_price, sale_price, min_stock, is_active, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+         ON CONFLICT (store_id, sku) WHERE sku IS NOT NULL
          DO UPDATE SET
              name = EXCLUDED.name,
              barcode = EXCLUDED.barcode,
@@ -166,6 +168,7 @@ async function upsertProduct(client, product, warehouseId) {
              updated_at = CURRENT_TIMESTAMP
          RETURNING id, name, sku, sale_price, min_stock`,
         [
+            storeId,
             product.name,
             product.sku,
             product.barcode,
@@ -212,13 +215,14 @@ async function clearDemoActivity(client, userIds, warehouseId) {
     );
 }
 
-async function seedMovements(client, products, warehouseId, users) {
+async function seedMovements(client, storeId, products, warehouseId, users) {
     for (const [index, product] of products.entries()) {
         await client.query(
             `INSERT INTO movements
-                 (product_id, warehouse_id, direction, source_type, warehouse_to, quantity, qty, type, reason, created_by, created_at)
-             VALUES ($1, $2, 1, 'seed', $2, $3, $3, 'IN', $4, $5, $6)`,
+                 (store_id, product_id, warehouse_id, direction, source_type, warehouse_to, quantity, qty, type, reason, created_by, created_at)
+             VALUES ($1, $2, $3, 1, 'seed', $3, $4, $4, 'IN', $5, $6, $7)`,
             [
+                storeId,
                 product.id,
                 warehouseId,
                 Math.max(product.quantity, 1),
@@ -232,14 +236,14 @@ async function seedMovements(client, products, warehouseId, users) {
     for (const product of products.slice(3, 6)) {
         await client.query(
             `INSERT INTO movements
-                 (product_id, warehouse_id, direction, source_type, warehouse_from, quantity, qty, type, reason, created_by, created_at)
-             VALUES ($1, $2, -1, 'seed', $2, 2, 2, 'OUT', 'Demo damaged goods write-off', $3, $4)`,
-            [product.id, warehouseId, users.manager.id, daysAgo(3, 16, 30)]
+                 (store_id, product_id, warehouse_id, direction, source_type, warehouse_from, quantity, qty, type, reason, created_by, created_at)
+             VALUES ($1, $2, $3, -1, 'seed', $3, 2, 2, 'OUT', 'Demo damaged goods write-off', $4, $5)`,
+            [storeId, product.id, warehouseId, users.manager.id, daysAgo(3, 16, 30)]
         );
     }
 }
 
-async function seedSales(client, products, warehouseId, users) {
+async function seedSales(client, storeId, products, warehouseId, users) {
     const patterns = [
         [13, 10, 20, [["TEST-COFFEE-001", 2], ["TEST-CHOCO-001", 4]]],
         [12, 15, 5, [["TEST-WATER-001", 6], ["TEST-SANITIZER-001", 1]]],
@@ -268,10 +272,11 @@ async function seedSales(client, products, warehouseId, users) {
 
         const saleResult = await client.query(
             `INSERT INTO sales
-                 (cashier_id, warehouse_id, store_id, total, total_amount, discount, payment_type, status, created_at)
-             VALUES ($1, $2, $2, $3, $3, 0, $4, $5, $6)
+                 (store_id, cashier_id, warehouse_id, total, total_amount, discount, payment_type, status, created_at)
+             VALUES ($1, $2, $3, $4, $4, 0, $5, $6, $7)
              RETURNING id`,
             [
+                storeId,
                 users.cashier.id,
                 warehouseId,
                 total,
@@ -291,9 +296,10 @@ async function seedSales(client, products, warehouseId, users) {
 
             await client.query(
                 `INSERT INTO movements
-                     (product_id, warehouse_id, direction, source_type, warehouse_from, quantity, qty, type, reason, related_entity_id, created_by, created_at)
-                 VALUES ($1, $2, -1, 'SALE', $2, $3, $3, 'SALE', $4, $5, $6, $7)`,
+                     (store_id, product_id, warehouse_id, direction, source_type, warehouse_from, quantity, qty, type, reason, related_entity_id, created_by, created_at)
+                 VALUES ($1, $2, $3, -1, 'SALE', $3, $4, $4, 'SALE', $5, $6, $7, $8)`,
                 [
+                    storeId,
                     item.product.id,
                     warehouseId,
                     item.qty,
@@ -307,13 +313,14 @@ async function seedSales(client, products, warehouseId, users) {
     }
 }
 
-async function seedNotifications(client, users) {
+async function seedNotifications(client, storeId, users) {
     for (const user of [users.owner, users.manager]) {
         for (const [index, [type, message]] of NOTIFICATIONS.entries()) {
             await client.query(
-                `INSERT INTO notifications (type, user_id, payload, status, is_read, created_at)
-                 VALUES ($1, $2, $3::jsonb, $4, $5, $6)`,
+                `INSERT INTO notifications (store_id, type, user_id, payload, status, is_read, created_at)
+                 VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7)`,
                 [
+                    storeId,
                     type,
                     user.id,
                     JSON.stringify({ message, store: STORE.name }),
@@ -335,7 +342,7 @@ async function seed() {
         const store = await upsertStore(client);
         const usersArray = [];
         for (const user of USERS) {
-            usersArray.push(await upsertUser(client, user));
+            usersArray.push(await upsertUser(client, store, user));
         }
         const users = {
             owner: usersArray.find((user) => user.role === "owner"),
@@ -351,12 +358,12 @@ async function seed() {
 
         const products = [];
         for (const product of PRODUCTS) {
-            products.push(await upsertProduct(client, product, store.primary_warehouse_id));
+            products.push(await upsertProduct(client, store.id, product, store.primary_warehouse_id));
         }
 
-        await seedMovements(client, products, store.primary_warehouse_id, users);
-        await seedSales(client, products, store.primary_warehouse_id, users);
-        await seedNotifications(client, users);
+        await seedMovements(client, store.id, products, store.primary_warehouse_id, users);
+        await seedSales(client, store.id, products, store.primary_warehouse_id, users);
+        await seedNotifications(client, store.id, users);
 
         const counts = {};
         for (const table of ["users", "products", "stock", "movements", "sales", "notifications"]) {

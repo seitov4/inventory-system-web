@@ -194,7 +194,7 @@ function buildCurrentMonthSeries(monthlySales = []) {
 export default function DashboardPage() {
     const { role } = useAuth();
     const { setActivePage } = usePage();
-    const canSeeAnalytics = role === "owner" || role === "admin";
+    const canSeeAnalytics = role === "owner";
     const [stats, setStats] = useState({
         dailySales: 0,
         monthlySales: 0,
@@ -422,3 +422,4 @@ export default function DashboardPage() {
         </Layout>
     );
 }
+

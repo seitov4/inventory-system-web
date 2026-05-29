@@ -73,7 +73,7 @@ export default function DashboardSection({ onNavigate }) {
     const { stores, loading: storesLoading } = useStores();
     const { health, loading: healthLoading, error: healthError } = usePlatformHealth();
     const { activity, loading: logsLoading } = useLogs();
-    const { metrics, growth, trends, changes, loading: metricsLoading, error: metricsError } = usePlatformMetrics();
+    const { metrics, growth, trends, changes, error: metricsError } = usePlatformMetrics();
 
     const loading = storesLoading || healthLoading || logsLoading;
 
@@ -100,20 +100,12 @@ export default function DashboardSection({ onNavigate }) {
 
     // Show loading state
     if (loading && !health.backend.statusLabel) {
-        return (
-            <LoadingPlaceholder>
-                Loading platform overview...
-            </LoadingPlaceholder>
-        );
+        return <LoadingPlaceholder>Loading platform overview...</LoadingPlaceholder>;
     }
 
     return (
         <>
-            {healthError && (
-                <ErrorCard>
-                    ⚠️ Health monitoring: {healthError}
-                </ErrorCard>
-            )}
+            {healthError && <ErrorCard>⚠️ Health monitoring: {healthError}</ErrorCard>}
             <Grid>
                 <StatCard
                     label="Total stores"
@@ -153,11 +145,7 @@ export default function DashboardSection({ onNavigate }) {
             </Columns>
 
             {/* Platform Metrics Section */}
-            {metricsError && (
-                <MetricsWarning>
-                    ⚠️ {metricsError}
-                </MetricsWarning>
-            )}
+            {metricsError && <MetricsWarning>⚠️ {metricsError}</MetricsWarning>}
 
             <MetricGroup
                 title="Platform Metrics"
@@ -182,8 +170,8 @@ export default function DashboardSection({ onNavigate }) {
                         metrics.activeRatio >= 90
                             ? "#22c55e"
                             : metrics.activeRatio >= 70
-                            ? "#facc15"
-                            : "#ef4444"
+                              ? "#facc15"
+                              : "#ef4444"
                     }
                     comparison={changes.activeRatio !== null ? `vs previous period` : null}
                     onClick={() => onNavigate("stores")}
@@ -206,8 +194,8 @@ export default function DashboardSection({ onNavigate }) {
                         metrics.averageLatency < 200
                             ? "#22c55e"
                             : metrics.averageLatency < 400
-                            ? "#facc15"
-                            : "#ef4444"
+                              ? "#facc15"
+                              : "#ef4444"
                     }
                     comparison={changes.averageLatency !== null ? `vs previous period` : null}
                 />
@@ -221,8 +209,8 @@ export default function DashboardSection({ onNavigate }) {
                         metrics.errorRate < 1
                             ? "#22c55e"
                             : metrics.errorRate < 5
-                            ? "#facc15"
-                            : "#ef4444"
+                              ? "#facc15"
+                              : "#ef4444"
                     }
                     comparison={changes.errorRate !== null ? `vs previous 24h` : null}
                 />
@@ -238,5 +226,3 @@ export default function DashboardSection({ onNavigate }) {
         </>
     );
 }
-
-

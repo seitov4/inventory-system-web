@@ -17,6 +17,10 @@ const apiClient = axios.create({
 export function getApiErrorMessage(error, fallback = "Request failed") {
     const data = error?.response?.data;
 
+    if (typeof data?.error?.message === "string") {
+        return data.error.message;
+    }
+
     if (typeof data?.error === "string") {
         return data.error;
     }
@@ -39,10 +43,13 @@ apiClient.interceptors.request.use(
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
-        
+
         // Log all requests
-        console.log(`[API Request] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`, config.data || "");
-        
+        console.log(
+            `[API Request] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`,
+            config.data || ""
+        );
+
         return config;
     },
     (error) => {
@@ -55,24 +62,25 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
     (response) => {
         console.log(`[API Response] ${response.status}`, response.data);
-        
+
         // Check if response has unified format with success field
-        if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+        if (response.data && typeof response.data === "object" && "success" in response.data) {
             if (!response.data.success && response.data.error) {
+                const message = getApiErrorMessage({ response });
                 // Transform unified error format to standard axios error
-                const err = new Error(response.data.error);
+                const err = new Error(message);
                 err.response = {
                     ...response,
                     data: {
-                        message: response.data.error,
-                        error: response.data.error
-                    }
+                        message,
+                        error: message,
+                    },
                 };
                 err.response.status = response.status >= 400 ? response.status : 400;
                 return Promise.reject(err);
             }
         }
-        
+
         return response;
     },
     (error) => {
@@ -81,9 +89,14 @@ apiClient.interceptors.response.use(
             console.error("[API] Error details:", error.message);
         } else {
             // Handle unified error format
-            const errorMessage = error.response?.data?.error || 
-                                error.response?.data?.message || 
-                                error.message;
+            const errorMessage = getApiErrorMessage(error, error.message);
+            if (error.response?.data) {
+                error.response.data = {
+                    ...error.response.data,
+                    message: errorMessage,
+                    error: errorMessage,
+                };
+            }
             console.error("[API Error]", error.response?.status, errorMessage);
         }
         return Promise.reject(error);

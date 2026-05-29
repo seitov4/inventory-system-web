@@ -1,5 +1,4 @@
 import { safeQuery, getDatabaseInfo, DB_PROVIDER } from "../utils/db.js";
-import { loginUser, getCurrentUser } from "./auth.service.js";
 import { createAppError, resolveErrorMessage } from "../errors/app-error.js";
 import { ERROR_CODES } from "../errors/error-codes.js";
 import {
@@ -51,6 +50,7 @@ function normalizeStorePayload(payload = {}) {
     const name = String(payload.name || payload.storeName || "").trim();
     const address = payload.address ? String(payload.address).trim() : null;
     const ownerEmail = payload.ownerEmail ? String(payload.ownerEmail).trim() : null;
+    const ownerPassword = payload.ownerPassword ? String(payload.ownerPassword) : null;
     const plan = payload.plan ? String(payload.plan).trim() : "standard";
     const region = payload.region ? String(payload.region).trim() : "local";
     const slug = toStoreSlug(payload.slug || name);
@@ -59,23 +59,20 @@ function normalizeStorePayload(payload = {}) {
         throw createAppError(ERROR_CODES.PLATFORM_STORE_NAME_REQUIRED, 400);
     }
 
+    if (ownerEmail && (!ownerPassword || ownerPassword.length < 8)) {
+        throw createAppError(ERROR_CODES.PLATFORM_USER_PASSWORD_TOO_SHORT, 400);
+    }
+
     return {
         name,
         slug,
         address,
         ownerEmail,
+        ownerPassword,
         plan,
         region,
         status: STORE_STATUSES.ACTIVE,
     };
-}
-
-export async function loginPlatformUser(identifier, password) {
-    return loginUser(identifier, password);
-}
-
-export async function getPlatformProfile(userId) {
-    return getCurrentUser(userId);
 }
 
 export async function listStores() {

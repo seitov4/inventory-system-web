@@ -14,7 +14,7 @@ export async function getSalesReportController(req, res, next) {
         // Log the request
         console.log(`[Reports] Sales report requested: ${from} to ${to}`);
 
-        const data = await getSalesReportData(fromDate, toDate);
+        const data = await getSalesReportData(req.user.store_id, fromDate, toDate);
 
         // Log the result
         console.log(`[Reports] Sales report returned ${data.length} rows`);

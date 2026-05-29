@@ -117,8 +117,8 @@ export default function SettingsSection() {
         <>
             <Title>Platform settings</Title>
             <Subtitle>
-                Platform-level configuration and identity. These settings control the entire platform,
-                not individual stores.
+                Platform-level configuration and identity. These settings control the entire
+                platform, not individual stores.
             </Subtitle>
             <Grid>
                 {/* Platform Identity Card */}
@@ -154,7 +154,7 @@ export default function SettingsSection() {
                         </InfoRow>
                         <InfoRow>
                             <InfoLabel>Role</InfoLabel>
-                            <InfoValue>{user?.role || "platform_owner"}</InfoValue>
+                            <InfoValue>{user?.role || "platform"}</InfoValue>
                         </InfoRow>
                         <InfoRow>
                             <InfoLabel>Last login</InfoLabel>
@@ -179,10 +179,13 @@ export default function SettingsSection() {
                             {auditLogs.map((log, idx) => (
                                 <AuditEntry key={idx} $type={log.type}>
                                     <div style={{ color: "#e5e7eb" }}>
-                                        <strong>{log.type.replace("AUTH_", "")}</strong> — {log.email}
+                                        <strong>{log.type.replace("AUTH_", "")}</strong> —{" "}
+                                        {log.email}
                                     </div>
                                     {log.metadata?.reason && (
-                                        <div style={{ color: "#fca5a5", fontSize: 11, marginTop: 2 }}>
+                                        <div
+                                            style={{ color: "#fca5a5", fontSize: 11, marginTop: 2 }}
+                                        >
                                             {log.metadata.reason}
                                         </div>
                                     )}
@@ -197,8 +200,8 @@ export default function SettingsSection() {
                 <Card title="Tenant limits" description="Per-tenant quotas and feature flags.">
                     <p style={{ fontSize: 13, color: "#9ca3af", lineHeight: 1.5 }}>
                         Here you will control how many stores, warehouses and users each tenant can
-                        provision. It is also a good place for feature flags: POS versions, analytics
-                        packs and premium modules.
+                        provision. It is also a good place for feature flags: POS versions,
+                        analytics packs and premium modules.
                     </p>
                 </Card>
             </Grid>

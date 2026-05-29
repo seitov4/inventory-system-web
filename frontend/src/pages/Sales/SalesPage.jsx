@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import Layout from "../../components/Layout/Layout";
 import salesApi from "../../api/salesApi";
@@ -107,11 +107,11 @@ const PeriodButton = styled.button`
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s;
-    background: ${props => props.$active ? 'var(--primary-color)' : 'transparent'};
-    color: ${props => props.$active ? 'white' : 'var(--text-secondary)'};
+    background: ${(props) => (props.$active ? "var(--primary-color)" : "transparent")};
+    color: ${(props) => (props.$active ? "white" : "var(--text-secondary)")};
 
     &:hover:not(:disabled) {
-        background: ${props => props.$active ? 'var(--primary-hover)' : 'var(--bg-secondary)'};
+        background: ${(props) => (props.$active ? "var(--primary-hover)" : "var(--bg-secondary)")};
     }
 `;
 
@@ -135,7 +135,7 @@ const Bar = styled.div`
     background: var(--primary-color);
     border-radius: 4px 4px 0 0;
     min-height: 4px;
-    height: ${props => props.$height || 0}%;
+    height: ${(props) => props.$height || 0}%;
     position: relative;
     transition: opacity 0.2s;
 
@@ -199,8 +199,8 @@ export default function SalesPage() {
                 } else if (Array.isArray(chartRes)) {
                     // Fallback: if chart returns array format
                     setChartData({
-                        labels: chartRes.map(item => item.date || item.label),
-                        data: chartRes.map(item => item.total || 0),
+                        labels: chartRes.map((item) => item.date || item.label),
+                        data: chartRes.map((item) => item.total || 0),
                     });
                 }
 
@@ -214,10 +214,12 @@ export default function SalesPage() {
                         dailyData = weeklyRes;
                     } else if (result && result.date) {
                         // Convert single daily result to array format
-                        dailyData = [{
-                            date: result.date,
-                            total: result.totalRevenue || 0,
-                        }];
+                        dailyData = [
+                            {
+                                date: result.date,
+                                total: result.totalRevenue || 0,
+                            },
+                        ];
                     } else {
                         // Generate empty data for last 7 days
                         const today = new Date();
@@ -225,7 +227,7 @@ export default function SalesPage() {
                             const date = new Date(today);
                             date.setDate(date.getDate() - (6 - i));
                             return {
-                                date: date.toISOString().split('T')[0],
+                                date: date.toISOString().split("T")[0],
                                 total: 0,
                             };
                         });
@@ -278,22 +280,13 @@ export default function SalesPage() {
             {error && <ErrorText>{error}</ErrorText>}
 
             <PeriodToggle>
-                <PeriodButton
-                    $active={period === "daily"}
-                    onClick={() => setPeriod("daily")}
-                >
+                <PeriodButton $active={period === "daily"} onClick={() => setPeriod("daily")}>
                     Day
                 </PeriodButton>
-                <PeriodButton
-                    $active={period === "weekly"}
-                    onClick={() => setPeriod("weekly")}
-                >
+                <PeriodButton $active={period === "weekly"} onClick={() => setPeriod("weekly")}>
                     Week
                 </PeriodButton>
-                <PeriodButton
-                    $active={period === "monthly"}
-                    onClick={() => setPeriod("monthly")}
-                >
+                <PeriodButton $active={period === "monthly"} onClick={() => setPeriod("monthly")}>
                     Month
                 </PeriodButton>
             </PeriodToggle>
@@ -301,13 +294,10 @@ export default function SalesPage() {
             <StatsGrid>
                 <StatCard
                     label={`Sales ${formatPeriodLabel()}`}
-                    value={`${getTotalRevenue().toLocaleString('en-US')} ₸`}
+                    value={`${getTotalRevenue().toLocaleString("en-US")} ₸`}
                 />
                 {period === "daily" && data && (
-                    <StatCard
-                        label="Number of sales"
-                        value={data.salesCount || 0}
-                    />
+                    <StatCard label="Number of sales" value={data.salesCount || 0} />
                 )}
             </StatsGrid>
 
@@ -316,15 +306,13 @@ export default function SalesPage() {
 
                 <ChartWrapper>
                     {chartData.labels.length === 0 ? (
-                        <EmptyChart>
-                            No data to display
-                        </EmptyChart>
+                        <EmptyChart>No data to display</EmptyChart>
                     ) : (
                         <SimpleBarChart>
                             {chartData.labels.map((label, index) => {
                                 const value = chartData.data[index] || 0;
                                 const height = (value / getMaxValue()) * 100;
-                                const shortLabel = label.split('-').slice(-1)[0]; // Show only day
+                                const shortLabel = label.split("-").slice(-1)[0]; // Show only day
                                 return (
                                     <Bar
                                         key={index}
@@ -338,7 +326,13 @@ export default function SalesPage() {
                                         }
                                     >
                                         <BarLabel>{shortLabel}</BarLabel>
-                                        {value > 0 && <BarValue>{value > 1000 ? `${(value / 1000).toFixed(0)}k` : value}</BarValue>}
+                                        {value > 0 && (
+                                            <BarValue>
+                                                {value > 1000
+                                                    ? `${(value / 1000).toFixed(0)}k`
+                                                    : value}
+                                            </BarValue>
+                                        )}
                                     </Bar>
                                 );
                             })}
@@ -349,8 +343,8 @@ export default function SalesPage() {
                 {selectedDay && (
                     <EmptyChart style={{ marginTop: 12 }}>
                         Drill‑down for day <code>{selectedDay.date}</code>: total sales{" "}
-                        <code>{selectedDay.total.toLocaleString("en-US")} ₸</code>. To show the
-                        list of products for this day you'll need a dedicated <code>/sales/by-day</code>{" "}
+                        <code>{selectedDay.total.toLocaleString("en-US")} ₸</code>. To show the list
+                        of products for this day you'll need a dedicated <code>/sales/by-day</code>{" "}
                         endpoint on the backend.
                     </EmptyChart>
                 )}
@@ -359,12 +353,8 @@ export default function SalesPage() {
             {/* Daily Sales Volume Chart */}
             <ChartCard>
                 <ChartTitle>Daily Sales Volume {formatPeriodLabel()}</ChartTitle>
-                <SalesByDayChart 
-                    data={dailySalesData} 
-                    period={period}
-                />
+                <SalesByDayChart data={dailySalesData} period={period} />
             </ChartCard>
         </Layout>
     );
 }
-

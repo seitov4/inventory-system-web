@@ -52,7 +52,7 @@ export function getWidgetConfig(widgetId, data = {}) {
             type: "metric",
             size: "small",
             value: formatMoney(stats.dailySales),
-            description: canSeeAnalytics ? "Completed sales today" : "Available to owner and admin",
+            description: canSeeAnalytics ? "Completed sales today" : "Available to owner",
             tint: "blue",
             icon: ReceiptLongOutlinedIcon,
             animateCountUp: true,
@@ -65,7 +65,7 @@ export function getWidgetConfig(widgetId, data = {}) {
             type: "metric",
             size: "small",
             value: formatMoney(stats.monthlySales),
-            description: canSeeAnalytics ? "Current month revenue" : "Available to owner and admin",
+            description: canSeeAnalytics ? "Current month revenue" : "Available to owner",
             tint: "purple",
             icon: TrendingUpOutlinedIcon,
             animateCountUp: true,
@@ -185,7 +185,7 @@ export function getWidgetsByZone(zone, data = {}) {
     if (zone === ZONES.INFO) {
         const infoWidgets = [];
 
-        if (role === "owner" || role === "admin") {
+        if (role === "owner") {
             infoWidgets.push(
                 WIDGET_IDS.SALES_TRENDS,
                 WIDGET_IDS.SHORTAGE_STOCK,
@@ -287,3 +287,4 @@ export function getWidgetsByZone(zone, data = {}) {
 
     return [];
 }
+

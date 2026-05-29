@@ -16,36 +16,36 @@ const router = Router();
 router.post(
     "/",
     authRequired,
-    requireRole("cashier", "manager", "owner", "admin"),
+    requireRole("cashier", "staff", "manager", "owner"),
     createSale
 );
 
-// Analytics endpoints - owner and admin only
+// Analytics endpoints - tenant owner only
 router.get(
     "/daily",
     authRequired,
-    requireRole("owner", "admin"),
+    requireRole("owner"),
     getDailySalesController
 );
 
 router.get(
     "/weekly",
     authRequired,
-    requireRole("owner", "admin"),
+    requireRole("owner"),
     getWeeklySalesController
 );
 
 router.get(
     "/monthly",
     authRequired,
-    requireRole("owner", "admin"),
+    requireRole("owner"),
     getMonthlySalesController
 );
 
 router.get(
     "/chart",
     authRequired,
-    requireRole("owner", "admin"),
+    requireRole("owner"),
     getSalesChartController
 );
 
@@ -53,7 +53,7 @@ router.get(
 router.get(
     "/:id",
     authRequired,
-    requireRole("cashier", "manager", "owner", "admin"),
+    requireRole("cashier", "staff", "manager", "owner"),
     getSaleById
 );
 
@@ -61,7 +61,7 @@ router.get(
 router.post(
     "/:id/return",
     authRequired,
-    requireRole("cashier", "manager", "owner", "admin"),
+    requireRole("cashier", "staff", "manager", "owner"),
     createSaleReturn
 );
 

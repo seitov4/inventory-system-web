@@ -4,7 +4,7 @@ import styled from "styled-components";
 // ===== STYLED COMPONENTS =====
 const GroupWrapper = styled.div`
     border-bottom: 1px solid var(--border-color);
-    
+
     &:last-child {
         border-bottom: none;
     }
@@ -15,12 +15,12 @@ const GroupHeader = styled.div`
     align-items: center;
     gap: 16px;
     padding: 16px 20px;
-    background: ${props => props.$selected ? 'var(--primary-light)' : 'transparent'};
+    background: ${(props) => (props.$selected ? "var(--primary-light)" : "transparent")};
     cursor: pointer;
     transition: background 0.2s ease;
 
     &:hover {
-        background: ${props => props.$selected ? 'var(--primary-light)' : 'var(--bg-hover)'};
+        background: ${(props) => (props.$selected ? "var(--primary-light)" : "var(--bg-hover)")};
     }
 `;
 
@@ -57,8 +57,10 @@ const Badge = styled.span`
     border-radius: 999px;
     font-size: 11px;
     font-weight: 600;
-    background: ${props => props.$type === 'barcode' ? 'var(--primary-light)' : 'var(--warning-bg)'};
-    color: ${props => props.$type === 'barcode' ? 'var(--primary-color)' : 'var(--warning-color)'};
+    background: ${(props) =>
+        props.$type === "barcode" ? "var(--primary-light)" : "var(--warning-bg)"};
+    color: ${(props) =>
+        props.$type === "barcode" ? "var(--primary-color)" : "var(--warning-color)"};
 `;
 
 const PreviewBadge = styled.span`
@@ -104,7 +106,7 @@ const Td = styled.td`
 
 const MergePreviewRow = styled.tr`
     background: var(--success-bg);
-    
+
     td {
         font-weight: 600;
         color: var(--success-color);
@@ -117,21 +119,12 @@ const ArrowIcon = styled.span`
 `;
 
 // ===== COMPONENT =====
-export default function DuplicateGroup({ 
-    group, 
-    index, 
-    selected, 
-    onSelect,
-    mergePreview 
-}) {
-    const { type, key, products } = group;
+export default function DuplicateGroup({ group, index, selected, onSelect, mergePreview }) {
+    const { type, products } = group;
 
     return (
         <GroupWrapper>
-            <GroupHeader 
-                $selected={selected}
-                onClick={() => onSelect(!selected)}
-            >
+            <GroupHeader $selected={selected} onClick={() => onSelect(!selected)}>
                 <Checkbox
                     type="checkbox"
                     checked={selected}
@@ -146,12 +139,12 @@ export default function DuplicateGroup({
                     </GroupTitle>
                     <GroupMeta>
                         <span>{products.length} products</span>
-                        <span>Total qty: {products.reduce((s, p) => s + (p.quantity || 0), 0)}</span>
+                        <span>
+                            Total qty: {products.reduce((s, p) => s + (p.quantity || 0), 0)}
+                        </span>
                     </GroupMeta>
                 </GroupInfo>
-                <Badge $type={type}>
-                    {type === 'barcode' ? '🏷️ Same Barcode' : '📋 Same SKU'}
-                </Badge>
+                <Badge $type={type}>{type === "barcode" ? "🏷️ Same Barcode" : "📋 Same SKU"}</Badge>
                 {selected && mergePreview && (
                     <PreviewBadge>
                         → Qty: {mergePreview.quantity} | Price: {mergePreview.purchase_price}
@@ -172,7 +165,7 @@ export default function DuplicateGroup({
                         </tr>
                     </thead>
                     <tbody>
-                        {products.map(product => (
+                        {products.map((product) => (
                             <tr key={product.id}>
                                 <Td>{product.name}</Td>
                                 <Td>{product.sku || "—"}</Td>
@@ -201,4 +194,3 @@ export default function DuplicateGroup({
         </GroupWrapper>
     );
 }
-

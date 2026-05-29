@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import Button from "../ui/Button.jsx";
-import Card from "../ui/Card.jsx";
 import usePlatformLogs from "../hooks/usePlatformLogs.jsx";
 import LogFilters from "../components/LogFilters.jsx";
 import LogEventCard from "../components/LogEventCard.jsx";
@@ -101,22 +100,13 @@ const LoadingMessage = styled.div`
 
 /**
  * LogsSection Component
- * 
+ *
  * Platform-level logs and events viewer.
  * Uses usePlatformLogs hook - no direct API calls.
  */
 export default function LogsSection() {
-    const {
-        logs,
-        allLogs,
-        loading,
-        error,
-        filters,
-        setFilters,
-        clearFilters,
-        refreshLogs,
-        stats,
-    } = usePlatformLogs();
+    const { logs, allLogs, loading, error, filters, setFilters, clearFilters, refreshLogs, stats } =
+        usePlatformLogs();
 
     const [viewMode, setViewMode] = useState("cards"); // "cards" | "table"
 

@@ -19,7 +19,7 @@ router.get("/left", authRequired, getProductsLeftController);
 router.get(
     "/low-stock",
     authRequired,
-    requireRole("manager", "owner", "admin"),
+    requireRole("manager", "owner"),
     getLowStockController
 );
 router.get("/barcode/:code", authRequired, getProductByBarcodeController);
@@ -28,7 +28,7 @@ router.get("/:id", authRequired, getProduct);
 router.post(
     "/",
     authRequired,
-    requireRole("manager", "owner", "admin"),
+    requireRole("manager", "owner"),
     createProductController
 );
 
@@ -36,21 +36,21 @@ router.post(
 router.post(
     "/import",
     authRequired,
-    requireRole("manager", "owner", "admin"),
+    requireRole("manager", "owner"),
     importProductsController
 );
 
 router.put(
     "/:id",
     authRequired,
-    requireRole("manager", "owner", "admin"),
+    requireRole("manager", "owner"),
     updateProductController
 );
 
 router.delete(
     "/:id",
     authRequired,
-    requireRole("owner", "admin"),
+    requireRole("owner"),
     deleteProductController
 );
 

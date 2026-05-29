@@ -38,7 +38,7 @@ function addDays(date, days) {
  * Get daily sales for current day
  * @returns {Promise<Object>} { date, totalRevenue, salesCount }
  */
-export async function getDailySales() {
+export async function getDailySales(storeId) {
     const fromDate = getStartOfDay();
     const toDate = addDays(fromDate, 1);
 
@@ -48,11 +48,12 @@ export async function getDailySales() {
             COALESCE(SUM(total), 0) as total_revenue,
             CAST(COUNT(*) AS INTEGER) as sales_count
          FROM sales
-         WHERE created_at >= $1
-           AND created_at < $2
+         WHERE store_id = $1
+           AND created_at >= $2
+           AND created_at < $3
            AND status = 'COMPLETED'
          GROUP BY DATE(created_at)`,
-        [fromDate, toDate]
+        [storeId, fromDate, toDate]
     );
 
     if (result.rows.length === 0) {
@@ -75,7 +76,7 @@ export async function getDailySales() {
  * Get weekly sales grouped by day for current week (Monday-Sunday)
  * @returns {Promise<Array>} [{ date, total }, ...]
  */
-export async function getWeeklySales() {
+export async function getWeeklySales(storeId) {
     const fromDate = getStartOfWeek();
     const toDate = addDays(fromDate, 7);
 
@@ -84,12 +85,13 @@ export async function getWeeklySales() {
             DATE(created_at) as date,
             COALESCE(SUM(total), 0) as total
          FROM sales
-         WHERE created_at >= $1
-           AND created_at < $2
+         WHERE store_id = $1
+           AND created_at >= $2
+           AND created_at < $3
            AND status = 'COMPLETED'
          GROUP BY DATE(created_at)
          ORDER BY DATE(created_at) ASC`,
-        [fromDate, toDate]
+        [storeId, fromDate, toDate]
     );
 
     return result.rows.map((row) => ({
@@ -102,7 +104,7 @@ export async function getWeeklySales() {
  * Get monthly sales grouped by day for current month
  * @returns {Promise<Array>} [{ date, total }, ...]
  */
-export async function getMonthlySales() {
+export async function getMonthlySales(storeId) {
     const fromDate = getStartOfMonth();
     const toDate = new Date(
         Date.UTC(fromDate.getUTCFullYear(), fromDate.getUTCMonth() + 1, 1)
@@ -113,12 +115,13 @@ export async function getMonthlySales() {
             DATE(created_at) as date,
             COALESCE(SUM(total), 0) as total
          FROM sales
-         WHERE created_at >= $1
-           AND created_at < $2
+         WHERE store_id = $1
+           AND created_at >= $2
+           AND created_at < $3
            AND status = 'COMPLETED'
          GROUP BY DATE(created_at)
          ORDER BY DATE(created_at) ASC`,
-        [fromDate, toDate]
+        [storeId, fromDate, toDate]
     );
 
     return result.rows.map((row) => ({
@@ -131,7 +134,7 @@ export async function getMonthlySales() {
  * Get sales chart data (optimized for chart libraries)
  * @returns {Promise<Object>} { labels: [...], data: [...] }
  */
-export async function getSalesChart() {
+export async function getSalesChart(storeId) {
     // Get last 30 days of sales data
     const fromDate = addDays(getStartOfDay(), -30);
 
@@ -140,11 +143,12 @@ export async function getSalesChart() {
             DATE(created_at) as date,
             COALESCE(SUM(total), 0) as total
          FROM sales
-         WHERE created_at >= $1
+         WHERE store_id = $1
+           AND created_at >= $2
            AND status = 'COMPLETED'
          GROUP BY DATE(created_at)
          ORDER BY DATE(created_at) ASC`,
-        [fromDate]
+        [storeId, fromDate]
     );
 
     const labels = [];

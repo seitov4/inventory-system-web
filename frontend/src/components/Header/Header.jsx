@@ -357,7 +357,7 @@ export default function Header() {
     const getRoleLabel = (roleValue) => {
         const labels = {
             owner: "Owner",
-            admin: "Administrator",
+            staff: "Staff",
             manager: "Manager",
             cashier: "Cashier",
         };
@@ -464,3 +464,4 @@ export default function Header() {
         </HeaderWrapper>
     );
 }
+

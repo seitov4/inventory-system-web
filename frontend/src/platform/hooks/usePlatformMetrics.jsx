@@ -44,7 +44,8 @@ function normalizeMetrics(raw, stores) {
     }
 
     const totalStores = raw.totalStores || raw.total_stores || stores.length;
-    const activeStores = raw.activeStores || raw.active_stores || stores.filter((s) => s.status === "active").length;
+    const activeStores =
+        raw.activeStores || raw.active_stores || stores.filter((s) => s.status === "active").length;
     const activeRatio = totalStores > 0 ? (activeStores / totalStores) * 100 : 0;
 
     return {
@@ -62,18 +63,7 @@ function normalizeMetrics(raw, stores) {
  */
 function normalizeGrowth(raw) {
     if (!raw || !raw.dailyGrowth) {
-        // Generate mock growth data if backend doesn't provide it
-        const today = new Date();
-        const dailyGrowth = [];
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date(today);
-            date.setDate(date.getDate() - i);
-            dailyGrowth.push({
-                date: date.toISOString().split("T")[0],
-                count: Math.floor(Math.random() * 5), // Mock: 0-4 new stores per day
-            });
-        }
-        return { dailyGrowth };
+        return { dailyGrowth: [] };
     }
 
     return {
@@ -106,7 +96,7 @@ function calculateTrends(current, previous) {
 
 /**
  * usePlatformMetrics Hook
- * 
+ *
  * Fetches and processes platform-wide metrics.
  * This is the ONLY place where calculations and trend logic exists.
  */
@@ -140,7 +130,10 @@ export default function usePlatformMetrics() {
                 rawMetrics = metricsResult.value;
             } else {
                 // eslint-disable-next-line no-console
-                console.warn("[usePlatformMetrics] Failed to fetch metrics, using calculated values", metricsResult.reason);
+                console.warn(
+                    "[usePlatformMetrics] Failed to fetch metrics, using calculated values",
+                    metricsResult.reason
+                );
             }
 
             // Process growth
@@ -149,12 +142,12 @@ export default function usePlatformMetrics() {
                 rawGrowth = growthResult.value;
             } else {
                 // eslint-disable-next-line no-console
-                console.warn("[usePlatformMetrics] Failed to fetch growth, using mock data", growthResult.reason);
+                console.warn("[usePlatformMetrics] Failed to fetch growth", growthResult.reason);
             }
 
-            // Normalize metrics (use stores data as fallback)
+            // Normalize metrics and derive store totals from the loaded store list when needed.
             const normalized = normalizeMetrics(rawMetrics, stores);
-            
+
             // Store previous metrics for trend calculation before updating
             setMetrics((prev) => {
                 if (prev) {
@@ -162,7 +155,7 @@ export default function usePlatformMetrics() {
                 }
                 return normalized;
             });
-            
+
             setGrowth(normalizeGrowth(rawGrowth));
 
             // Set error only if both endpoints failed
@@ -175,7 +168,7 @@ export default function usePlatformMetrics() {
             // eslint-disable-next-line no-console
             console.error("[usePlatformMetrics] Unexpected error", e);
             setError(e.message || "Failed to load platform metrics");
-            // Use fallback metrics
+            // Keep dashboard counters populated from already loaded store data.
             setMetrics(normalizeMetrics(null, stores));
             setGrowth(normalizeGrowth(null));
         } finally {
@@ -229,7 +222,10 @@ export default function usePlatformMetrics() {
         return {
             totalStores: calculateChange(metrics.totalStores, previousMetrics.totalStores),
             activeRatio: calculateChange(metrics.activeRatio, previousMetrics.activeRatio),
-            requestVolume: calculateChange(metrics.requestVolume24h, previousMetrics.requestVolume24h),
+            requestVolume: calculateChange(
+                metrics.requestVolume24h,
+                previousMetrics.requestVolume24h
+            ),
             averageLatency: calculateChange(metrics.averageLatency, previousMetrics.averageLatency),
             errorRate: calculateChange(metrics.errorRate, previousMetrics.errorRate),
         };
@@ -245,4 +241,3 @@ export default function usePlatformMetrics() {
         refresh: fetchMetrics,
     };
 }
-

@@ -28,7 +28,7 @@ export function getDefaultZoneLayout(data = {}) {
     };
     
     // Add info widgets based on role
-    if (role === 'owner' || role === 'admin') {
+    if (role === 'owner' || role === 'staff') {
         layout[ZONES.INFO] = [
             WIDGET_IDS.SALES_TRENDS,
             WIDGET_IDS.SHORTAGE_STOCK,
@@ -154,4 +154,5 @@ export function reorderWidgetInZone(layout, zone, oldIndex, newIndex) {
     
     return newLayout;
 }
+
 

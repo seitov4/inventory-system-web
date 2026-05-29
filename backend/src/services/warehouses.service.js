@@ -1,6 +1,6 @@
 import pool from "../utils/db.js";
 
-export async function getWarehouses() {
+export async function getWarehouses(storeId) {
     const result = await pool.query(
         `SELECT w.id,
                 w.name,
@@ -11,8 +11,10 @@ export async function getWarehouses() {
          FROM warehouses w
          LEFT JOIN stores s ON s.id = w.store_id
          LEFT JOIN stock st ON st.warehouse_id = w.id
+         WHERE w.store_id = $1
          GROUP BY w.id, s.name
-         ORDER BY w.id`
+         ORDER BY w.id`,
+        [storeId]
     );
 
     return result.rows;

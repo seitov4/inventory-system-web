@@ -11,21 +11,22 @@ const __dirname = dirname(__filename);
 const BACKEND_ROOT = resolve(__dirname, "../..");
 const PROJECT_ROOT = resolve(BACKEND_ROOT, "..");
 
-const DB_NAME = process.env.DB_NAME;
-const DB_HOST = process.env.DB_HOST || "localhost";
-const DB_PORT = Number(process.env.DB_PORT || 5432);
-const DB_USER = process.env.DB_USER;
-const DB_PASSWORD = process.env.DB_PASSWORD;
-const DB_SSL =
-    process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false;
+const DATABASE_URL = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL) : null;
+const DB_NAME = process.env.DB_NAME || DATABASE_URL?.pathname?.replace(/^\//, "");
+const DB_HOST = process.env.DB_HOST || DATABASE_URL?.hostname || "localhost";
+const DB_PORT = Number(process.env.DB_PORT || DATABASE_URL?.port || 5432);
+const DB_USER =
+    process.env.DB_USER || (DATABASE_URL ? decodeURIComponent(DATABASE_URL.username) : undefined);
+const DB_PASSWORD =
+    process.env.DB_PASSWORD ||
+    (DATABASE_URL ? decodeURIComponent(DATABASE_URL.password) : undefined);
+const DB_SSL = process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false;
 const DB_INIT_MAX_RETRIES = Number(process.env.DB_INIT_MAX_RETRIES || 10);
 const DB_INIT_RETRY_DELAY_MS = Number(process.env.DB_INIT_RETRY_DELAY_MS || 3000);
 
 function validatePostgresEnv() {
     if (!DB_NAME || !DB_USER) {
-        console.warn(
-            "Skipping Postgres auto-init: DB_NAME and DB_USER must be set"
-        );
+        console.warn("Skipping Postgres auto-init: DB_NAME and DB_USER must be set");
         return false;
     }
     return true;
@@ -65,15 +66,13 @@ function resolveOptionalPath(pathValue) {
 }
 
 function readSqlFile(label, candidatePaths) {
-    const existingPath = candidatePaths.filter(Boolean).find((candidatePath) =>
-        existsSync(candidatePath)
-    );
+    const existingPath = candidatePaths
+        .filter(Boolean)
+        .find((candidatePath) => existsSync(candidatePath));
 
     if (!existingPath) {
         throw new Error(
-            `${label} SQL file not found. Looked in: ${candidatePaths
-                .filter(Boolean)
-                .join(", ")}`
+            `${label} SQL file not found. Looked in: ${candidatePaths.filter(Boolean).join(", ")}`
         );
     }
 
@@ -102,9 +101,7 @@ async function waitForDatabaseServer(
 
             if (attempt === maxRetries) {
                 await adminPool.end();
-                throw new Error(
-                    "PostgreSQL server is not reachable after multiple attempts"
-                );
+                throw new Error("PostgreSQL server is not reachable after multiple attempts");
             }
 
             await sleep(delayMs);
@@ -117,10 +114,9 @@ async function ensureDatabaseExists() {
     const client = await adminPool.connect();
 
     try {
-        const result = await client.query(
-            "SELECT 1 FROM pg_database WHERE datname = $1",
-            [DB_NAME]
-        );
+        const result = await client.query("SELECT 1 FROM pg_database WHERE datname = $1", [
+            DB_NAME,
+        ]);
 
         if (result.rows.length === 0) {
             const safeDbName = DB_NAME.replace(/"/g, '""');
@@ -145,9 +141,7 @@ async function ensurePostgresSchema() {
         await client.query(initSql);
         console.log("PostgreSQL schema applied successfully");
 
-        const warehouseCount = await client.query(
-            "SELECT COUNT(*)::int AS count FROM warehouses"
-        );
+        const warehouseCount = await client.query("SELECT COUNT(*)::int AS count FROM warehouses");
 
         if (warehouseCount.rows[0].count === 0) {
             const defaultWarehouseSql = readSqlFile("Default warehouse seed", [

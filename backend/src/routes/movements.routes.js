@@ -13,7 +13,7 @@ const router = Router();
 router.get(
     "/",
     authRequired,
-    requireRole("manager", "owner", "admin"),
+    requireRole("manager", "owner"),
     getMovements
 );
 
@@ -21,7 +21,7 @@ router.get(
 router.post(
     "/in",
     authRequired,
-    requireRole("manager", "owner", "admin"),
+    requireRole("manager", "owner"),
     movementIn
 );
 
@@ -29,7 +29,7 @@ router.post(
 router.post(
     "/out",
     authRequired,
-    requireRole("manager", "owner", "admin"),
+    requireRole("manager", "owner"),
     movementOut
 );
 
@@ -37,7 +37,7 @@ router.post(
 router.post(
     "/transfer",
     authRequired,
-    requireRole("manager", "owner", "admin"),
+    requireRole("manager", "owner"),
     movementTransfer
 );
 

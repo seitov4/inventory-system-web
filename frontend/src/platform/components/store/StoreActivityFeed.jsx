@@ -2,7 +2,7 @@ import React from "react";
 import styled from "styled-components";
 import Card from "../../ui/Card.jsx";
 import SeverityBadge from "../SeverityBadge.jsx";
-import { formatTimestamp, calculateTimeAgo } from "../../utils/logFormatters.js";
+import { calculateTimeAgo } from "../../utils/logFormatters.js";
 
 const Feed = styled.div`
     display: flex;
@@ -62,7 +62,7 @@ const EmptyState = styled.div`
 
 /**
  * StoreActivityFeed Component
- * 
+ *
  * Displays recent store-specific activity events.
  * READ-ONLY observability view.
  */
@@ -100,4 +100,3 @@ export default function StoreActivityFeed({ activity }) {
         </Card>
     );
 }
-

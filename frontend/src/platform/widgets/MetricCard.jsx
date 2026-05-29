@@ -25,13 +25,6 @@ const Subtitle = styled.div`
     line-height: 1.4;
 `;
 
-const TrendRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 8px;
-`;
-
 const Comparison = styled.div`
     font-size: 11px;
     color: #9ca3af;
@@ -42,7 +35,7 @@ const Comparison = styled.div`
  */
 function formatValue(value, type) {
     if (value === null || value === undefined) return "N/A";
-    
+
     if (type === "percentage") {
         return `${value}%`;
     }
@@ -60,7 +53,7 @@ function formatValue(value, type) {
 
 /**
  * MetricCard Component
- * 
+ *
  * Displays a platform metric with trend and context.
  * Shows value, trend indicator, comparison, and optional chart.
  */
@@ -101,11 +94,7 @@ export default function MetricCard({
                     {trend && <TrendIndicator trend={trend} change={change} />}
                 </ValueRow>
 
-                {comparison && (
-                    <Comparison>
-                        {comparison}
-                    </Comparison>
-                )}
+                {comparison && <Comparison>{comparison}</Comparison>}
 
                 {subtitle && <Subtitle>{subtitle}</Subtitle>}
 
@@ -116,4 +105,3 @@ export default function MetricCard({
         </div>
     );
 }
-

@@ -53,20 +53,13 @@ const LoadingMessage = styled.div`
 `;
 
 export default function StoresSection({ onNavigate, onStoreSelect }) {
-    const {
-        stores,
-        loading,
-        error,
-        suspendStore,
-        resumeStore,
-        archiveStore,
-    } = useStores();
+    const { stores, loading, error, suspendStore, resumeStore, archiveStore } = useStores();
 
     const handleSuspend = async (storeId) => {
         try {
             await suspendStore(storeId);
         } catch (e) {
-            // Error is handled in the hook and displayed via error state
+            // Error is handled in the hook and displayed via error state.
         }
     };
 
@@ -74,7 +67,7 @@ export default function StoresSection({ onNavigate, onStoreSelect }) {
         try {
             await resumeStore(storeId);
         } catch (e) {
-            // Error is handled in the hook and displayed via error state
+            // Error is handled in the hook and displayed via error state.
         }
     };
 
@@ -82,7 +75,7 @@ export default function StoresSection({ onNavigate, onStoreSelect }) {
         try {
             await archiveStore(storeId);
         } catch (e) {
-            // Error is handled in the hook and displayed via error state
+            // Error is handled in the hook and displayed via error state.
         }
     };
 
@@ -93,38 +86,29 @@ export default function StoresSection({ onNavigate, onStoreSelect }) {
                     <Title>Stores</Title>
                     <Subtitle>
                         Multi-tenant inventory workspaces managed by the platform. Control store
-                        lifecycle: provision, suspend, resume, or archive.
+                        lifecycle: active, suspended, or inactive.
                     </Subtitle>
                 </TitleBlock>
                 <div style={{ display: "flex", gap: 8 }}>
-                    <Button
-                        tone="primary"
-                        size="medium"
-                        onClick={() => onNavigate("store-create")}
-                    >
+                    <Button tone="primary" size="medium" onClick={() => onNavigate("store-create")}>
                         + Add store
                     </Button>
                 </div>
             </HeaderRow>
 
             <div style={{ marginBottom: 14 }}>
-                <Card
-                    title="Store lifecycle"
-                    description="Manage tenant stores through their lifecycle states."
-                >
+                <Card title="Store lifecycle" description="Manage tenant stores through their lifecycle states.">
                     <div style={{ fontSize: 12, color: "#9ca3af", lineHeight: 1.6 }}>
-                        <strong>Provisioning:</strong> Store is being created and initialized.
+                        <strong>Active:</strong> Store is fully operational and users can log in.
                         <br />
-                        <strong>Active:</strong> Store is fully operational. Can be suspended or archived.
+                        <strong>Suspended:</strong> Store is disabled temporarily. Users lose access until resumed.
                         <br />
-                        <strong>Suspended:</strong> Store is disabled. Users lose access. Can be resumed or archived.
-                        <br />
-                        <strong>Archived:</strong> Store is read-only and cannot be reactivated. This action is irreversible.
+                        <strong>Inactive:</strong> Store is disabled permanently and cannot be reactivated through the UI.
                     </div>
                 </Card>
             </div>
 
-            {error && <ErrorMessage>⚠️ {error}</ErrorMessage>}
+            {error && <ErrorMessage>{error}</ErrorMessage>}
 
             {loading && stores.length === 0 ? (
                 <LoadingMessage>Loading stores...</LoadingMessage>
@@ -146,5 +130,3 @@ export default function StoresSection({ onNavigate, onStoreSelect }) {
         </>
     );
 }
-
-

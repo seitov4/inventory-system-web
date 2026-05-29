@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { findUserById } from "../services/users.service.js";
+import { findUserById, TENANT_ROLES } from "../services/users.service.js";
 import { createAppError, isAppError } from "../errors/app-error.js";
 import { ERROR_CODES } from "../errors/error-codes.js";
 
@@ -48,11 +48,23 @@ export async function authRequired(req, res, next) {
         const token = extractBearerToken(header);
         const payload = verifyJwtToken(token);
 
-        // Load full user from database
-        const user = await findUserById(payload.id);
+        if (payload.scope !== "tenant") {
+            throw createAppError(ERROR_CODES.AUTH_FORBIDDEN, 403);
+        }
+
+        const user = await findUserById(payload.sub || payload.id);
 
         if (!user) {
             throw createAppError(ERROR_CODES.AUTH_USER_NOT_FOUND, 401);
+        }
+
+        if (
+            user.is_active === false ||
+            !TENANT_ROLES.includes(user.role) ||
+            !user.store_id ||
+            user.store_status !== "active"
+        ) {
+            throw createAppError(ERROR_CODES.AUTH_FORBIDDEN, 403);
         }
 
         // Attach user to request (without password_hash)
@@ -64,8 +76,12 @@ export async function authRequired(req, res, next) {
             phone: userWithoutPassword.phone,
             first_name: userWithoutPassword.first_name,
             last_name: userWithoutPassword.last_name,
+            name: userWithoutPassword.name,
+            store_id: userWithoutPassword.store_id,
             store_name: userWithoutPassword.store_name,
             role: userWithoutPassword.role,
+            scope: "tenant",
+            is_active: userWithoutPassword.is_active !== false,
             created_at: userWithoutPassword.created_at,
         };
 
@@ -80,15 +96,16 @@ export async function authRequired(req, res, next) {
     }
 }
 
+export const tenantAuthRequired = authRequired;
+
 /**
  * Role-based authorization middleware
  * @param {...string} roles - Allowed roles
  * @returns {Function} Middleware function
- * 
+ *
  * Usage:
- *   requireRole("admin")
  *   requireRole("manager", "owner")
- *   requireRole("cashier", "manager", "owner", "admin")
+ *   requireRole("cashier", "manager", "owner")
  */
 export function requireRole(...roles) {
     return (req, res, next) => {
@@ -108,5 +125,4 @@ export function requireRole(...roles) {
     };
 }
 
-
-
+export const requireTenantRole = requireRole;

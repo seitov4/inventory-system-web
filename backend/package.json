@@ -1,33 +1,35 @@
 {
-  "name": "inventory-backend",
-  "version": "1.0.0",
-  "main": "src/server.js",
-  "type": "module",
-  "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "test": "node --test --test-isolation=none",
-    "create:test-user": "node scripts/create-test-user.js",
-    "seed:demo-data": "node scripts/seed-demo-data.js",
-    "db:setup": "node scripts/setup-db.js",
-    "db:check-sync": "node scripts/check-db-sync.js",
-    "db:init": "node scripts/run-init.js",
-    "lint": "eslint src --ext .js --max-warnings 0 || echo 'ESLint run completed'",
-    "format": "prettier --write \"src/**/*.{js,json}\" && echo 'Backend code formatted'"
-  },
-  "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.6.1",
-    "express": "^4.21.2",
-    "jsonwebtoken": "^9.0.2",
-    "morgan": "^1.10.0",
-    "pg": "^8.16.3",
-    "pg-hstore": "^2.3.4"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.7",
-    "eslint": "^8.57.0",
-    "prettier": "^3.2.5"
-  }
+    "name": "inventory-backend",
+    "version": "1.0.0",
+    "main": "src/server.js",
+    "type": "module",
+    "scripts": {
+        "start": "node src/server.js",
+        "dev": "nodemon src/server.js",
+        "test": "node --test --test-isolation=none",
+        "create:test-user": "node scripts/create-test-user.js",
+        "seed:admin": "node scripts/seed-platform-admin.js",
+        "seed:platform-admin": "node scripts/seed-platform-admin.js",
+        "seed:demo-data": "node scripts/seed-demo-data.js",
+        "db:setup": "node scripts/setup-db.js",
+        "db:check-sync": "node scripts/check-db-sync.js",
+        "db:init": "node scripts/run-init.js",
+        "lint": "eslint src --ext .js --max-warnings 0 || echo 'ESLint run completed'",
+        "format": "prettier --write \"src/**/*.{js,json}\" && echo 'Backend code formatted'"
+    },
+    "dependencies": {
+        "bcryptjs": "^2.4.3",
+        "cors": "^2.8.5",
+        "dotenv": "^16.6.1",
+        "express": "^4.21.2",
+        "jsonwebtoken": "^9.0.2",
+        "morgan": "^1.10.0",
+        "pg": "^8.16.3",
+        "pg-hstore": "^2.3.4"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.7",
+        "eslint": "^8.57.0",
+        "prettier": "^3.2.5"
+    }
 }

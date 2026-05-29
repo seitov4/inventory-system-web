@@ -7,6 +7,19 @@ export const DB_PROVIDER = "postgres";
 const POSTGRES_SSL = process.env.DB_SSL === "true";
 
 function createPostgresPool() {
+    if (process.env.DATABASE_URL) {
+        return new Pool({
+            connectionString: process.env.DATABASE_URL,
+            ssl: POSTGRES_SSL ? { rejectUnauthorized: false } : false,
+            max: 20,
+            min: 2,
+            idleTimeoutMillis: 30000,
+            connectionTimeoutMillis: 10000,
+            keepAlive: true,
+            keepAliveInitialDelayMillis: 10000,
+        });
+    }
+
     return new Pool({
         host: process.env.DB_HOST,
         port: Number(process.env.DB_PORT || 5432),
@@ -29,9 +42,7 @@ let keepAliveInterval = null;
 
 function ensurePoolInitialized() {
     if (!internalPool) {
-        throw new Error(
-            "Database pool is not initialized. Call initDb() before using the DB API."
-        );
+        throw new Error("Database pool is not initialized. Call initDb() before using the DB API.");
     }
 }
 
@@ -170,9 +181,7 @@ export async function safeQuery(text, params = [], maxRetries = 1) {
                         `Connection error (attempt ${attempt + 1}/${maxRetries + 1}), retrying...`,
                         err.message
                     );
-                    await new Promise((resolve) =>
-                        setTimeout(resolve, 1000 * (attempt + 1))
-                    );
+                    await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
                     continue;
                 }
             }
@@ -185,6 +194,14 @@ export async function safeQuery(text, params = [], maxRetries = 1) {
 }
 
 export function getDatabaseInfo() {
+    if (process.env.DATABASE_URL) {
+        const url = new URL(process.env.DATABASE_URL);
+        return {
+            provider: "postgres",
+            target: `${url.hostname}:${url.port || 5432}${url.pathname}`,
+        };
+    }
+
     return {
         provider: "postgres",
         target: `${process.env.DB_HOST || "localhost"}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || ""}`,

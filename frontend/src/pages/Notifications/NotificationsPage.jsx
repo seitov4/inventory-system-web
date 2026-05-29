@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import Layout from "../../components/Layout/Layout";
 import notificationsApi from "../../api/notificationsApi";
@@ -38,10 +38,12 @@ const NotificationCard = styled.div`
     justify-content: space-between;
     align-items: flex-start;
     gap: 16px;
-    ${props => props.$unread && `border-left: 3px solid var(--warning-color);`}
+    ${(props) => props.$unread && `border-left: 3px solid var(--warning-color);`}
     opacity: 1;
     transform: translateY(0);
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    transition:
+        opacity 0.3s ease,
+        transform 0.3s ease;
 `;
 
 const NotificationContent = styled.div`
@@ -52,7 +54,7 @@ const NotificationMessage = styled.div`
     font-size: 14px;
     color: var(--text-primary);
     margin-bottom: 4px;
-    font-weight: ${props => props.$unread ? '600' : '400'};
+    font-weight: ${(props) => (props.$unread ? "600" : "400")};
 `;
 
 const NotificationDate = styled.div`
@@ -64,8 +66,8 @@ const NotificationStatus = styled.div`
     font-size: 11px;
     padding: 4px 8px;
     border-radius: 4px;
-    background: ${props => props.$unread ? 'var(--warning-bg)' : 'var(--bg-tertiary)'};
-    color: ${props => props.$unread ? 'var(--warning-color)' : 'var(--text-secondary)'};
+    background: ${(props) => (props.$unread ? "var(--warning-bg)" : "var(--bg-tertiary)")};
+    color: ${(props) => (props.$unread ? "var(--warning-color)" : "var(--text-secondary)")};
     font-weight: 600;
 `;
 
@@ -146,8 +148,8 @@ export default function NotificationsPage() {
         try {
             await notificationsApi.markAsRead(id);
             // Update local state
-            setNotifications(prev =>
-                prev.map(n => n.id === id ? { ...n, status: 'READ' } : n)
+            setNotifications((prev) =>
+                prev.map((n) => (n.id === id ? { ...n, status: "READ" } : n))
             );
         } catch (e) {
             console.error(e);
@@ -167,22 +169,22 @@ export default function NotificationsPage() {
     };
 
     const formatNotificationMessage = (notification) => {
-        if (notification.type === 'LOW_STOCK') {
+        if (notification.type === "LOW_STOCK") {
             const payload = notification.payload || {};
-            return `Low stock: ${payload.product_name || 'Product'} (${payload.quantity || 0} pcs, min: ${payload.min_stock || 0})`;
+            return `Low stock: ${payload.product_name || "Product"} (${payload.quantity || 0} pcs, min: ${payload.min_stock || 0})`;
         }
-        return notification.message || 'Notification';
+        return notification.message || "Notification";
     };
 
     const formatDate = (dateString) => {
-        if (!dateString) return '';
+        if (!dateString) return "";
         const date = new Date(dateString);
-        return date.toLocaleString('en-US', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
+        return date.toLocaleString("en-US", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
         });
     };
 
@@ -193,10 +195,10 @@ export default function NotificationsPage() {
                 <ErrorText
                     ref={(el) => {
                         if (el && el instanceof HTMLElement && !el.dataset.animated) {
-                            el.dataset.animated = 'true';
+                            el.dataset.animated = "true";
                             requestAnimationFrame(() => {
                                 if (el && el.isConnected) {
-                                    slideIn(el, 'top', 0, { duration: 400 });
+                                    slideIn(el, "top", 0, { duration: 400 });
                                 }
                             });
                         }
@@ -213,22 +215,25 @@ export default function NotificationsPage() {
             {!loading && notifications.length > 0 && (
                 <NotificationsList>
                     {notifications.map((notification, index) => {
-                        const isUnread = notification.status === 'UNREAD' || notification.is_read === false;
+                        const isUnread =
+                            notification.status === "UNREAD" || notification.is_read === false;
                         return (
-                            <NotificationCard 
-                                key={notification.id} 
+                            <NotificationCard
+                                key={notification.id}
                                 $unread={isUnread}
                                 ref={(el) => {
                                     if (el && el instanceof HTMLElement && !el.dataset.animated) {
-                                        el.dataset.animated = 'true';
+                                        el.dataset.animated = "true";
                                         // Apply animation with delay for staggered effect
                                         requestAnimationFrame(() => {
                                             setTimeout(() => {
                                                 if (el && el.isConnected) {
                                                     try {
-                                                        slideIn(el, 'top', index * 50, { duration: 500 });
+                                                        slideIn(el, "top", index * 50, {
+                                                            duration: 500,
+                                                        });
                                                     } catch (err) {
-                                                        console.warn('Animation error:', err);
+                                                        console.warn("Animation error:", err);
                                                         // Element is already visible, so no fallback needed
                                                     }
                                                 }
@@ -244,7 +249,7 @@ export default function NotificationsPage() {
                                     <NotificationDate>
                                         {formatDate(notification.created_at)}
                                     </NotificationDate>
-                                    {notification.type === 'LOW_STOCK' && (
+                                    {notification.type === "LOW_STOCK" && (
                                         <ActionRow>
                                             <SecondaryButton
                                                 type="button"
@@ -255,9 +260,9 @@ export default function NotificationsPage() {
                                         </ActionRow>
                                     )}
                                 </NotificationContent>
-                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
                                     <NotificationStatus $unread={isUnread}>
-                                        {isUnread ? 'New' : 'Read'}
+                                        {isUnread ? "New" : "Read"}
                                     </NotificationStatus>
                                     {isUnread && (
                                         <MarkReadButton
@@ -275,4 +280,3 @@ export default function NotificationsPage() {
         </Layout>
     );
 }
-

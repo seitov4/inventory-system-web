@@ -57,6 +57,33 @@ async function removeConflictingAliases(userId) {
     );
 }
 
+async function ensureTestStore() {
+    const storeResult = await safeQuery(
+        `INSERT INTO stores (name, slug, status, plan, region, created_at, updated_at)
+         VALUES ($1, $2, 'active', 'default', 'local', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+         ON CONFLICT (slug)
+         DO UPDATE SET name = EXCLUDED.name, status = 'active', updated_at = CURRENT_TIMESTAMP
+         RETURNING id, name, primary_warehouse_id`,
+        [TEST_USER.store_name, "local-test-store"]
+    );
+    const store = storeResult.rows[0];
+
+    if (!store.primary_warehouse_id) {
+        const warehouseResult = await safeQuery(
+            `INSERT INTO warehouses (store_id, name, type, created_at, updated_at)
+             VALUES ($1, $2, 'store', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+             RETURNING id`,
+            [store.id, `${store.name} Main Warehouse`]
+        );
+        await safeQuery(
+            `UPDATE stores SET primary_warehouse_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+            [warehouseResult.rows[0].id, store.id]
+        );
+    }
+
+    return store;
+}
+
 async function verifyTestLogin() {
     const user = await findUserByPhone(TEST_USER.phone);
     if (!user) {
@@ -83,6 +110,7 @@ async function ensureTestUser() {
     console.log("Checking for existing test user...");
 
     const existingUser = await findExistingTestUser();
+    const store = await ensureTestStore();
 
     if (existingUser) {
         console.log("Test user already exists. Updating login fields and password...");
@@ -97,9 +125,10 @@ async function ensureTestUser() {
                  store_name = $5,
                  password_hash = $6,
                  role = $7,
+                 store_id = $8,
                  updated_at = CURRENT_TIMESTAMP
-             WHERE id = $8
-             RETURNING id, email, phone, first_name, last_name, store_name, role, created_at`,
+             WHERE id = $9
+             RETURNING id, store_id, email, phone, first_name, last_name, store_name, role, created_at`,
             [
                 TEST_USER.email,
                 TEST_USER.phone,
@@ -108,6 +137,7 @@ async function ensureTestUser() {
                 TEST_USER.store_name,
                 passwordHash,
                 TEST_USER.role,
+                store.id,
                 existingUser.id,
             ]
         );

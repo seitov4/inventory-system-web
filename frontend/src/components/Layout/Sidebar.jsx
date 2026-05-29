@@ -16,18 +16,18 @@ import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 
 const navItems = [
-    { key: "dashboard", label: "Dashboard", icon: DashboardOutlinedIcon, roles: ["cashier", "manager", "owner", "admin"] },
-    { key: "products", label: "Products", icon: Inventory2OutlinedIcon, roles: ["cashier", "manager", "owner", "admin"] },
-    { key: "warehouse", label: "Warehouse", icon: WarehouseOutlinedIcon, roles: ["manager", "owner", "admin"] },
-    { key: "stockIn", label: "Stock intake", icon: MoveToInboxOutlinedIcon, roles: ["manager", "owner", "admin"] },
-    { key: "pos", label: "POS", icon: PointOfSaleOutlinedIcon, roles: ["cashier", "manager", "owner", "admin"] },
-    { key: "sales", label: "Analytics", icon: TrendingUpOutlinedIcon, roles: ["owner", "admin"] },
-    { key: "forecast", label: "Forecast", icon: AutoGraphOutlinedIcon, roles: ["owner", "admin"] },
-    { key: "reports", label: "Reports", icon: DescriptionOutlinedIcon, roles: ["owner", "admin"] },
-    { key: "movements", label: "Movements", icon: SwapHorizOutlinedIcon, roles: ["manager", "owner", "admin"] },
-    { key: "notifications", label: "Notifications", icon: NotificationsNoneOutlinedIcon, roles: ["cashier", "manager", "owner", "admin"] },
-    { key: "addEmployee", label: "Staff", icon: GroupsOutlinedIcon, roles: ["owner", "admin"] },
-    { key: "settings", label: "Settings", icon: SettingsOutlinedIcon, roles: ["owner", "admin"] },
+    { key: "dashboard", label: "Dashboard", icon: DashboardOutlinedIcon, roles: ["cashier", "manager", "owner"] },
+    { key: "products", label: "Products", icon: Inventory2OutlinedIcon, roles: ["cashier", "manager", "owner"] },
+    { key: "warehouse", label: "Warehouse", icon: WarehouseOutlinedIcon, roles: ["manager", "owner"] },
+    { key: "stockIn", label: "Stock intake", icon: MoveToInboxOutlinedIcon, roles: ["manager", "owner"] },
+    { key: "pos", label: "POS", icon: PointOfSaleOutlinedIcon, roles: ["cashier", "manager", "owner"] },
+    { key: "sales", label: "Analytics", icon: TrendingUpOutlinedIcon, roles: ["owner"] },
+    { key: "forecast", label: "Forecast", icon: AutoGraphOutlinedIcon, roles: ["owner"] },
+    { key: "reports", label: "Reports", icon: DescriptionOutlinedIcon, roles: ["owner"] },
+    { key: "movements", label: "Movements", icon: SwapHorizOutlinedIcon, roles: ["manager", "owner"] },
+    { key: "notifications", label: "Notifications", icon: NotificationsNoneOutlinedIcon, roles: ["cashier", "manager", "owner"] },
+    { key: "addEmployee", label: "Staff", icon: GroupsOutlinedIcon, roles: ["owner"] },
+    { key: "settings", label: "Settings", icon: SettingsOutlinedIcon, roles: ["owner"] },
 ];
 
 const SidebarWrapper = styled.aside`
@@ -263,3 +263,4 @@ export default function Sidebar({ onCollapseChange }) {
         </SidebarWrapper>
     );
 }
+

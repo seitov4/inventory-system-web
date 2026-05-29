@@ -344,7 +344,7 @@ export default function AddEmployeePage() {
                                 >
                                     <option value="cashier">Cashier</option>
                                     <option value="manager">Manager</option>
-                                    <option value="admin">Administrator</option>
+                                    <option value="staff">Staff</option>
                                 </FormSelect>
                             </FormGroup>
                         </FormRow>
@@ -383,4 +383,5 @@ export default function AddEmployeePage() {
         </Layout>
     );
 }
+
 

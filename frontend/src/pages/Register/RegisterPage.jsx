@@ -230,7 +230,7 @@ const RegisterPage = () => {
             <Card>
                 <Title>Store registration</Title>
                 <Subtitle>
-                    Create a store and the first administrator in one step.
+                    Create a store and the first owner account in one step.
                 </Subtitle>
 
                 {error && <ErrorMessage>{error}</ErrorMessage>}
@@ -249,7 +249,7 @@ const RegisterPage = () => {
 
                     <FormRow>
                         <Label>
-                            Admin first name
+                            Owner first name
                             <Input
                                 type="text"
                                 name="firstName"
@@ -259,7 +259,7 @@ const RegisterPage = () => {
                             />
                         </Label>
                         <Label>
-                            Admin last name
+                            Owner last name
                             <Input
                                 type="text"
                                 name="lastName"
@@ -289,7 +289,6 @@ const RegisterPage = () => {
                             onChange={handleChange}
                         >
                             <option value="owner">Owner (owner)</option>
-                            <option value="admin">Administrator (admin)</option>
                         </Select>
                     </Label>
 
@@ -335,4 +334,5 @@ const RegisterPage = () => {
 };
 
 export default RegisterPage;
+
 

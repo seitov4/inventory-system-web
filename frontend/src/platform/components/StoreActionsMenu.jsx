@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import styled from "styled-components";
-import Button from "../ui/Button.jsx";
 import ConfirmLifecycleAction from "./ConfirmLifecycleAction.jsx";
 
 const Menu = styled.div`
@@ -30,12 +29,6 @@ const MenuButton = styled.button`
     }
 `;
 
-/**
- * StoreActionsMenu Component
- * 
- * Context-aware actions menu based on store lifecycle status.
- * Shows appropriate actions for each status and handles confirmations.
- */
 export default function StoreActionsMenu({
     store,
     onSuspend,
@@ -45,25 +38,34 @@ export default function StoreActionsMenu({
 }) {
     const [confirmAction, setConfirmAction] = useState(null);
 
-    // Determine available actions based on status
     const getAvailableActions = () => {
         const status = String(store.status).toLowerCase();
 
         switch (status) {
-            case "provisioning":
-                return []; // No actions during provisioning
             case "active":
                 return [
-                    { type: "suspend", label: "Suspend", handler: () => setConfirmAction("suspend") },
-                    { type: "archive", label: "Archive", handler: () => setConfirmAction("archive") },
+                    {
+                        type: "suspend",
+                        label: "Suspend",
+                        handler: () => setConfirmAction("suspend"),
+                    },
+                    {
+                        type: "deactivate",
+                        label: "Deactivate",
+                        handler: () => setConfirmAction("deactivate"),
+                    },
                 ];
             case "suspended":
                 return [
                     { type: "resume", label: "Resume", handler: () => setConfirmAction("resume") },
-                    { type: "archive", label: "Archive", handler: () => setConfirmAction("archive") },
+                    {
+                        type: "deactivate",
+                        label: "Deactivate",
+                        handler: () => setConfirmAction("deactivate"),
+                    },
                 ];
-            case "archived":
-                return []; // No actions for archived stores (read-only)
+            case "inactive":
+                return [];
             default:
                 return [];
         }
@@ -78,29 +80,25 @@ export default function StoreActionsMenu({
                 case "resume":
                     await onResume(store.id);
                     break;
-                case "archive":
+                case "deactivate":
                     await onArchive(store.id);
+                    break;
+                default:
                     break;
             }
         } catch (error) {
-            // Error handling is done in the hook
             console.error("[StoreActionsMenu] Action failed", error);
         } finally {
             setConfirmAction(null);
         }
     };
 
-    const handleCancel = () => {
-        setConfirmAction(null);
-    };
-
     const availableActions = getAvailableActions();
 
-    // No actions available
     if (availableActions.length === 0) {
         return (
             <span style={{ fontSize: 12, color: "#6b7280", fontStyle: "italic" }}>
-                {store.status === "archived" ? "Read-only" : "No actions"}
+                {store.status === "inactive" ? "Read-only" : "No actions"}
             </span>
         );
     }
@@ -109,11 +107,7 @@ export default function StoreActionsMenu({
         <>
             <Menu>
                 {availableActions.map((action) => (
-                    <MenuButton
-                        key={action.type}
-                        onClick={action.handler}
-                        disabled={loading}
-                    >
+                    <MenuButton key={action.type} onClick={action.handler} disabled={loading}>
                         {action.label}
                     </MenuButton>
                 ))}
@@ -123,12 +117,11 @@ export default function StoreActionsMenu({
                 <ConfirmLifecycleAction
                     actionType={confirmAction}
                     storeName={store.name}
-                    irreversible={confirmAction === "archive"}
+                    irreversible={confirmAction === "deactivate"}
                     onConfirm={handleConfirm}
-                    onCancel={handleCancel}
+                    onCancel={() => setConfirmAction(null)}
                 />
             )}
         </>
     );
 }
-

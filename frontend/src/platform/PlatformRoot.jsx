@@ -9,6 +9,7 @@ import MonitoringSection from "./sections/MonitoringSection.jsx";
 import LogsSection from "./sections/LogsSection.jsx";
 import SettingsSection from "./sections/SettingsSection.jsx";
 import StoreOverviewSection from "./sections/StoreOverviewSection.jsx";
+import UsersSection from "./sections/UsersSection.jsx";
 
 const PlatformGlobalStyle = createGlobalStyle`
     * {
@@ -54,7 +55,14 @@ export default function PlatformRoot() {
             case "dashboard":
                 return <DashboardSection onNavigate={handleNavigate} />;
             case "stores":
-                return <StoresSection onNavigate={handleNavigate} onStoreSelect={(id) => handleNavigate("store-overview", id)} />;
+                return (
+                    <StoresSection
+                        onNavigate={handleNavigate}
+                        onStoreSelect={(id) => handleNavigate("store-overview", id)}
+                    />
+                );
+            case "users":
+                return <UsersSection />;
             case "store-create":
                 return <StoreCreateSection onNavigate={handleNavigate} />;
             case "store-overview":
@@ -79,5 +87,3 @@ export default function PlatformRoot() {
         </>
     );
 }
-
-

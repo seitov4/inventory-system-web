@@ -12,7 +12,7 @@ const router = Router();
 router.get(
     "/sales",
     authRequired,
-    requireRole("owner", "admin"),
+    requireRole("owner"),
     getSalesReportController
 );
 

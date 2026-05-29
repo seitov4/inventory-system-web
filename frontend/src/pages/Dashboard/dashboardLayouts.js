@@ -135,7 +135,7 @@ export function getDefaultLayout(data = {}) {
     // ============================================
     const infoY = canSeeAnalytics ? 6 : 2; // If no chart, start at y=2
     
-    if (role === 'owner' || role === 'admin') {
+    if (role === 'owner' || role === 'staff') {
         layout.push({
             i: WIDGET_IDS.SALES_TRENDS,
             x: 0,
@@ -396,4 +396,5 @@ export function saveLayout(role, layout) {
         console.warn('Failed to save dashboard layout:', e);
     }
 }
+
 

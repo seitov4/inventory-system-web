@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getStoreDetails, getStoreHealth, getStoreActivity } from "../api/stores.api.js";
 
 /**
@@ -69,7 +69,7 @@ function normalizeActivity(rawEvents) {
 
 /**
  * useStoreOverview Hook
- * 
+ *
  * Fetches and aggregates store-level observability data.
  * READ-ONLY only - no write operations.
  */
@@ -113,7 +113,10 @@ export default function useStoreOverview(storeId) {
                 }
             } else {
                 // eslint-disable-next-line no-console
-                console.warn("[useStoreOverview] Failed to fetch store details", detailsResult.reason);
+                console.warn(
+                    "[useStoreOverview] Failed to fetch store details",
+                    detailsResult.reason
+                );
             }
 
             // Process health
@@ -125,7 +128,10 @@ export default function useStoreOverview(storeId) {
                 }
             } else {
                 // eslint-disable-next-line no-console
-                console.warn("[useStoreOverview] Failed to fetch store health", healthResult.reason);
+                console.warn(
+                    "[useStoreOverview] Failed to fetch store health",
+                    healthResult.reason
+                );
                 setHealth(normalizeHealth(null));
             }
 
@@ -137,7 +143,10 @@ export default function useStoreOverview(storeId) {
                 setActivity(normalized);
             } else {
                 // eslint-disable-next-line no-console
-                console.warn("[useStoreOverview] Failed to fetch store activity", activityResult.reason);
+                console.warn(
+                    "[useStoreOverview] Failed to fetch store activity",
+                    activityResult.reason
+                );
                 setActivity([]);
             }
 
@@ -202,4 +211,3 @@ export default function useStoreOverview(storeId) {
         refresh,
     };
 }
-

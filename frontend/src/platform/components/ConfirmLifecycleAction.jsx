@@ -56,12 +56,6 @@ const Actions = styled.div`
     justify-content: flex-end;
 `;
 
-/**
- * ConfirmLifecycleAction Component
- * 
- * Reusable confirmation dialog for lifecycle actions.
- * Shows action type, store name, and consequences.
- */
 export default function ConfirmLifecycleAction({
     actionType,
     storeName,
@@ -76,8 +70,8 @@ export default function ConfirmLifecycleAction({
                 return `Suspend store "${storeName}"?`;
             case "resume":
                 return `Resume store "${storeName}"?`;
-            case "archive":
-                return `Archive store "${storeName}"?`;
+            case "deactivate":
+                return `Deactivate store "${storeName}"?`;
             default:
                 return `Perform action on "${storeName}"?`;
         }
@@ -89,10 +83,10 @@ export default function ConfirmLifecycleAction({
                 return "Users will lose access to this store. The store can be resumed later.";
             case "resume":
                 return "Users will regain access to this store.";
-            case "archive":
-                return "This action cannot be undone. The store will become read-only and cannot be reactivated.";
+            case "deactivate":
+                return "This action cannot be undone. The store will become inactive and cannot be reactivated.";
             default:
-                return customMessage || "This action will affect the store's availability.";
+                return customMessage || "This action will affect the store availability.";
         }
     };
 
@@ -102,19 +96,13 @@ export default function ConfirmLifecycleAction({
                 <Title>{getActionText()}</Title>
                 <Message>{getConsequenceText()}</Message>
                 {irreversible && (
-                    <Warning>
-                        ⚠️ This action is irreversible. Please confirm you want to proceed.
-                    </Warning>
+                    <Warning>This action is irreversible. Please confirm you want to proceed.</Warning>
                 )}
                 <Actions>
                     <Button tone="ghost" size="medium" onClick={onCancel}>
                         Cancel
                     </Button>
-                    <Button
-                        tone={irreversible ? "danger" : "primary"}
-                        size="medium"
-                        onClick={onConfirm}
-                    >
+                    <Button tone={irreversible ? "danger" : "primary"} size="medium" onClick={onConfirm}>
                         Confirm
                     </Button>
                 </Actions>
@@ -122,4 +110,3 @@ export default function ConfirmLifecycleAction({
         </Overlay>
     );
 }
-

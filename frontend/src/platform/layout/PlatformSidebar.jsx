@@ -19,13 +19,13 @@ const BrandMark = styled.div`
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    background: #EFF6FF;
+    background: #eff6ff;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 14px;
     font-weight: 700;
-    color: #2563EB;
+    color: #2563eb;
     margin-right: 10px;
 `;
 
@@ -82,8 +82,8 @@ const NavIcon = styled.span`
     width: 24px;
     height: 24px;
     border-radius: 6px;
-    background: #F1F5F9;
-    color: #6B7280;
+    background: #f1f5f9;
+    color: #6b7280;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -96,7 +96,7 @@ const NavText = styled.span`
 const Footer = styled.div`
     margin-top: auto;
     padding-top: 12px;
-    border-top: 1px solid #E5E7EB;
+    border-top: 1px solid #e5e7eb;
     font-size: 11px;
     color: #6b7280;
 `;
@@ -122,6 +122,12 @@ const navItems = [
         key: "store-create",
         label: "Create store",
         icon: "CR",
+        group: "core",
+    },
+    {
+        key: "users",
+        label: "Platform admins",
+        icon: "US",
         group: "core",
     },
     {
@@ -206,10 +212,8 @@ export default function PlatformSidebar({ activeSection, onNavigate }) {
 
             <Footer>
                 <div>Inventory Platform · SaaS</div>
-                <Version>v0.1 · mock mode</Version>
+                <Version>v0.1</Version>
             </Footer>
         </SidebarInner>
     );
 }
-
-

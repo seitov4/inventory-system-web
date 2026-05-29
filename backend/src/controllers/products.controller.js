@@ -15,7 +15,7 @@ import { success } from "../utils/response.js";
 
 export async function listProducts(req, res, next) {
     try {
-        const products = await getAllProducts();
+        const products = await getAllProducts(req.user.store_id);
         return success(res, products);
     } catch (err) {
         return next(err);
@@ -25,7 +25,7 @@ export async function listProducts(req, res, next) {
 export async function getProduct(req, res, next) {
     try {
         const { id } = req.params;
-        const product = await getProductById(id);
+        const product = await getProductById(req.user.store_id, id);
         if (!product) {
             return next(createAppError(ERROR_CODES.PRODUCT_NOT_FOUND, 404));
         }
@@ -38,7 +38,7 @@ export async function getProduct(req, res, next) {
 export async function getProductByBarcodeController(req, res, next) {
     try {
         const { code } = req.params;
-        const product = await getProductByBarcode(code);
+        const product = await getProductByBarcode(req.user.store_id, code);
         if (!product) {
             return next(createAppError(ERROR_CODES.PRODUCT_NOT_FOUND, 404));
         }
@@ -50,7 +50,7 @@ export async function getProductByBarcodeController(req, res, next) {
 
 export async function getProductsLeftController(req, res, next) {
     try {
-        const rows = await getProductsWithLeft();
+        const rows = await getProductsWithLeft(req.user.store_id);
         return success(res, rows);
     } catch (err) {
         return next(err);
@@ -59,7 +59,7 @@ export async function getProductsLeftController(req, res, next) {
 
 export async function getLowStockController(req, res, next) {
     try {
-        const rows = await getLowStockProducts();
+        const rows = await getLowStockProducts(req.user.store_id);
         return success(res, rows);
     } catch (err) {
         return next(err);
@@ -68,7 +68,7 @@ export async function getLowStockController(req, res, next) {
 
 export async function createProductController(req, res, next) {
     try {
-        const product = await createProduct(req.body);
+        const product = await createProduct(req.user.store_id, req.body);
         return success(res, product, 201);
     } catch (err) {
         if (err.code === "23505") {
@@ -96,7 +96,7 @@ export async function createProductController(req, res, next) {
 export async function updateProductController(req, res, next) {
     try {
         const { id } = req.params;
-        const updated = await updateProduct(id, req.body);
+        const updated = await updateProduct(req.user.store_id, id, req.body);
         if (!updated) {
             return next(createAppError(ERROR_CODES.PRODUCT_NOT_FOUND, 404));
         }
@@ -127,7 +127,7 @@ export async function updateProductController(req, res, next) {
 export async function deleteProductController(req, res, next) {
     try {
         const { id } = req.params;
-        const result = await deleteProduct(id);
+        const result = await deleteProduct(req.user.store_id, id);
         if (!result) {
             return next(createAppError(ERROR_CODES.PRODUCT_NOT_FOUND, 404));
         }
@@ -163,7 +163,7 @@ export async function importProductsController(req, res, next) {
             return next(createAppError(ERROR_CODES.PRODUCT_IMPORT_MAX_LIMIT, 400));
         }
 
-        const result = await importProducts(products);
+        const result = await importProducts(req.user.store_id, products);
         return success(res, result, 201);
     } catch (err) {
         return next(err);

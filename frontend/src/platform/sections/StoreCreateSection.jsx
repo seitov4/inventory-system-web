@@ -106,7 +106,6 @@ export default function StoreCreateSection({ onNavigate }) {
         setError("");
         setSuccess("");
 
-        // Mock-first: try API, on error UI will remain in mock state
         createStore({
             name: form.name.trim(),
             slug: form.slug.trim(),
@@ -117,9 +116,7 @@ export default function StoreCreateSection({ onNavigate }) {
                 setSuccess("Store created successfully.");
             })
             .catch(() => {
-                setError(
-                    "Store was not persisted to backend (mock-only). Please check platform API configuration."
-                );
+                setError("Store was not created. Please check platform API configuration.");
             })
             .finally(() => {
                 setSubmitting(false);
@@ -182,11 +179,7 @@ export default function StoreCreateSection({ onNavigate }) {
                         <Button type="submit" disabled={submitting}>
                             {submitting ? "Creating..." : "Create store"}
                         </Button>
-                        <Button
-                            type="button"
-                            tone="ghost"
-                            onClick={() => onNavigate("stores")}
-                        >
+                        <Button type="button" tone="ghost" onClick={() => onNavigate("stores")}>
                             Cancel
                         </Button>
                     </Actions>
@@ -195,5 +188,3 @@ export default function StoreCreateSection({ onNavigate }) {
         </Grid>
     );
 }
-
-

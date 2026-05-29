@@ -18,7 +18,7 @@ export async function getNotifications(req, res, next) {
         const limit = Number(req.query.limit || 100);
         const offset = Number(req.query.offset || 0);
 
-        const notifications = await getUserNotifications(userId, {
+        const notifications = await getUserNotifications(req.user.store_id, userId, {
             status,
             limit,
             offset,
@@ -46,7 +46,7 @@ export async function markAsRead(req, res, next) {
         const { id } = req.params;
         const userId = req.user.id;
 
-        const updated = await markAsReadService(id, userId);
+        const updated = await markAsReadService(req.user.store_id, id, userId);
 
         if (!updated) {
             return next(

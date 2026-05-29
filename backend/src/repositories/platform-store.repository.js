@@ -1,5 +1,6 @@
 import { safeQuery, withTransaction } from "../utils/db.js";
 import { mapStoreRow, normalizeStoreStatus, statusToWarehouseType } from "../domain/platform-store.domain.js";
+import bcrypt from "bcryptjs";
 
 async function getStoreByIdWithExecutor(executor, id) {
     const result = await executor(
@@ -17,7 +18,7 @@ async function getStoreByIdWithExecutor(executor, id) {
                 COUNT(DISTINCT w.id) AS warehouse_count
          FROM stores s
          LEFT JOIN warehouses w ON w.store_id = s.id
-         LEFT JOIN sales sa ON sa.warehouse_id = w.id
+         LEFT JOIN sales sa ON sa.store_id = s.id
          WHERE s.id = $1
          GROUP BY s.id, s.name, s.slug, s.owner_email, s.status, s.plan, s.region, s.address, s.primary_warehouse_id, s.created_at`,
         [id]
@@ -42,7 +43,7 @@ export async function listStoresRepo() {
                 COUNT(DISTINCT w.id) AS warehouse_count
          FROM stores s
          LEFT JOIN warehouses w ON w.store_id = s.id
-         LEFT JOIN sales sa ON sa.warehouse_id = w.id
+         LEFT JOIN sales sa ON sa.store_id = s.id
          GROUP BY s.id, s.name, s.slug, s.owner_email, s.status, s.plan, s.region, s.address, s.primary_warehouse_id, s.created_at
          ORDER BY s.created_at DESC`
     );
@@ -70,6 +71,7 @@ export async function createStoreRepo({
     name,
     slug,
     ownerEmail = null,
+    ownerPassword = null,
     plan = "standard",
     region = "local",
     address = null,
@@ -103,6 +105,23 @@ export async function createStoreRepo({
              WHERE id = $2`,
             [primaryWarehouseId, storeId]
         );
+
+        if (ownerEmail && ownerPassword) {
+            const passwordHash = await bcrypt.hash(ownerPassword, 10);
+            await client.query(
+                `INSERT INTO users
+                     (store_id, email, first_name, last_name, store_name, password_hash, role, is_active, created_at, updated_at)
+                 VALUES ($1, $2, $3, $4, $5, $6, 'owner', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                 ON CONFLICT (email)
+                 DO UPDATE SET
+                     store_id = EXCLUDED.store_id,
+                     store_name = EXCLUDED.store_name,
+                     role = 'owner',
+                     is_active = TRUE,
+                     updated_at = CURRENT_TIMESTAMP`,
+                [storeId, ownerEmail, "Store", "Owner", name, passwordHash]
+            );
+        }
 
         return storeId;
     });
@@ -158,7 +177,7 @@ export async function getStoreHealthRepo(id) {
          FROM stores s
          LEFT JOIN warehouses w ON w.store_id = s.id
          LEFT JOIN stock st ON st.warehouse_id = w.id
-         LEFT JOIN sales sa ON sa.warehouse_id = w.id
+         LEFT JOIN sales sa ON sa.store_id = s.id
          WHERE s.id = $1
          GROUP BY s.id, s.name`,
         [id]
@@ -172,8 +191,8 @@ export async function getStoreHealthRepo(id) {
     const userCountResult = await safeQuery(
         `SELECT COUNT(*) AS user_count
          FROM users
-         WHERE store_name = $1`,
-        [row.name]
+         WHERE store_id = $1`,
+        [id]
     );
 
     return {
@@ -193,11 +212,7 @@ export async function getStoreActivityRepo(id, limit = 50) {
                 sa.status,
                 sa.created_at
          FROM sales sa
-         WHERE sa.warehouse_id IN (
-             SELECT w.id
-             FROM warehouses w
-             WHERE w.store_id = $1
-         )
+         WHERE sa.store_id = $1
          ORDER BY sa.created_at DESC
          LIMIT $2`,
         [id, limit]
@@ -214,8 +229,7 @@ export async function getPlatformActivityFeedRepo(limit = 20) {
                 sa.created_at,
                 s.name AS store_name
          FROM sales sa
-         LEFT JOIN warehouses w ON w.id = sa.warehouse_id
-         LEFT JOIN stores s ON s.id = w.store_id
+         LEFT JOIN stores s ON s.id = sa.store_id
          ORDER BY sa.created_at DESC
          LIMIT $1`,
         [limit]

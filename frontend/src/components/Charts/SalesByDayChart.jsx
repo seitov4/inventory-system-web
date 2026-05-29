@@ -29,25 +29,6 @@ const ChartLine = styled.svg`
     pointer-events: none;
 `;
 
-const ChartPoint = styled.div`
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--primary-color);
-    border: 2px solid var(--bg-secondary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    transform: translate(-50%, 50%);
-    z-index: 2;
-
-    &:hover {
-        width: 12px;
-        height: 12px;
-        z-index: 3;
-    }
-`;
-
 const ChartBar = styled.div`
     flex: 1;
     position: relative;
@@ -61,10 +42,11 @@ const ChartBar = styled.div`
 const BarColumn = styled.div`
     width: 100%;
     max-width: 40px;
-    background: ${props => props.$isActive ? 'var(--primary-color)' : 'rgba(88, 166, 255, 0.3)'};
+    background: ${(props) =>
+        props.$isActive ? "var(--primary-color)" : "rgba(88, 166, 255, 0.3)"};
     border-radius: 4px 4px 0 0;
     min-height: 4px;
-    height: ${props => props.$height || 0}%;
+    height: ${(props) => props.$height || 0}%;
     transition: all 0.3s ease;
     cursor: pointer;
     position: relative;
@@ -107,7 +89,7 @@ const Tooltip = styled.div`
     pointer-events: none;
     z-index: 10;
     white-space: nowrap;
-    opacity: ${props => props.$visible ? 1 : 0};
+    opacity: ${(props) => (props.$visible ? 1 : 0)};
     transition: opacity 0.2s ease;
     transform: translate(-50%, -100%);
     margin-top: -8px;
@@ -136,7 +118,7 @@ const GridLine = styled.line`
 // ===== MAIN COMPONENT =====
 /**
  * SalesByDayChart - Displays daily sales volume over time
- * 
+ *
  * @param {Array} data - Array of { date: string, total: number } objects
  * @param {string} period - 'daily' | 'weekly' | 'monthly'
  */
@@ -154,21 +136,24 @@ export default function SalesByDayChart({ data = [], period = "daily" }) {
                 const date = new Date(today);
                 date.setDate(date.getDate() - (days - 1 - i));
                 return {
-                    date: date.toISOString().split('T')[0],
+                    date: date.toISOString().split("T")[0],
                     total: 0,
                 };
             });
         }
 
         // If data is already aggregated by date, use it directly
-        if (data[0]?.date && typeof data[0]?.total === 'number') {
+        if (data[0]?.date && typeof data[0]?.total === "number") {
             return data;
         }
 
         // Otherwise, aggregate by date
         const grouped = {};
-        data.forEach(item => {
-            const date = item.date || item.created_at?.split('T')[0] || new Date().toISOString().split('T')[0];
+        data.forEach((item) => {
+            const date =
+                item.date ||
+                item.created_at?.split("T")[0] ||
+                new Date().toISOString().split("T")[0];
             const total = item.total || item.sale_amount || item.amount || 0;
             grouped[date] = (grouped[date] || 0) + total;
         });
@@ -180,7 +165,7 @@ export default function SalesByDayChart({ data = [], period = "daily" }) {
 
     const maxValue = useMemo(() => {
         if (aggregatedData.length === 0) return 1;
-        const max = Math.max(...aggregatedData.map(d => d.total));
+        const max = Math.max(...aggregatedData.map((d) => d.total));
         return max > 0 ? max : 1;
     }, [aggregatedData]);
 
@@ -189,27 +174,27 @@ export default function SalesByDayChart({ data = [], period = "daily" }) {
         const date = new Date(dateString);
         if (period === "daily") {
             // Show day number for daily mode
-            return date.toLocaleDateString('en-US', { day: '2-digit' });
+            return date.toLocaleDateString("en-US", { day: "2-digit" });
         }
         // Show day and month for weekly/monthly
-        return date.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
+        return date.toLocaleDateString("en-US", { day: "2-digit", month: "short" });
     };
 
     // Format date for tooltip
     const formatDateTooltip = (dateString) => {
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-            weekday: 'short',
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
+        return date.toLocaleDateString("en-US", {
+            weekday: "short",
+            year: "numeric",
+            month: "short",
+            day: "numeric",
         });
     };
 
     const handleBarHover = (index, event) => {
         setHoveredIndex(index);
         const rect = event.currentTarget.getBoundingClientRect();
-        const container = event.currentTarget.closest('[data-chart-container]');
+        const container = event.currentTarget.closest("[data-chart-container]");
         if (container) {
             const containerRect = container.getBoundingClientRect();
             setTooltipPosition({
@@ -226,61 +211,49 @@ export default function SalesByDayChart({ data = [], period = "daily" }) {
     // Generate grid lines
     const gridLines = [];
     for (let i = 0; i <= 4; i++) {
-        const y = 20 + (i * (230 / 4));
-        gridLines.push(
-            <GridLine
-                key={i}
-                x1="16"
-                y1={y}
-                x2="calc(100% - 16px)"
-                y2={y}
-            />
-        );
+        const y = 20 + i * (230 / 4);
+        gridLines.push(<GridLine key={i} x1="16" y1={y} x2="calc(100% - 16px)" y2={y} />);
     }
 
     // Generate line path for line chart overlay
     const generateLinePath = () => {
-        if (aggregatedData.length < 2) return '';
-        
+        if (aggregatedData.length < 2) return "";
+
         const containerWidth = 100; // Percentage
         const padding = 16;
-        const availableWidth = containerWidth - (padding * 2);
+        const availableWidth = containerWidth - padding * 2;
         const step = aggregatedData.length > 1 ? availableWidth / (aggregatedData.length - 1) : 0;
-        
-        return aggregatedData.map((item, index) => {
-            const x = padding + (index * step);
-            const y = 20 + (1 - item.total / maxValue) * 210;
-            return `${index === 0 ? 'M' : 'L'} ${x}% ${y}`;
-        }).join(' ');
-    };
-    
-    const linePath = generateLinePath();
 
-    const hasData = aggregatedData.some(d => d.total > 0);
+        return aggregatedData
+            .map((item, index) => {
+                const x = padding + index * step;
+                const y = 20 + (1 - item.total / maxValue) * 210;
+                return `${index === 0 ? "M" : "L"} ${x}% ${y}`;
+            })
+            .join(" ");
+    };
+
+    const linePath = generateLinePath();
 
     return (
         <ChartContainer data-chart-container>
             {aggregatedData.length === 0 ? (
-                <EmptyState>
-                    No sales data for selected period
-                </EmptyState>
+                <EmptyState>No sales data for selected period</EmptyState>
             ) : (
                 <>
                     <LineChartWrapper>
                         {/* Grid lines */}
-                        <ChartLine>
-                            {gridLines}
-                        </ChartLine>
+                        <ChartLine>{gridLines}</ChartLine>
 
                         {/* Y-axis labels */}
-                        {[0, 1, 2, 3, 4].map(i => {
+                        {[0, 1, 2, 3, 4].map((i) => {
                             const value = maxValue * (1 - i / 4);
                             return (
-                                <YAxisLabel
-                                    key={i}
-                                    style={{ top: `${20 + (i * 210 / 4)}px` }}
-                                >
-                                    {value > 1000 ? `${(value / 1000).toFixed(1)}k` : Math.round(value)} ₸
+                                <YAxisLabel key={i} style={{ top: `${20 + (i * 210) / 4}px` }}>
+                                    {value > 1000
+                                        ? `${(value / 1000).toFixed(1)}k`
+                                        : Math.round(value)}{" "}
+                                    ₸
                                 </YAxisLabel>
                             );
                         })}
@@ -300,7 +273,7 @@ export default function SalesByDayChart({ data = [], period = "daily" }) {
                                     <BarColumn
                                         $height={height}
                                         $isActive={isActive}
-                                        title={`${formatDateTooltip(item.date)}: ${item.total.toLocaleString('en-US')} ₸`}
+                                        title={`${formatDateTooltip(item.date)}: ${item.total.toLocaleString("en-US")} ₸`}
                                     />
                                     <BarLabel>{dateLabel}</BarLabel>
                                 </ChartBar>
@@ -309,7 +282,7 @@ export default function SalesByDayChart({ data = [], period = "daily" }) {
 
                         {/* Line chart overlay */}
                         {aggregatedData.length > 1 && linePath && (
-                            <ChartLine style={{ pointerEvents: 'none' }}>
+                            <ChartLine style={{ pointerEvents: "none" }}>
                                 <path
                                     d={linePath}
                                     fill="none"
@@ -333,7 +306,10 @@ export default function SalesByDayChart({ data = [], period = "daily" }) {
                             }}
                         >
                             <strong>{formatDateTooltip(aggregatedData[hoveredIndex].date)}</strong>
-                            <div>Total: {aggregatedData[hoveredIndex].total.toLocaleString('en-US')} ₸</div>
+                            <div>
+                                Total: {aggregatedData[hoveredIndex].total.toLocaleString("en-US")}{" "}
+                                ₸
+                            </div>
                         </Tooltip>
                     )}
                 </>
@@ -341,4 +317,3 @@ export default function SalesByDayChart({ data = [], period = "daily" }) {
         </ChartContainer>
     );
 }
-

@@ -1,13 +1,12 @@
 import React from "react";
 import styled from "styled-components";
 import Button from "../ui/Button.jsx";
-import Badge from "../ui/Badge.jsx";
 import { usePlatformAuth } from "../context/PlatformAuthContext.jsx";
 import { useNavigate } from "react-router-dom";
 
 const Wrapper = styled.header`
     height: 60px;
-    border-bottom: 1px solid #E5E7EB;
+    border-bottom: 1px solid #e5e7eb;
     background: rgba(255, 255, 255, 0.96);
     backdrop-filter: blur(10px);
 `;
@@ -35,7 +34,7 @@ const Title = styled.div`
 
 const Subtitle = styled.div`
     font-size: 12px;
-    color: #6B7280;
+    color: #6b7280;
 `;
 
 const RightBlock = styled.div`
@@ -49,12 +48,12 @@ const Avatar = styled.div`
     width: 28px;
     height: 28px;
     border-radius: 999px;
-    background: #EFF6FF;
+    background: #eff6ff;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 13px;
-    color: #2563EB;
+    color: #2563eb;
     font-weight: 600;
 `;
 
@@ -74,7 +73,7 @@ const OwnerEmail = styled.div`
 
 const OwnerRole = styled.div`
     font-size: 11px;
-    color: #6B7280;
+    color: #6b7280;
 `;
 
 function getSectionTitle(section) {
@@ -85,6 +84,8 @@ function getSectionTitle(section) {
             return "Stores management";
         case "store-create":
             return "Create new store";
+        case "users":
+            return "Platform admins";
         case "monitoring":
             return "System monitoring";
         case "logs":
@@ -120,17 +121,11 @@ export default function PlatformHeader({ activeSection, onNavigate }) {
             <Inner>
                 <TitleBlock>
                     <Title>{title}</Title>
-                    <Subtitle>
-                        Platform owner panel · state-based SPA
-                    </Subtitle>
+                    <Subtitle>Platform owner panel · state-based SPA</Subtitle>
                 </TitleBlock>
                 <RightBlock>
                     {activeSection !== "stores" && (
-                        <Button
-                            tone="primary"
-                            size="small"
-                            onClick={() => onNavigate("stores")}
-                        >
+                        <Button tone="primary" size="small" onClick={() => onNavigate("stores")}>
                             Go to stores
                         </Button>
                     )}
@@ -147,7 +142,7 @@ export default function PlatformHeader({ activeSection, onNavigate }) {
                         <>
                             <OwnerInfo>
                                 <OwnerEmail>{user.email}</OwnerEmail>
-                                <OwnerRole>{user.role || "platform_owner"}</OwnerRole>
+                                <OwnerRole>{user.role || "platform"}</OwnerRole>
                             </OwnerInfo>
                             <Button tone="ghost" size="small" onClick={handleLogout}>
                                 Logout
@@ -160,5 +155,3 @@ export default function PlatformHeader({ activeSection, onNavigate }) {
         </Wrapper>
     );
 }
-
-

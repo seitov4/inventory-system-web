@@ -8,7 +8,7 @@ import pool from "../utils/db.js";
  * @param {Date} toDate - End date (inclusive)
  * @returns {Array} Array of sale items with product details
  */
-export async function getSalesReportData(fromDate, toDate) {
+export async function getSalesReportData(storeId, fromDate, toDate) {
     // Set toDate to end of day for inclusive range
     const toDateEnd = new Date(toDate);
     toDateEnd.setHours(23, 59, 59, 999);
@@ -26,13 +26,14 @@ export async function getSalesReportData(fromDate, toDate) {
         FROM sales s
         JOIN sale_items si ON si.sale_id = s.id
         JOIN products p ON p.id = si.product_id
-        WHERE s.created_at >= $1 
-          AND s.created_at <= $2
+        WHERE s.store_id = $1
+          AND s.created_at >= $2 
+          AND s.created_at <= $3
           AND s.status = 'COMPLETED'
         ORDER BY s.created_at DESC, s.id, si.id
     `;
 
-    const result = await pool.query(query, [fromDate, toDateEnd]);
+    const result = await pool.query(query, [storeId, fromDate, toDateEnd]);
 
     return result.rows.map(row => ({
         date: row.date,

@@ -18,6 +18,7 @@ export async function getMovements(req, res, next) {
         const date_to = req.query.date_to || null;
 
         const rows = await getMovementsService({
+            store_id: req.user.store_id,
             limit,
             offset,
             product_id,
@@ -67,6 +68,7 @@ export async function movementIn(req, res, next) {
         }
 
         await applyMovement({
+            store_id: req.user.store_id,
             type: "IN",
             product_id: productIdNum,
             warehouse_to: warehouseToNum,
@@ -76,8 +78,11 @@ export async function movementIn(req, res, next) {
         });
 
         const stockRes = await pool.query(
-            `SELECT quantity FROM stock WHERE product_id = $1 AND warehouse_id = $2`,
-            [productIdNum, warehouseToNum]
+            `SELECT st.quantity
+             FROM stock st
+             JOIN warehouses w ON w.id = st.warehouse_id
+             WHERE st.product_id = $1 AND st.warehouse_id = $2 AND w.store_id = $3`,
+            [productIdNum, warehouseToNum, req.user.store_id]
         );
         const new_quantity = stockRes.rows[0]?.quantity || 0;
 
@@ -105,6 +110,7 @@ export async function movementOut(req, res, next) {
         }
 
         const result = await applyMovement({
+            store_id: req.user.store_id,
             type: "OUT",
             product_id,
             warehouse_from: warehouse_id,
@@ -140,6 +146,7 @@ export async function movementTransfer(req, res, next) {
         }
 
         const result = await applyMovement({
+            store_id: req.user.store_id,
             type: "TRANSFER",
             product_id,
             warehouse_from: from_warehouse_id,

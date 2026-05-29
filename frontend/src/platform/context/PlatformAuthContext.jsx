@@ -1,181 +1,217 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { setPlatformAuthToken } from "../api/platformClient.js";
-import { platformLogin as apiLogin, getPlatformProfile, platformLogout as apiLogout } from "../api/auth.api.js";
+import { useNavigate } from "react-router-dom";
+import { setPlatformAuthToken, setPlatformUnauthorizedHandler } from "../api/platformClient.js";
+import {
+    getPlatformProfile,
+    platformLogin as apiLogin,
+    platformLogout as apiLogout,
+} from "../api/auth.api.js";
 import { logAuditEvent } from "../utils/auditLogger.js";
 
 const PlatformAuthContext = createContext(null);
+const PLATFORM_TOKEN_KEY = "platformToken";
+const PLATFORM_USER_KEY = "platformUser";
+const PLATFORM_LAST_LOGIN_KEY = "platformLastLogin";
+const PLATFORM_ROLES = ["platform_super_admin", "platform_admin"];
+
+function readStoredUser() {
+    try {
+        const stored = localStorage.getItem(PLATFORM_USER_KEY);
+        return stored ? JSON.parse(stored) : null;
+    } catch {
+        return null;
+    }
+}
+
+function readStoredDate(key) {
+    try {
+        const stored = localStorage.getItem(key);
+        return stored ? new Date(stored) : null;
+    } catch {
+        return null;
+    }
+}
+
+function getErrorMessage(error, fallback = "Login failed") {
+    return error?.response?.data?.error?.message || error?.message || fallback;
+}
+
+function isPlatformAdmin(user) {
+    return user?.scope === "platform" && PLATFORM_ROLES.includes(user?.role);
+}
 
 export function PlatformAuthProvider({ children }) {
-    const [token, setToken] = useState(() => {
-        return localStorage.getItem("platformToken") || null;
-    });
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
+    const [token, setToken] = useState(() => localStorage.getItem(PLATFORM_TOKEN_KEY));
+    const [user, setUser] = useState(() => readStoredUser());
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [lastLogin, setLastLogin] = useState(() => {
-        // Try to get last login from localStorage
-        try {
-            const stored = localStorage.getItem("platformLastLogin");
-            return stored ? new Date(stored) : null;
-        } catch {
+    const [lastLogin, setLastLogin] = useState(() => readStoredDate(PLATFORM_LAST_LOGIN_KEY));
+
+    const clearSession = React.useCallback(
+        ({ redirect = false } = {}) => {
+            localStorage.removeItem(PLATFORM_TOKEN_KEY);
+            localStorage.removeItem(PLATFORM_USER_KEY);
+            localStorage.removeItem(PLATFORM_LAST_LOGIN_KEY);
+            setPlatformAuthToken(null);
+            setToken(null);
+            setUser(null);
+            setLastLogin(null);
+            if (redirect) {
+                navigate("/platform/login", { replace: true });
+            }
+        },
+        [navigate]
+    );
+
+    const loadCurrentUser = React.useCallback(async () => {
+        const currentToken = localStorage.getItem(PLATFORM_TOKEN_KEY);
+        if (!currentToken) {
+            clearSession();
+            setLoading(false);
             return null;
         }
-    });
 
-    const loadProfile = React.useCallback(async () => {
-        if (!token) return;
+        setLoading(true);
+        setError("");
+        setPlatformAuthToken(currentToken);
+
         try {
             const profile = await getPlatformProfile();
-            setUser(profile.user || profile || null);
+            const currentUser = profile?.user || profile || null;
+            if (!isPlatformAdmin(currentUser)) {
+                throw new Error("Platform user profile was not returned");
+            }
+
+            setToken(currentToken);
+            setUser(currentUser);
+            localStorage.setItem(PLATFORM_USER_KEY, JSON.stringify(currentUser));
+            return currentUser;
         } catch (e) {
-            // eslint-disable-next-line no-console
-            console.error("[PlatformAuth] Failed to load profile", e);
-            // Profile loading failure doesn't invalidate token
+            const message = getErrorMessage(e, "Session expired, please sign in again.");
+            setError(message);
+            clearSession();
+            return null;
+        } finally {
+            setLoading(false);
         }
-    }, [token]);
+    }, [clearSession]);
 
     useEffect(() => {
         setPlatformAuthToken(token);
         if (token) {
-            localStorage.setItem("platformToken", token);
-            // Try to load user profile if token exists
-            loadProfile();
-        } else {
-            localStorage.removeItem("platformToken");
-            setUser(null);
+            localStorage.setItem(PLATFORM_TOKEN_KEY, token);
         }
-    }, [token, loadProfile]);
+    }, [token]);
 
-    const login = async ({ email, password }) => {
-        setError("");
-        setLoading(true);
-        try {
-            if (!email || !password) {
-                throw new Error("Email and password are required");
-            }
+    useEffect(() => {
+        setPlatformUnauthorizedHandler(() => {
+            clearSession({ redirect: true });
+        });
 
-            // Try real API first
+        loadCurrentUser();
+
+        return () => {
+            setPlatformUnauthorizedHandler(null);
+        };
+    }, [clearSession, loadCurrentUser]);
+
+    const login = React.useCallback(
+        async ({ email, password } = {}) => {
+            setError("");
+            setLoading(true);
+
             try {
-                const result = await apiLogin({ email, password });
-                const receivedToken = result?.token || result?.accessToken;
-                if (receivedToken) {
-                    setToken(receivedToken);
-                    // Load profile after successful login
-                    let userProfile = null;
-                    try {
-                        const profile = await getPlatformProfile();
-                        userProfile = profile.user || profile || { email, role: "platform_owner" };
-                        setUser(userProfile);
-                    } catch (profileErr) {
-                        // Profile loading failure doesn't invalidate login
-                        console.warn("[PlatformAuth] Profile load failed, but login succeeded", profileErr);
-                        userProfile = { email, role: "platform_owner" };
-                        setUser(userProfile);
-                    }
-
-                    // Record successful login in audit log
-                    const loginTime = new Date();
-                    setLastLogin(loginTime);
-                    localStorage.setItem("platformLastLogin", loginTime.toISOString());
-                    logAuditEvent({
-                        type: "AUTH_LOGIN",
-                        email: userProfile.email || email,
-                        metadata: { timestamp: loginTime.toISOString() },
-                    });
-
-                    return { token: receivedToken, user: userProfile };
+                if (!email || !password) {
+                    throw new Error("Email and password are required");
                 }
-            } catch (apiError) {
-                // If API call fails (404, network error, etc), fall back to mock
-                // eslint-disable-next-line no-console
-                console.warn("[PlatformAuth] API login failed, using mock mode", apiError);
-                // Mock mode: accept any credentials and set fake token
-                // TODO: Remove mock mode when backend API is available
-                const mockToken = "mock-platform-token";
-                setToken(mockToken);
-                const mockUser = { email, role: "platform_owner" };
-                setUser(mockUser);
 
-                // Record successful login in audit log (mock mode)
+                const result = await apiLogin({
+                    email: email.trim().toLowerCase(),
+                    password,
+                });
+                const receivedToken = result?.token;
+                const receivedUser = result?.user;
+
+                if (!receivedToken || !isPlatformAdmin(receivedUser)) {
+                    throw new Error("Invalid platform login response");
+                }
+
+                setPlatformAuthToken(receivedToken);
+                localStorage.setItem(PLATFORM_TOKEN_KEY, receivedToken);
+                localStorage.setItem(PLATFORM_USER_KEY, JSON.stringify(receivedUser));
+                setToken(receivedToken);
+                setUser(receivedUser);
+
                 const loginTime = new Date();
                 setLastLogin(loginTime);
-                localStorage.setItem("platformLastLogin", loginTime.toISOString());
+                localStorage.setItem(PLATFORM_LAST_LOGIN_KEY, loginTime.toISOString());
                 logAuditEvent({
                     type: "AUTH_LOGIN",
-                    email,
-                    metadata: { timestamp: loginTime.toISOString(), mode: "mock" },
+                    email: receivedUser.email,
+                    metadata: { timestamp: loginTime.toISOString() },
                 });
 
-                return { token: mockToken, user: mockUser };
+                return { token: receivedToken, user: receivedUser };
+            } catch (e) {
+                clearSession();
+                const message = getErrorMessage(e);
+                setError(message);
+                logAuditEvent({
+                    type: "AUTH_FAILED",
+                    email: email || "unknown",
+                    metadata: {
+                        timestamp: new Date().toISOString(),
+                        reason: message,
+                    },
+                });
+                return { success: false, error: message };
+            } finally {
+                setLoading(false);
             }
-        } catch (e) {
-            // eslint-disable-next-line no-console
-            console.error("[PlatformAuth] login failed", e);
-            const errorMessage = e.message || "Login failed";
-            setError(errorMessage);
+        },
+        [clearSession]
+    );
 
-            // Record failed login attempt in audit log
-            logAuditEvent({
-                type: "AUTH_FAILED",
-                email: email || "unknown",
-                metadata: {
-                    timestamp: new Date().toISOString(),
-                    reason: errorMessage,
-                },
-            });
-
-            throw e;
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const logout = async () => {
+    const logout = React.useCallback(async () => {
         const userEmail = user?.email || "unknown";
         try {
-            // Try to call logout API if token exists
             if (token) {
                 await apiLogout();
             }
         } catch (e) {
-            // eslint-disable-next-line no-console
+            // Local logout should still complete if the token is already expired.
             console.warn("[PlatformAuth] Logout API call failed", e);
-            // Continue with local logout even if API fails
         } finally {
-            // Record logout in audit log
             logAuditEvent({
                 type: "AUTH_LOGOUT",
                 email: userEmail,
                 metadata: { timestamp: new Date().toISOString() },
             });
-
-            setToken(null);
-            setUser(null);
+            clearSession({ redirect: true });
             setError("");
-            setLastLogin(null);
-            localStorage.removeItem("platformLastLogin");
         }
-    };
+    }, [clearSession, token, user?.email]);
 
     const value = useMemo(
         () => ({
             token,
             user,
-            isAuthenticated: Boolean(token),
+            platformToken: token,
+            platformUser: user,
+            isAuthenticated: Boolean(token && user),
             loading,
             error,
             lastLogin,
             login,
             logout,
+            checkAuth: loadCurrentUser,
+            loadCurrentUser,
         }),
-        [token, user, loading, error, lastLogin]
+        [token, user, loading, error, lastLogin, login, logout, loadCurrentUser]
     );
 
-    return (
-        <PlatformAuthContext.Provider value={value}>
-            {children}
-        </PlatformAuthContext.Provider>
-    );
+    return <PlatformAuthContext.Provider value={value}>{children}</PlatformAuthContext.Provider>;
 }
 
 export function usePlatformAuth() {
@@ -187,5 +223,3 @@ export function usePlatformAuth() {
 }
 
 export default PlatformAuthContext;
-
-

@@ -14,7 +14,7 @@ import { success } from "../utils/response.js";
 export async function createSale(req, res, next) {
     try {
         const cashier_id = req.user?.id;
-        const { store_id, warehouse_id, items, discount, payment_type } = req.body;
+        const { warehouse_id, items, discount, payment_type } = req.body;
 
         if (!items || !Array.isArray(items) || items.length === 0) {
             return next(createAppError(ERROR_CODES.SALES_ITEMS_REQUIRED, 400));
@@ -22,7 +22,7 @@ export async function createSale(req, res, next) {
 
         const result = await createSaleService({
             cashier_id,
-            store_id,
+            store_id: req.user.store_id,
             warehouse_id,
             items,
             discount: discount || 0,
@@ -38,7 +38,7 @@ export async function createSale(req, res, next) {
 export async function getSaleById(req, res, next) {
     try {
         const { id } = req.params;
-        const sale = await getSaleByIdService(id);
+        const sale = await getSaleByIdService(req.user.store_id, id);
         if (!sale) {
             return next(createAppError(ERROR_CODES.SALES_NOT_FOUND, 404));
         }
@@ -59,6 +59,7 @@ export async function createSaleReturn(req, res, next) {
 
         const result = await returnSaleService({
             sale_id: id,
+            store_id: req.user.store_id,
             user_id: req.user?.id,
             warehouse_id,
         });
@@ -71,7 +72,7 @@ export async function createSaleReturn(req, res, next) {
 
 export async function getDailySalesController(req, res, next) {
     try {
-        const data = await getDailySales();
+        const data = await getDailySales(req.user.store_id);
         return success(res, data);
     } catch (err) {
         return next(err);
@@ -80,7 +81,7 @@ export async function getDailySalesController(req, res, next) {
 
 export async function getWeeklySalesController(req, res, next) {
     try {
-        const data = await getWeeklySales();
+        const data = await getWeeklySales(req.user.store_id);
         return success(res, data);
     } catch (err) {
         return next(err);
@@ -89,7 +90,7 @@ export async function getWeeklySalesController(req, res, next) {
 
 export async function getMonthlySalesController(req, res, next) {
     try {
-        const data = await getMonthlySales();
+        const data = await getMonthlySales(req.user.store_id);
         return success(res, data);
     } catch (err) {
         return next(err);
@@ -98,7 +99,7 @@ export async function getMonthlySalesController(req, res, next) {
 
 export async function getSalesChartController(req, res, next) {
     try {
-        const data = await getSalesChart();
+        const data = await getSalesChart(req.user.store_id);
         return success(res, data);
     } catch (err) {
         return next(err);

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getPlatformLogs } from "../api/logs.api.js";
-import logsMock from "../mock/logs.mock.js";
 import { calculateTimeAgo } from "../utils/logFormatters.js";
 
 /**
@@ -23,13 +22,13 @@ function normalizeLog(raw) {
 
 /**
  * usePlatformLogs Hook
- * 
+ *
  * Manages platform-level logs and events.
  * Supports filtering, polling, and normalization.
  * This is the ONLY place where log logic exists.
  */
 export default function usePlatformLogs() {
-    const [logs, setLogs] = useState(() => logsMock.map(normalizeLog));
+    const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [filters, setFilters] = useState({
@@ -49,33 +48,17 @@ export default function usePlatformLogs() {
 
         try {
             const apiLogs = await getPlatformLogs(filters);
-            
-            if (Array.isArray(apiLogs) && apiLogs.length > 0) {
-                const normalized = apiLogs.map(normalizeLog).filter(Boolean);
-                // Sort by timestamp descending (most recent first)
-                normalized.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                setLogs(normalized);
-                setError("");
-            } else {
-                // Backend returned empty - use mock as fallback
-                // eslint-disable-next-line no-console
-                console.warn("[usePlatformLogs] Backend returned empty logs, using mock");
-                const normalized = logsMock.map(normalizeLog);
-                normalized.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                setLogs(normalized);
-            }
-        } catch (e) {
-            // API call failed - use mock
-            // eslint-disable-next-line no-console
-            console.warn("[usePlatformLogs] API call failed, falling back to mock", e);
-            const errorMessage =
-                e?.response?.status === 404
-                    ? "Platform API not available (using mock data)"
-                    : e.message || "Failed to load logs";
-            setError(errorMessage);
-            const normalized = logsMock.map(normalizeLog);
+
+            const normalized = Array.isArray(apiLogs)
+                ? apiLogs.map(normalizeLog).filter(Boolean)
+                : [];
             normalized.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
             setLogs(normalized);
+            setError("");
+        } catch (e) {
+            const errorMessage = e.message || "Failed to load logs";
+            setError(errorMessage);
+            setLogs([]);
         } finally {
             setLoading(false);
         }
@@ -110,7 +93,7 @@ export default function usePlatformLogs() {
     }, [fetchLogs]);
 
     /**
-     * Apply client-side filtering (for mock data fallback)
+     * Apply client-side filtering
      */
     const filteredLogs = useMemo(() => {
         let result = [...logs];
@@ -181,4 +164,3 @@ export default function usePlatformLogs() {
         stats,
     };
 }
-

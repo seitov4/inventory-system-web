@@ -1,8 +1,8 @@
 /**
  * Unified Response Helpers
- * 
+ *
  * All controllers should use these helpers for consistent API responses.
- * 
+ *
  * Success format: { success: true, data: {}, error: null }
  * Error format: { success: false, data: null, error: "message" }
  */
@@ -34,4 +34,3 @@ export function error(res, message, status = 400) {
         error: message,
     });
 }
-

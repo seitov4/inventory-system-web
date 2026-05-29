@@ -47,7 +47,7 @@ function getName(user) {
 function getRoleLabel(role) {
     const labels = {
         owner: "Owner",
-        admin: "Administrator",
+        staff: "Staff",
         manager: "Manager",
         cashier: "Cashier",
     };
@@ -109,8 +109,8 @@ function normalizeChartSeries(chart, monthlySales) {
 }
 
 async function fetchHomeData(role) {
-    const canSeeAnalytics = role === "owner" || role === "admin";
-    const canSeeMovements = role === "manager" || role === "owner" || role === "admin";
+    const canSeeAnalytics = role === "owner";
+    const canSeeMovements = role === "manager" || role === "owner";
 
     const [products, dailySales, monthlySales, salesChart, notifications, movements] =
         await Promise.all([
@@ -823,9 +823,9 @@ const LoadingCard = styled(Surface)`
 `;
 
 function AuthLanding({ user, role, setActivePage }) {
-    const canSeeAnalytics = role === "owner" || role === "admin";
-    const canManageUsers = role === "owner" || role === "admin";
-    const canManageStock = role === "manager" || role === "owner" || role === "admin";
+    const canSeeAnalytics = role === "owner";
+    const canManageUsers = role === "owner";
+    const canManageStock = role === "manager" || role === "owner";
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -1195,7 +1195,7 @@ function AuthLanding({ user, role, setActivePage }) {
                                         <div>
                                             <PanelTitle>Sales trend, last 14 days</PanelTitle>
                                             <MetricNote>
-                                                {canSeeAnalytics ? "Completed sales by day" : "Owner/admin analytics"}
+                                                {canSeeAnalytics ? "Completed sales by day" : "owner analytics"}
                                             </MetricNote>
                                         </div>
                                         <IconTile $small $tone="gradient">
@@ -1225,7 +1225,7 @@ function AuthLanding({ user, role, setActivePage }) {
                                             </TrendLabels>
                                         </>
                                     ) : (
-                                        <EmptyState>Sales trend is available for owner and administrator roles.</EmptyState>
+                                        <EmptyState>Sales trend is available for owneristrator roles.</EmptyState>
                                     )}
                                     <ProgressTrack>
                                         <ProgressFill $width={derived.stockPressure} $tone={derived.riskTone} />
@@ -1472,3 +1472,4 @@ export default function LandingPage() {
         <GuestLanding setActivePage={setActivePage} />
     );
 }
+

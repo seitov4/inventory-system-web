@@ -3,7 +3,35 @@ import { createNotification, getUsersByRoles } from "./notification.service.js";
 import { createAppError } from "../errors/app-error.js";
 import { ERROR_CODES } from "../errors/error-codes.js";
 
+async function ensureProductInStore(client, productId, storeId) {
+    const productRes = await client.query(
+        `SELECT id, name, min_stock
+         FROM products
+         WHERE id = $1 AND store_id = $2 AND is_active IS TRUE`,
+        [productId, storeId]
+    );
+    if (productRes.rows.length === 0) {
+        throw createAppError(ERROR_CODES.MOVEMENT_PRODUCT_NOT_FOUND, 400);
+    }
+    return productRes.rows[0];
+}
+
+async function ensureWarehouseInStore(client, warehouseId, storeId, errorCode) {
+    if (!warehouseId) {return null;}
+    const warehouseRes = await client.query(
+        `SELECT id
+         FROM warehouses
+         WHERE id = $1 AND store_id = $2`,
+        [warehouseId, storeId]
+    );
+    if (warehouseRes.rows.length === 0) {
+        throw createAppError(errorCode, 400, { warehouseId });
+    }
+    return warehouseRes.rows[0];
+}
+
 export async function applyMovement({
+    store_id,
     type,
     product_id,
     warehouse_from = null,
@@ -11,11 +39,14 @@ export async function applyMovement({
     qty,
     user_id = null,
     reason = null,
+    related_entity_id = null,
     client = null,
 }) {
-    if (!type) {
-        throw createAppError(ERROR_CODES.MOVEMENT_TYPE_REQUIRED, 400);
+    if (!store_id || Number(store_id) <= 0) {
+        throw createAppError(ERROR_CODES.AUTH_FORBIDDEN, 403);
     }
+
+    if (!type) {throw createAppError(ERROR_CODES.MOVEMENT_TYPE_REQUIRED, 400);}
 
     const validTypes = ["IN", "OUT", "TRANSFER", "SALE", "RETURN", "ADJUST"];
     if (!validTypes.includes(type)) {
@@ -34,13 +65,13 @@ export async function applyMovement({
         throw createAppError(ERROR_CODES.MOVEMENT_USER_ID_INVALID, 400);
     }
 
-    if (type === "IN" || type === "RETURN" || type === "ADJUST") {
+    if (["IN", "RETURN", "ADJUST"].includes(type)) {
         if (!warehouse_to || isNaN(warehouse_to) || warehouse_to <= 0) {
             throw createAppError(ERROR_CODES.MOVEMENT_WAREHOUSE_TO_INVALID, 400);
         }
     }
 
-    if (type === "OUT" || type === "SALE") {
+    if (["OUT", "SALE"].includes(type)) {
         if (!warehouse_from || isNaN(warehouse_from) || warehouse_from <= 0) {
             throw createAppError(ERROR_CODES.MOVEMENT_WAREHOUSE_FROM_INVALID, 400);
         }
@@ -60,66 +91,36 @@ export async function applyMovement({
     }
 
     const useExternalClient = client !== null;
-    if (!useExternalClient) {
-        client = await pool.connect();
-    }
+    if (!useExternalClient) {client = await pool.connect();}
 
     try {
-        if (!useExternalClient) {
-            await client.query("BEGIN");
-        }
+        if (!useExternalClient) {await client.query("BEGIN");}
 
-        const productRes = await client.query(
-            `SELECT id, name, min_stock FROM products WHERE id = $1`,
-            [product_id]
-        );
-        if (productRes.rows.length === 0) {
-            throw createAppError(ERROR_CODES.MOVEMENT_PRODUCT_NOT_FOUND, 400);
-        }
-        const product = productRes.rows[0];
-
-        if (warehouse_from) {
-            const warehouseFromRes = await client.query(
-                `SELECT id FROM warehouses WHERE id = $1`,
-                [warehouse_from]
-            );
-            if (warehouseFromRes.rows.length === 0) {
-                throw createAppError(ERROR_CODES.MOVEMENT_WAREHOUSE_FROM_NOT_FOUND, 400, {
-                    warehouseId: warehouse_from,
-                });
-            }
-        }
-
-        if (warehouse_to) {
-            const warehouseToRes = await client.query(
-                `SELECT id FROM warehouses WHERE id = $1`,
-                [warehouse_to]
-            );
-            if (warehouseToRes.rows.length === 0) {
-                throw createAppError(ERROR_CODES.MOVEMENT_WAREHOUSE_TO_NOT_FOUND, 400, {
-                    warehouseId: warehouse_to,
-                });
-            }
-        }
+        const product = await ensureProductInStore(client, product_id, store_id);
+        await ensureWarehouseInStore(client, warehouse_from, store_id, ERROR_CODES.MOVEMENT_WAREHOUSE_FROM_NOT_FOUND);
+        await ensureWarehouseInStore(client, warehouse_to, store_id, ERROR_CODES.MOVEMENT_WAREHOUSE_TO_NOT_FOUND);
 
         if (type === "IN" || type === "RETURN") {
-            const targetWarehouseId = warehouse_to;
-
             await client.query(
                 `INSERT INTO stock (product_id, warehouse_id, quantity)
                  VALUES ($1, $2, $3)
                  ON CONFLICT (product_id, warehouse_id)
-                 DO UPDATE SET quantity = stock.quantity + EXCLUDED.quantity`,
-                [product_id, targetWarehouseId, qty]
+                 DO UPDATE SET quantity = stock.quantity + EXCLUDED.quantity,
+                               updated_at = CURRENT_TIMESTAMP`,
+                [product_id, warehouse_to, qty]
             );
         } else if (type === "OUT" || type === "SALE") {
-            const targetWarehouseId = warehouse_from;
-
             const stockRes = await client.query(
-                `SELECT id, quantity FROM stock
-                 WHERE product_id = $1 AND warehouse_id = $2
+                `SELECT st.id, st.quantity
+                 FROM stock st
+                 JOIN warehouses w ON w.id = st.warehouse_id
+                 JOIN products p ON p.id = st.product_id
+                 WHERE st.product_id = $1
+                   AND st.warehouse_id = $2
+                   AND w.store_id = $3
+                   AND p.store_id = $3
                  FOR UPDATE`,
-                [product_id, targetWarehouseId]
+                [product_id, warehouse_from, store_id]
             );
 
             if (stockRes.rows.length === 0) {
@@ -127,29 +128,30 @@ export async function applyMovement({
             }
 
             const stock = stockRes.rows[0];
-
             if (stock.quantity < qty) {
                 throw createAppError(
                     ERROR_CODES.MOVEMENT_INSUFFICIENT_STOCK,
                     type === "SALE" ? 409 : 400,
-                    {
-                        available: stock.quantity,
-                        required: qty,
-                    }
+                    { available: stock.quantity, required: qty }
                 );
             }
 
-            const newQty = stock.quantity - qty;
-            await client.query(`UPDATE stock SET quantity = $1 WHERE id = $2`, [
-                newQty,
-                stock.id,
-            ]);
+            await client.query(
+                `UPDATE stock SET quantity = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+                [stock.quantity - qty, stock.id]
+            );
         } else if (type === "TRANSFER") {
             const stockFromRes = await client.query(
-                `SELECT id, quantity FROM stock
-                 WHERE product_id = $1 AND warehouse_id = $2
+                `SELECT st.id, st.quantity
+                 FROM stock st
+                 JOIN warehouses w ON w.id = st.warehouse_id
+                 JOIN products p ON p.id = st.product_id
+                 WHERE st.product_id = $1
+                   AND st.warehouse_id = $2
+                   AND w.store_id = $3
+                   AND p.store_id = $3
                  FOR UPDATE`,
-                [product_id, warehouse_from]
+                [product_id, warehouse_from, store_id]
             );
 
             if (stockFromRes.rows.length === 0) {
@@ -157,70 +159,63 @@ export async function applyMovement({
             }
 
             const stockFrom = stockFromRes.rows[0];
-
             if (stockFrom.quantity < qty) {
-                throw createAppError(
-                    ERROR_CODES.MOVEMENT_INSUFFICIENT_STOCK_FROM,
-                    400,
-                    {
-                        available: stockFrom.quantity,
-                        required: qty,
-                    }
-                );
+                throw createAppError(ERROR_CODES.MOVEMENT_INSUFFICIENT_STOCK_FROM, 400, {
+                    available: stockFrom.quantity,
+                    required: qty,
+                });
             }
 
-            const newQtyFrom = stockFrom.quantity - qty;
-            await client.query(`UPDATE stock SET quantity = $1 WHERE id = $2`, [
-                newQtyFrom,
-                stockFrom.id,
-            ]);
+            await client.query(
+                `UPDATE stock SET quantity = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+                [stockFrom.quantity - qty, stockFrom.id]
+            );
 
             await client.query(
                 `INSERT INTO stock (product_id, warehouse_id, quantity)
                  VALUES ($1, $2, $3)
                  ON CONFLICT (product_id, warehouse_id)
-                 DO UPDATE SET quantity = stock.quantity + EXCLUDED.quantity`,
+                 DO UPDATE SET quantity = stock.quantity + EXCLUDED.quantity,
+                               updated_at = CURRENT_TIMESTAMP`,
                 [product_id, warehouse_to, qty]
             );
         } else if (type === "ADJUST") {
-            const targetWarehouseId = warehouse_to;
-
             const stockRes = await client.query(
-                `SELECT id, quantity FROM stock
-                 WHERE product_id = $1 AND warehouse_id = $2
+                `SELECT st.id
+                 FROM stock st
+                 JOIN warehouses w ON w.id = st.warehouse_id
+                 JOIN products p ON p.id = st.product_id
+                 WHERE st.product_id = $1
+                   AND st.warehouse_id = $2
+                   AND w.store_id = $3
+                   AND p.store_id = $3
                  FOR UPDATE`,
-                [product_id, targetWarehouseId]
+                [product_id, warehouse_to, store_id]
             );
 
             if (stockRes.rows.length === 0) {
                 throw createAppError(ERROR_CODES.MOVEMENT_STOCK_ADJUST_NOT_FOUND, 400);
             }
 
-            const stock = stockRes.rows[0];
-
-            await client.query(`UPDATE stock SET quantity = $1 WHERE id = $2`, [
-                qty,
-                stock.id,
-            ]);
+            await client.query(
+                `UPDATE stock SET quantity = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+                [qty, stockRes.rows[0].id]
+            );
         }
 
-        const warehouseId =
-            type === "IN" || type === "RETURN" || type === "ADJUST" || type === "TRANSFER"
-                ? warehouse_to
-                : warehouse_from;
+        const warehouseId = ["IN", "RETURN", "ADJUST", "TRANSFER"].includes(type)
+            ? warehouse_to
+            : warehouse_from;
 
-        const direction =
-            type === "IN" || type === "RETURN" || type === "ADJUST" || type === "TRANSFER"
-                ? 1
-                : -1;
+        const direction = ["IN", "RETURN", "ADJUST", "TRANSFER"].includes(type) ? 1 : -1;
 
-        const reasonText = reason || null;
         const movementResult = await client.query(
             `INSERT INTO movements
-                 (product_id, type, warehouse_id, direction, source_type, warehouse_from, warehouse_to, quantity, qty, reason, created_by)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                 (store_id, product_id, type, warehouse_id, direction, source_type, warehouse_from, warehouse_to, quantity, qty, reason, related_entity_id, created_by)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9, $10, $11, $12)
              RETURNING *`,
             [
+                store_id,
                 product_id,
                 type,
                 warehouseId,
@@ -229,36 +224,32 @@ export async function applyMovement({
                 warehouse_from,
                 warehouse_to,
                 qty,
-                qty,
-                reasonText,
+                reason || null,
+                related_entity_id,
                 user_id,
             ]
         );
 
         const movement = movementResult.rows[0];
-
-        let affectedWarehouseId = null;
-        if (["IN", "RETURN", "ADJUST", "TRANSFER"].includes(type)) {
-            affectedWarehouseId = warehouse_to;
-        } else if (["OUT", "SALE"].includes(type)) {
-            affectedWarehouseId = warehouse_from;
-        }
+        const affectedWarehouseId = ["IN", "RETURN", "ADJUST", "TRANSFER"].includes(type)
+            ? warehouse_to
+            : warehouse_from;
 
         if (affectedWarehouseId) {
             const stockAfterRes = await client.query(
-                `SELECT quantity
-                 FROM stock
-                 WHERE product_id = $1 AND warehouse_id = $2`,
-                [product_id, affectedWarehouseId]
+                `SELECT st.quantity
+                 FROM stock st
+                 JOIN warehouses w ON w.id = st.warehouse_id
+                 WHERE st.product_id = $1 AND st.warehouse_id = $2 AND w.store_id = $3`,
+                [product_id, affectedWarehouseId, store_id]
             );
 
             const quantityAfter = stockAfterRes.rows[0]?.quantity || 0;
-
             if (quantityAfter <= product.min_stock) {
-                const userIds = await getUsersByRoles(["owner", "manager"], client);
-
+                const userIds = await getUsersByRoles(store_id, ["owner", "manager"], client);
                 if (userIds.length > 0) {
                     await createNotification({
+                        store_id,
                         type: "LOW_STOCK",
                         userIds,
                         payload: {
@@ -274,50 +265,26 @@ export async function applyMovement({
             }
         }
 
-        if (!useExternalClient) {
-            await client.query("COMMIT");
-        }
-
-        return {
-            success: true,
-            movement,
-        };
+        if (!useExternalClient) {await client.query("COMMIT");}
+        return { success: true, movement };
     } catch (err) {
         console.error("[applyMovement] SQL Error:", {
             message: err.message,
             code: err.code,
             detail: err.detail,
-            hint: err.hint,
-            position: err.position,
-            where: err.where,
-            schema: err.schema,
-            table: err.table,
-            column: err.column,
             constraint: err.constraint,
-            file: err.file,
-            line: err.line,
-            routine: err.routine,
         });
 
-        if (!useExternalClient) {
-            await client.query("ROLLBACK");
-        }
+        if (!useExternalClient) {await client.query("ROLLBACK");}
         throw err;
     } finally {
-        if (!useExternalClient) {
-            client.release();
-        }
+        if (!useExternalClient) {client.release();}
     }
 }
 
-export async function createMovementIn({
-    product_id,
-    warehouse_id,
-    quantity,
-    reason,
-    user_id,
-}) {
+export async function createMovementIn({ store_id, product_id, warehouse_id, quantity, reason, user_id }) {
     const result = await applyMovement({
+        store_id,
         type: "IN",
         product_id,
         warehouse_to: warehouse_id,
@@ -328,14 +295,9 @@ export async function createMovementIn({
     return result.movement;
 }
 
-export async function createMovementOut({
-    product_id,
-    warehouse_id,
-    quantity,
-    reason,
-    user_id,
-}) {
+export async function createMovementOut({ store_id, product_id, warehouse_id, quantity, reason, user_id }) {
     const result = await applyMovement({
+        store_id,
         type: "OUT",
         product_id,
         warehouse_from: warehouse_id,
@@ -347,6 +309,7 @@ export async function createMovementOut({
 }
 
 export async function getMovements({
+    store_id,
     limit = 100,
     offset = 0,
     product_id = null,
@@ -369,14 +332,14 @@ export async function getMovements({
                         u.email AS created_by_email,
                         m.created_at
                  FROM movements m
-                 LEFT JOIN products p ON p.id = m.product_id
-                 LEFT JOIN warehouses wf ON wf.id = m.warehouse_from
-                 LEFT JOIN warehouses wt ON wt.id = m.warehouse_to
-                 LEFT JOIN users u ON u.id = m.created_by
-                 WHERE 1=1`;
+                 LEFT JOIN products p ON p.id = m.product_id AND p.store_id = m.store_id
+                 LEFT JOIN warehouses wf ON wf.id = m.warehouse_from AND wf.store_id = m.store_id
+                 LEFT JOIN warehouses wt ON wt.id = m.warehouse_to AND wt.store_id = m.store_id
+                 LEFT JOIN users u ON u.id = m.created_by AND u.store_id = m.store_id
+                 WHERE m.store_id = $1`;
 
-    const params = [];
-    let paramIndex = 1;
+    const params = [store_id];
+    let paramIndex = 2;
 
     if (product_id) {
         query += ` AND m.product_id = $${paramIndex++}`;
@@ -410,4 +373,3 @@ export async function getMovements({
     const result = await pool.query(query, params);
     return result.rows;
 }
-

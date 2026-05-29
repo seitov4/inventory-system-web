@@ -1,36 +1,5 @@
 import * as platformService from "../services/platform.service.js";
 import { success } from "../utils/response.js";
-import { createAppError } from "../errors/app-error.js";
-import { ERROR_CODES } from "../errors/error-codes.js";
-
-// Auth
-export async function login(req, res, next) {
-    try {
-        const { email, password, login } = req.body;
-        const identifier = login || email;
-        if (!identifier || !password) {
-            return next(createAppError(ERROR_CODES.AUTH_LOGIN_REQUIRED_FIELDS, 400));
-        }
-
-        const result = await platformService.loginPlatformUser(identifier, password);
-        return success(res, result);
-    } catch (err) {
-        return next(err);
-    }
-}
-
-export async function me(req, res, next) {
-    try {
-        const result = await platformService.getPlatformProfile(req.user.id);
-        return success(res, result);
-    } catch (err) {
-        return next(err);
-    }
-}
-
-export async function logout(req, res) {
-    return success(res, { message: "Logged out" });
-}
 
 // Stores
 export async function listStores(req, res, next) {
@@ -75,7 +44,7 @@ export async function resumeStore(req, res, next) {
 export async function archiveStore(req, res, next) {
     try {
         const { id } = req.params;
-        const updated = await platformService.updateStoreStatus(id, "archived");
+        const updated = await platformService.updateStoreStatus(id, "inactive");
         return success(res, updated);
     } catch (err) {
         return next(err);

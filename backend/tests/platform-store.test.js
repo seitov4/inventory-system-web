@@ -71,12 +71,6 @@ test(
         assert.equal(created.slug, "alpha-store");
         assert.ok(created.primaryWarehouseId > 0);
 
-        await safeQuery(
-            `INSERT INTO warehouses (name, type, address)
-             VALUES ($1, $2, $3)`,
-            ["Standalone Warehouse", "warehouse", "Standalone Address"]
-        );
-
         const stores = await platformService.listStores();
         assert.equal(stores.length, 1);
         assert.equal(stores[0].name, "Alpha Store");
@@ -101,8 +95,8 @@ test(
         const resumed = await platformService.updateStoreStatus(store.id, "active");
         assert.equal(resumed.status, "active");
 
-        const archived = await platformService.updateStoreStatus(store.id, "archived");
-        assert.equal(archived.status, "archived");
+        const inactive = await platformService.updateStoreStatus(store.id, "inactive");
+        assert.equal(inactive.status, "inactive");
 
         await assert.rejects(
             () => platformService.updateStoreStatus(store.id, "active"),
@@ -126,10 +120,11 @@ test(
         assert.ok(store.primaryWarehouseId);
 
         const userResult = await safeQuery(
-            `INSERT INTO users (email, first_name, last_name, store_name, password_hash, role)
-             VALUES ($1, $2, $3, $4, $5, $6)
+            `INSERT INTO users (store_id, email, first_name, last_name, store_name, password_hash, role)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
              RETURNING id`,
             [
+                store.id,
                 `cashier-${timestamp}@obs.test`,
                 "Cashier",
                 "User",
@@ -141,10 +136,10 @@ test(
         const userId = Number(userResult.rows[0].id);
 
         const productResult = await safeQuery(
-            `INSERT INTO products (name, sku, purchase_price, sale_price, min_stock)
-             VALUES ($1, $2, $3, $4, $5)
+            `INSERT INTO products (store_id, name, sku, purchase_price, sale_price, min_stock)
+             VALUES ($1, $2, $3, $4, $5, $6)
              RETURNING id`,
-            [`Product ${timestamp}`, `SKU-${timestamp}`, 10, 20, 1]
+            [store.id, `Product ${timestamp}`, `SKU-${timestamp}`, 10, 20, 1]
         );
         const productId = Number(productResult.rows[0].id);
 
@@ -158,7 +153,7 @@ test(
             `INSERT INTO sales (cashier_id, warehouse_id, store_id, total, total_amount, discount, payment_type, status)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
              RETURNING id`,
-            [userId, store.primaryWarehouseId, store.primaryWarehouseId, 100, 100, 0, "CASH", "COMPLETED"]
+            [userId, store.primaryWarehouseId, store.id, 100, 100, 0, "CASH", "COMPLETED"]
         );
         const saleId = Number(saleResult.rows[0].id);
 

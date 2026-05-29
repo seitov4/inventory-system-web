@@ -1,7 +1,6 @@
 import React from "react";
 import styled from "styled-components";
 import StoreStatusBadge from "../components/StoreStatusBadge.jsx";
-import StoreProvisioningIndicator from "../components/StoreProvisioningIndicator.jsx";
 import StoreActionsMenu from "../components/StoreActionsMenu.jsx";
 
 const TableShell = styled.div`
@@ -49,9 +48,8 @@ const Tr = styled.tr`
                 : "rgba(30, 64, 175, 0.18)"};
     }
 
-    /* Visually distinct for archived stores */
     ${(props) =>
-        props.$archived &&
+        props.$inactive &&
         `
         opacity: 0.7;
         background: rgba(31, 41, 55, 0.5);
@@ -63,12 +61,6 @@ const EmptyState = styled.div`
     text-align: center;
     font-size: 13px;
     color: #9ca3af;
-`;
-
-const StatusCell = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
 `;
 
 const ActionsCell = styled.div`
@@ -104,16 +96,15 @@ export default function StoresTable({ stores, onSuspend, onResume, onArchive, on
                 </Thead>
                 <tbody>
                     {stores.map((store) => {
-                        const isArchived = store.status === "archived";
-                        const isProvisioning = store.status === "provisioning";
+                        const isInactive = store.status === "inactive";
 
                         return (
                             <Tr
                                 key={store.id}
-                                $archived={isArchived}
-                                $clickable={!!onStoreClick}
+                                $inactive={isInactive}
+                                $clickable={!!onStoreClick && !isInactive}
                                 onClick={() => {
-                                    if (onStoreClick && !isArchived) {
+                                    if (onStoreClick && !isInactive) {
                                         onStoreClick(store.id);
                                     }
                                 }}
@@ -121,12 +112,7 @@ export default function StoresTable({ stores, onSuspend, onResume, onArchive, on
                                 <Td>{store.name}</Td>
                                 <Td>{store.slug}</Td>
                                 <Td>{store.ownerEmail}</Td>
-                                <Td>
-                                    <StatusCell>
-                                        <StoreStatusBadge status={store.status} />
-                                        {isProvisioning && <StoreProvisioningIndicator />}
-                                    </StatusCell>
-                                </Td>
+                                <Td><StoreStatusBadge status={store.status} /></Td>
                                 <Td>{store.plan}</Td>
                                 <Td>{store.region}</Td>
                                 <Td>{store.createdAt}</Td>
