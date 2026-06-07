@@ -16,13 +16,13 @@ const Grid = styled.div`
 const Stat = styled.div`
     padding: 10px;
     border-radius: 8px;
-    background: rgba(15, 23, 42, 0.6);
-    border: 1px solid rgba(31, 41, 55, 0.5);
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
 `;
 
 const StatLabel = styled.div`
     font-size: 11px;
-    color: #9ca3af;
+    color: #64748b;
     margin-bottom: 4px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -31,11 +31,11 @@ const StatLabel = styled.div`
 const StatValue = styled.div`
     font-size: 20px;
     font-weight: 700;
-    color: #e5e7eb;
+    color: #0f172a;
 `;
 
 const StatValueError = styled(StatValue)`
-    color: #fca5a5;
+    color: #dc2626;
 `;
 
 /**

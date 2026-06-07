@@ -11,6 +11,8 @@
         "seed:admin": "node scripts/seed-platform-admin.js",
         "seed:platform-admin": "node scripts/seed-platform-admin.js",
         "seed:demo-data": "node scripts/seed-demo-data.js",
+        "check:dashboard-sales": "node scripts/check-dashboard-sales.js",
+        "check:tenant-data": "node scripts/check-tenant-data.js",
         "db:setup": "node scripts/setup-db.js",
         "db:check-sync": "node scripts/check-db-sync.js",
         "db:init": "node scripts/run-init.js",

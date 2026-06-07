@@ -24,13 +24,13 @@ const TitleBlock = styled.div`
 
 const Title = styled.div`
     font-size: 18px;
-    font-weight: 600;
-    color: #e5e7eb;
+    font-weight: 700;
+    color: #0f172a;
 `;
 
 const Subtitle = styled.div`
     font-size: 13px;
-    color: #9ca3af;
+    color: #64748b;
 `;
 
 const Grid = styled.div`
@@ -59,9 +59,9 @@ const RightColumn = styled.div`
 const ErrorMessage = styled.div`
     padding: 12px 14px;
     border-radius: 8px;
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #fca5a5;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
     font-size: 12px;
     margin-bottom: 14px;
 `;
@@ -69,7 +69,7 @@ const ErrorMessage = styled.div`
 const LoadingMessage = styled.div`
     padding: 40px 20px;
     text-align: center;
-    color: #9ca3af;
+    color: #64748b;
     font-size: 13px;
 `;
 
@@ -78,8 +78,8 @@ const ReadOnlyBadge = styled.div`
     align-items: center;
     padding: 4px 8px;
     border-radius: 6px;
-    background: rgba(148, 163, 184, 0.2);
-    color: #9ca3af;
+    background: #e2e8f0;
+    color: #475569;
     font-size: 11px;
     font-weight: 500;
     text-transform: uppercase;
@@ -123,7 +123,7 @@ export default function StoreOverviewSection({ storeId, onNavigate }) {
                 </div>
             </HeaderRow>
 
-            {error && <ErrorMessage>⚠️ {error}</ErrorMessage>}
+            {error && <ErrorMessage>Warning: {error}</ErrorMessage>}
 
             {loading && !store ? (
                 <LoadingMessage>Loading store overview...</LoadingMessage>

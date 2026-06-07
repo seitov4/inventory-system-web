@@ -25,11 +25,11 @@ export async function getSalesReportData(storeId, fromDate, toDate) {
             (si.qty * si.price) AS total
         FROM sales s
         JOIN sale_items si ON si.sale_id = s.id
-        JOIN products p ON p.id = si.product_id
+        JOIN products p ON p.id = si.product_id AND p.store_id = s.store_id
         WHERE s.store_id = $1
           AND s.created_at >= $2 
           AND s.created_at <= $3
-          AND s.status = 'COMPLETED'
+          AND LOWER(s.status) = 'completed'
         ORDER BY s.created_at DESC, s.id, si.id
     `;
 

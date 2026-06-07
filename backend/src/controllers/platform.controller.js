@@ -51,6 +51,16 @@ export async function archiveStore(req, res, next) {
     }
 }
 
+export async function deleteStore(req, res, next) {
+    try {
+        const { id } = req.params;
+        const updated = await platformService.updateStoreStatus(id, "deleted");
+        return success(res, updated);
+    } catch (err) {
+        return next(err);
+    }
+}
+
 export async function getStoreDetails(req, res, next) {
     try {
         const { id } = req.params;

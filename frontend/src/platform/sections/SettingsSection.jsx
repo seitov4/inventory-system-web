@@ -16,14 +16,14 @@ const Grid = styled.div`
 
 const Title = styled.div`
     font-size: 18px;
-    font-weight: 600;
-    color: #e5e7eb;
+    font-weight: 700;
+    color: #0f172a;
     margin-bottom: 6px;
 `;
 
 const Subtitle = styled.div`
     font-size: 13px;
-    color: #9ca3af;
+    color: #64748b;
     margin-bottom: 14px;
 `;
 
@@ -32,7 +32,7 @@ const InfoRow = styled.div`
     justify-content: space-between;
     align-items: center;
     padding: 8px 0;
-    border-bottom: 1px solid rgba(55, 65, 81, 0.5);
+    border-bottom: 1px solid #e2e8f0;
     font-size: 13px;
 
     &:last-child {
@@ -41,12 +41,12 @@ const InfoRow = styled.div`
 `;
 
 const InfoLabel = styled.span`
-    color: #9ca3af;
+    color: #64748b;
     font-weight: 500;
 `;
 
 const InfoValue = styled.span`
-    color: #e5e7eb;
+    color: #0f172a;
     font-family: monospace;
     font-size: 12px;
 `;
@@ -61,7 +61,7 @@ const AuditList = styled.div`
 
 const AuditEntry = styled.div`
     padding: 8px 10px;
-    background: rgba(15, 23, 42, 0.6);
+    background: #f8fafc;
     border-radius: 6px;
     font-size: 12px;
     border-left: 3px solid
@@ -73,7 +73,7 @@ const AuditEntry = styled.div`
 `;
 
 const AuditTime = styled.div`
-    color: #9ca3af;
+    color: #64748b;
     font-size: 11px;
     margin-top: 2px;
 `;
@@ -171,20 +171,20 @@ export default function SettingsSection() {
                     description="Recent platform access events (last 20 entries)"
                 >
                     {auditLogs.length === 0 ? (
-                        <div style={{ fontSize: 12, color: "#9ca3af", padding: "8px 0" }}>
+                        <div style={{ fontSize: 12, color: "#64748b", padding: "8px 0" }}>
                             No audit events recorded yet
                         </div>
                     ) : (
                         <AuditList>
                             {auditLogs.map((log, idx) => (
                                 <AuditEntry key={idx} $type={log.type}>
-                                    <div style={{ color: "#e5e7eb" }}>
-                                        <strong>{log.type.replace("AUTH_", "")}</strong> —{" "}
+                                    <div style={{ color: "#0f172a" }}>
+                                        <strong>{log.type.replace("AUTH_", "")}</strong> -{" "}
                                         {log.email}
                                     </div>
                                     {log.metadata?.reason && (
                                         <div
-                                            style={{ color: "#fca5a5", fontSize: 11, marginTop: 2 }}
+                                            style={{ color: "#dc2626", fontSize: 11, marginTop: 2 }}
                                         >
                                             {log.metadata.reason}
                                         </div>
@@ -198,7 +198,7 @@ export default function SettingsSection() {
 
                 {/* Placeholder for future settings */}
                 <Card title="Tenant limits" description="Per-tenant quotas and feature flags.">
-                    <p style={{ fontSize: 13, color: "#9ca3af", lineHeight: 1.5 }}>
+                    <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.5 }}>
                         Here you will control how many stores, warehouses and users each tenant can
                         provision. It is also a good place for feature flags: POS versions,
                         analytics packs and premium modules.

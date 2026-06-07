@@ -442,178 +442,6 @@ const EmptyState = styled.div`
     font-size: 14px;
 `;
 
-const MockDataLabel = styled.div`
-    padding: 8px 12px;
-    margin-bottom: 12px;
-    background: rgba(210, 153, 34, 0.1);
-    border: 1px solid rgba(210, 153, 34, 0.3);
-    border-radius: 8px;
-    color: var(--warning-color);
-    font-size: 12px;
-    text-align: center;
-    font-weight: 500;
-`;
-
-// ===== TEMP MOCK DATA — REMOVE WHEN BACKEND READY =====
-// This is for UI/UX testing only. Remove this section when backend is fully connected.
-const MOCK_PRODUCTS = [
-    {
-        id: 1001,
-        name: "Milk 2.5%",
-        sku: "MLK-250-001",
-        barcode: "4607025391234",
-        purchase_price: 180,
-        sale_price: 250,
-        min_stock: 20,
-    },
-    {
-        id: 1002,
-        name: "White Bread",
-        sku: "BRD-WHT-001",
-        barcode: "4607025391235",
-        purchase_price: 45,
-        sale_price: 65,
-        min_stock: 15,
-    },
-    {
-        id: 1003,
-        name: "Sugar 1kg",
-        sku: "SGR-1KG-001",
-        barcode: "4607025391236",
-        purchase_price: 120,
-        sale_price: 180,
-        min_stock: 30,
-    },
-    {
-        id: 1004,
-        name: "Rice 1kg",
-        sku: "RCE-1KG-001",
-        barcode: "4607025391237",
-        purchase_price: 280,
-        sale_price: 420,
-        min_stock: 25,
-    },
-    {
-        id: 1005,
-        name: "Soap Antibacterial",
-        sku: "SOAP-ANT-001",
-        barcode: "4607025391238",
-        purchase_price: 95,
-        sale_price: 150,
-        min_stock: 40,
-    },
-    {
-        id: 1006,
-        name: "Shampoo 400ml",
-        sku: "SHP-400-001",
-        barcode: "4607025391239",
-        purchase_price: 350,
-        sale_price: 520,
-        min_stock: 15,
-    },
-    {
-        id: 1007,
-        name: "Antiseptic 100ml",
-        sku: "ANT-100-001",
-        barcode: "4607025391240",
-        purchase_price: 220,
-        sale_price: 320,
-        min_stock: 20,
-    },
-    {
-        id: 1008,
-        name: "Batteries AA (4pcs)",
-        sku: "BAT-AA-001",
-        barcode: "4607025391241",
-        purchase_price: 180,
-        sale_price: 280,
-        min_stock: 50,
-    },
-    {
-        id: 1009,
-        name: "Water 1.5L",
-        sku: "WTR-1.5-001",
-        barcode: "4607025391242",
-        purchase_price: 60,
-        sale_price: 90,
-        min_stock: 100,
-    },
-    {
-        id: 1010,
-        name: "Chicken Eggs (10pcs)",
-        sku: "EGG-10-001",
-        barcode: "4607025391243",
-        purchase_price: 150,
-        sale_price: 220,
-        min_stock: 30,
-    },
-    {
-        id: 1011,
-        name: "Butter 200g",
-        sku: "BTR-200-001",
-        barcode: "4607025391244",
-        purchase_price: 320,
-        sale_price: 480,
-        min_stock: 20,
-    },
-    {
-        id: 1012,
-        name: "Coffee 250g",
-        sku: "COF-250-001",
-        barcode: "4607025391245",
-        purchase_price: 450,
-        sale_price: 680,
-        min_stock: 15,
-    },
-    {
-        id: 1013,
-        name: "Tea Black 100g",
-        sku: "TEA-100-001",
-        barcode: "4607025391246",
-        purchase_price: 180,
-        sale_price: 270,
-        min_stock: 25,
-    },
-    {
-        id: 1014,
-        name: "Pasta 500g",
-        sku: "PST-500-001",
-        barcode: "4607025391247",
-        purchase_price: 140,
-        sale_price: 210,
-        min_stock: 35,
-    },
-    {
-        id: 1015,
-        name: "Cooking Oil 1L",
-        sku: "OIL-1L-001",
-        barcode: "4607025391248",
-        purchase_price: 380,
-        sale_price: 550,
-        min_stock: 20,
-    },
-];
-
-// Mock stock data (for low stock badges)
-const MOCK_STOCK_ROWS = [
-    { id: 1001, quantity: 15, min_stock: 20 }, // Low stock
-    { id: 1002, quantity: 8, min_stock: 15 },  // Low stock
-    { id: 1003, quantity: 45, min_stock: 30 },
-    { id: 1004, quantity: 12, min_stock: 25 }, // Low stock
-    { id: 1005, quantity: 60, min_stock: 40 },
-    { id: 1006, quantity: 5, min_stock: 15 },  // Low stock
-    { id: 1007, quantity: 25, min_stock: 20 },
-    { id: 1008, quantity: 80, min_stock: 50 },
-    { id: 1009, quantity: 150, min_stock: 100 },
-    { id: 1010, quantity: 18, min_stock: 30 },  // Low stock
-    { id: 1011, quantity: 22, min_stock: 20 },
-    { id: 1012, quantity: 8, min_stock: 15 },    // Low stock
-    { id: 1013, quantity: 30, min_stock: 25 },
-    { id: 1014, quantity: 50, min_stock: 35 },
-    { id: 1015, quantity: 10, min_stock: 20 },  // Low stock
-];
-// ===== END TEMP MOCK DATA =====
-
 // ===== MAIN COMPONENT =====
 export default function ProductsPage() {
     const [products, setProducts] = useState([]);
@@ -680,15 +508,8 @@ export default function ProductsPage() {
             const loadedProducts = Array.isArray(allProducts) ? allProducts : [];
             const loadedStock = Array.isArray(left) ? left : [];
             
-            // TEMP MOCK DATA — Use mock data if API returns empty (for UI/UX testing)
-            // REMOVE THIS WHEN BACKEND IS READY
-            if (loadedProducts.length === 0 && process.env.NODE_ENV === 'development') {
-                setProducts(MOCK_PRODUCTS);
-                setStockRows(MOCK_STOCK_ROWS);
-            } else {
-                setProducts(loadedProducts);
-                setStockRows(loadedStock);
-            }
+            setProducts(loadedProducts);
+            setStockRows(loadedStock);
 
             // remember which products had movements in the last 30 days
             if (Array.isArray(recentMovements)) {
@@ -1097,12 +918,6 @@ export default function ProductsPage() {
                         onChange={(e) => setQ(e.target.value)}
                     />
                 </SectionHeader>
-                {/* TEMP MOCK DATA LABEL — Remove when backend is ready */}
-                {products.length > 0 && products[0]?.id >= 1000 && process.env.NODE_ENV === 'development' && (
-                    <MockDataLabel>
-                        📋 Demo data shown for layout preview
-                    </MockDataLabel>
-                )}
                 <FilterChipsRow>
                     <FilterChip
                         type="button"

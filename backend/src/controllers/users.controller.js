@@ -43,7 +43,6 @@ export async function createUser(req, res, next) {
             phone,
             first_name: firstName,
             last_name: lastName,
-            store_name: req.user.store_name,
             password,
             role,
             is_active,

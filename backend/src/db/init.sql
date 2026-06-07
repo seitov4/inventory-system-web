@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS stores (
     primary_warehouse_id INTEGER,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
-    CONSTRAINT stores_status_chk CHECK (status IN ('active', 'suspended', 'archived', 'provisioning'))
+    CONSTRAINT stores_status_chk CHECK (status IN ('active', 'suspended', 'inactive', 'deleted', 'archived', 'provisioning'))
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_stores_slug ON stores(slug);
@@ -441,6 +441,13 @@ BEGIN
     ) THEN
         ALTER TABLE stores DROP CONSTRAINT stores_status_chk;
     END IF;
+    IF EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'stores_status_saas_chk'
+    ) THEN
+        ALTER TABLE stores DROP CONSTRAINT stores_status_saas_chk;
+    END IF;
 END $$;
 
 UPDATE stores SET status = 'inactive' WHERE status IN ('archived', 'provisioning');
@@ -450,15 +457,9 @@ UPDATE stores SET slug = CONCAT('store-', id) WHERE slug IS NULL OR slug = '';
 
 DO $$
 BEGIN
-    IF NOT EXISTS (
-        SELECT 1
-        FROM pg_constraint
-        WHERE conname = 'stores_status_saas_chk'
-    ) THEN
-        ALTER TABLE stores
-            ADD CONSTRAINT stores_status_saas_chk
-            CHECK (status IN ('active', 'suspended', 'inactive'));
-    END IF;
+    ALTER TABLE stores
+        ADD CONSTRAINT stores_status_saas_chk
+        CHECK (status IN ('active', 'suspended', 'inactive', 'deleted'));
 END $$;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_stores_slug ON stores(slug);

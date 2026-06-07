@@ -104,10 +104,13 @@ docker build -t inventory-system-web:latest .
 Run the local server stack with PostgreSQL:
 
 ```bash
-JWT_SECRET=change_me docker compose -f docker-compose.prod.yml up --build -d postgres
-JWT_SECRET=change_me docker compose -f docker-compose.prod.yml run --rm db-init
-JWT_SECRET=change_me docker compose -f docker-compose.prod.yml up -d app
-JWT_SECRET=change_me npm --workspace backend run create:test-user
+export DB_PASSWORD="replace-with-strong-db-password"
+export JWT_SECRET="replace-with-strong-jwt-secret"
+
+docker compose -f docker-compose.prod.yml up --build -d postgres
+docker compose -f docker-compose.prod.yml run --rm db-init
+docker compose -f docker-compose.prod.yml up -d app
+npm --workspace backend run create:test-user
 ```
 
 The app is served on `http://localhost:5000` by default. Other devices on your LAN can open `http://YOUR_LAPTOP_IP:5000`. Override the published port with `APP_PORT`, for example `APP_PORT=8080`.
@@ -119,6 +122,9 @@ PostgreSQL in the production stack is published only to `127.0.0.1`, so host-sid
 To use this laptop as the always-on server:
 
 ```bash
+export DB_PASSWORD="replace-with-strong-db-password"
+export JWT_SECRET="replace-with-strong-jwt-secret"
+
 docker compose -f docker-compose.prod.yml up -d --build
 docker compose -f docker-compose.prod.yml --profile init run --rm db-init
 ```

@@ -325,37 +325,15 @@ export async function deleteProduct(storeId, id) {
 
     if (productResult.rows.length === 0) {return null;}
 
-    const referenceResult = await pool.query(
-        `SELECT
-             (SELECT COUNT(*) FROM sale_items si JOIN sales sa ON sa.id = si.sale_id WHERE si.product_id = $1 AND sa.store_id = $2) AS sale_items,
-             (SELECT COUNT(*) FROM movements WHERE product_id = $1 AND store_id = $2) AS movements,
-             (SELECT COUNT(*) FROM stock st JOIN warehouses w ON w.id = st.warehouse_id WHERE st.product_id = $1 AND w.store_id = $2) AS stock`,
+    const archivedResult = await pool.query(
+        `UPDATE products
+         SET is_active = FALSE,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1 AND store_id = $2 AND is_active IS TRUE
+         RETURNING id`,
         [id, storeId]
     );
-
-    const references = referenceResult.rows[0] || {};
-    const hasHistory =
-        Number(references.sale_items || 0) > 0 ||
-        Number(references.movements || 0) > 0 ||
-        Number(references.stock || 0) > 0;
-
-    if (hasHistory) {
-        const archivedResult = await pool.query(
-            `UPDATE products
-             SET is_active = FALSE,
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = $1 AND store_id = $2 AND is_active IS TRUE
-             RETURNING id`,
-            [id, storeId]
-        );
-        return { id: archivedResult.rows[0].id, archived: true };
-    }
-
-    const deletedResult = await pool.query(
-        `DELETE FROM products WHERE id = $1 AND store_id = $2 RETURNING id`,
-        [id, storeId]
-    );
-    return deletedResult.rows[0] ? { id: deletedResult.rows[0].id, archived: false } : null;
+    return archivedResult.rows[0] ? { id: archivedResult.rows[0].id, archived: true } : null;
 }
 
 export async function importProducts(storeId, products) {

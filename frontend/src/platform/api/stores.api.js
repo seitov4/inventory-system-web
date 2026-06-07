@@ -30,6 +30,11 @@ export async function archiveStore(id) {
     return unwrap(res);
 }
 
+export async function deleteStore(id) {
+    const res = await platformClient.delete(`/stores/${id}`);
+    return unwrap(res);
+}
+
 export async function getStoreDetails(id) {
     const res = await platformClient.get(`/stores/${id}`);
     return unwrap(res);

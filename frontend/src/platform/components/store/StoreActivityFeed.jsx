@@ -17,9 +17,9 @@ const Event = styled.div`
     padding: 10px 12px;
     border-radius: 8px;
     background: ${(props) => {
-        if (props.$severity === "error") return "rgba(239, 68, 68, 0.08)";
-        if (props.$severity === "warn") return "rgba(234, 179, 8, 0.08)";
-        return "rgba(15, 23, 42, 0.6)";
+        if (props.$severity === "error") return "#fef2f2";
+        if (props.$severity === "warn") return "#fffbeb";
+        return "#ffffff";
     }};
     border-left: 3px solid
         ${(props) => {
@@ -27,7 +27,7 @@ const Event = styled.div`
             if (props.$severity === "warn") return "#facc15";
             return "#3b82f6";
         }};
-    border: 1px solid rgba(31, 41, 55, 0.5);
+    border: 1px solid #dbe3ef;
 `;
 
 const EventHeader = styled.div`
@@ -40,7 +40,7 @@ const EventHeader = styled.div`
 
 const EventMessage = styled.div`
     font-size: 13px;
-    color: #e5e7eb;
+    color: #0f172a;
     flex: 1;
 `;
 
@@ -49,7 +49,7 @@ const EventMeta = styled.div`
     gap: 8px;
     align-items: center;
     font-size: 11px;
-    color: #9ca3af;
+    color: #64748b;
     flex-wrap: wrap;
 `;
 
@@ -57,7 +57,7 @@ const EmptyState = styled.div`
     padding: 20px;
     text-align: center;
     font-size: 13px;
-    color: #9ca3af;
+    color: #64748b;
 `;
 
 /**
@@ -88,9 +88,9 @@ export default function StoreActivityFeed({ activity }) {
                             </EventHeader>
                             <EventMeta>
                                 <span>{event.type}</span>
-                                <span>·</span>
+                                <span>-</span>
                                 <span>{event.source}</span>
-                                <span>·</span>
+                                <span>-</span>
                                 <span>{calculateTimeAgo(event.timestamp)}</span>
                             </EventMeta>
                         </Event>

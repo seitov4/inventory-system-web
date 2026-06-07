@@ -28,13 +28,13 @@ const TitleBlock = styled.div`
 
 const Title = styled.div`
     font-size: 18px;
-    font-weight: 600;
-    color: #e5e7eb;
+    font-weight: 700;
+    color: #0f172a;
 `;
 
 const Subtitle = styled.div`
     font-size: 13px;
-    color: #9ca3af;
+    color: #64748b;
 `;
 
 const Actions = styled.div`
@@ -53,18 +53,18 @@ const Stats = styled.div`
 const Stat = styled.div`
     padding: 8px 12px;
     border-radius: 8px;
-    background: rgba(15, 23, 42, 0.98);
-    border: 1px solid rgba(31, 41, 55, 0.9);
+    background: #ffffff;
+    border: 1px solid #dbe3ef;
     font-size: 12px;
 `;
 
 const StatLabel = styled.div`
-    color: #9ca3af;
+    color: #64748b;
     margin-bottom: 2px;
 `;
 
 const StatValue = styled.div`
-    color: #e5e7eb;
+    color: #0f172a;
     font-weight: 600;
     font-size: 14px;
 `;
@@ -84,9 +84,9 @@ const CardsView = styled.div`
 const ErrorMessage = styled.div`
     padding: 12px 14px;
     border-radius: 8px;
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #fca5a5;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
     font-size: 12px;
     margin-bottom: 14px;
 `;
@@ -94,7 +94,7 @@ const ErrorMessage = styled.div`
 const LoadingMessage = styled.div`
     padding: 40px 20px;
     text-align: center;
-    color: #9ca3af;
+    color: #64748b;
     font-size: 13px;
 `;
 
@@ -158,11 +158,11 @@ export default function LogsSection() {
                     </Stat>
                     <Stat>
                         <StatLabel>Warnings</StatLabel>
-                        <StatValue style={{ color: "#facc15" }}>{stats.warn}</StatValue>
+                        <StatValue style={{ color: "#ca8a04" }}>{stats.warn}</StatValue>
                     </Stat>
                     <Stat>
                         <StatLabel>Errors</StatLabel>
-                        <StatValue style={{ color: "#fca5a5" }}>{stats.error}</StatValue>
+                        <StatValue style={{ color: "#dc2626" }}>{stats.error}</StatValue>
                     </Stat>
                 </Stats>
             )}
@@ -175,7 +175,7 @@ export default function LogsSection() {
             />
 
             {/* Error state */}
-            {error && <ErrorMessage>⚠️ {error}</ErrorMessage>}
+            {error && <ErrorMessage>Warning: {error}</ErrorMessage>}
 
             {/* Loading state */}
             {loading && logs.length === 0 && (

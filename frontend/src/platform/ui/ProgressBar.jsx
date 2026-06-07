@@ -3,9 +3,9 @@ import styled from "styled-components";
 
 const Track = styled.div`
     width: 100%;
-    height: 6px;
+    height: 8px;
     border-radius: 999px;
-    background: rgba(31, 41, 55, 1);
+    background: #e5e7eb;
     overflow: hidden;
 `;
 
@@ -18,6 +18,8 @@ const Fill = styled.div`
             ? "#22c55e"
             : props.$tone === "yellow"
             ? "#eab308"
+            : props.$tone === "blue"
+            ? "#2563eb"
             : "#ef4444"};
     transition: width 0.25s ease;
 `;

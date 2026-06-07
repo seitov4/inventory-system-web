@@ -44,7 +44,7 @@ export async function movementIn(req, res, next) {
             reason,
             comment,
         } = req.body;
-        const qtyValue = qty || quantity;
+        const qtyValue = qty ?? quantity;
         const reasonText = reason || comment || null;
 
         const effectiveWarehouseTo = warehouse_to || warehouse_id;
@@ -103,7 +103,7 @@ export async function movementIn(req, res, next) {
 export async function movementOut(req, res, next) {
     try {
         const { product_id, warehouse_id, qty, quantity, reason } = req.body;
-        const qtyValue = qty || quantity;
+        const qtyValue = qty ?? quantity;
 
         if (!product_id || !warehouse_id || !qtyValue) {
             return next(createAppError(ERROR_CODES.MOVEMENT_REQUIRED_FIELDS_OUT, 400));
@@ -135,7 +135,7 @@ export async function movementTransfer(req, res, next) {
             quantity,
             reason,
         } = req.body;
-        const qtyValue = qty || quantity;
+        const qtyValue = qty ?? quantity;
 
         if (!product_id || !from_warehouse_id || !to_warehouse_id || !qtyValue) {
             return next(createAppError(ERROR_CODES.MOVEMENT_REQUIRED_FIELDS_TRANSFER, 400));

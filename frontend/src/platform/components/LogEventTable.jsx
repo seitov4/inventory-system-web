@@ -4,29 +4,34 @@ import SeverityBadge from "./SeverityBadge.jsx";
 import { formatTimestamp, getSourceIcon, formatSource, formatEnvironment } from "../utils/logFormatters.js";
 
 const Shell = styled.div`
-    border-radius: 16px;
-    border: 1px solid rgba(31, 41, 55, 0.9);
-    background: rgba(15, 23, 42, 0.98);
-    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.7);
+    border-radius: 8px;
+    border: 1px solid #dbe3ef;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
     overflow: hidden;
+`;
+
+const Scroll = styled.div`
+    overflow-x: auto;
 `;
 
 const Table = styled.table`
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
+    min-width: 900px;
 `;
 
 const Thead = styled.thead`
-    background: rgba(15, 23, 42, 0.98);
+    background: #f8fafc;
 `;
 
 const Th = styled.th`
     text-align: left;
     padding: 10px 14px;
-    border-bottom: 1px solid rgba(31, 41, 55, 0.9);
+    border-bottom: 1px solid #e2e8f0;
     font-weight: 600;
-    color: #9ca3af;
+    color: #475569;
     white-space: nowrap;
     font-size: 11px;
     text-transform: uppercase;
@@ -35,20 +40,20 @@ const Th = styled.th`
 
 const Td = styled.td`
     padding: 9px 14px;
-    border-bottom: 1px solid rgba(31, 41, 55, 0.9);
-    color: #e5e7eb;
+    border-bottom: 1px solid #eef2f7;
+    color: #0f172a;
 `;
 
 const Tr = styled.tr`
     &:hover {
-        background: rgba(30, 64, 175, 0.18);
+        background: #eff6ff;
     }
 
     /* Errors visually dominate */
     ${(props) =>
         props.$severity === "error" &&
         `
-        background: rgba(239, 68, 68, 0.05);
+        background: #fef2f2;
         border-left: 3px solid #ef4444;
     `}
 `;
@@ -68,9 +73,9 @@ const SourceCell = styled.div`
 
 const StoreBadge = styled.span`
     padding: 2px 6px;
-    background: rgba(59, 130, 246, 0.2);
+    background: #dbeafe;
     border-radius: 4px;
-    color: #93c5fd;
+    color: #1d4ed8;
     font-size: 10px;
 `;
 
@@ -83,52 +88,54 @@ const StoreBadge = styled.span`
 export default function LogEventTable({ logs }) {
     return (
         <Shell>
-            <Table>
-                <Thead>
-                    <tr>
-                        <Th>Time</Th>
-                        <Th>Severity</Th>
-                        <Th>Source</Th>
-                        <Th>Environment</Th>
-                        <Th>Message</Th>
-                        <Th>Store</Th>
-                    </tr>
-                </Thead>
-                <tbody>
-                    {logs.map((log) => {
-                        const severity = String(log.severity || "info").toLowerCase();
-                        return (
-                            <Tr key={log.id} $severity={severity}>
-                                <Td style={{ fontSize: 11, color: "#9ca3af" }}>
-                                    {formatTimestamp(log.timestamp)}
-                                </Td>
-                                <Td>
-                                    <SeverityBadge severity={severity} />
-                                </Td>
-                                <Td>
-                                    <SourceCell>
-                                        <span>{getSourceIcon(log.source)}</span>
-                                        <span>{formatSource(log.source)}</span>
-                                    </SourceCell>
-                                </Td>
-                                <Td style={{ fontSize: 11, color: "#9ca3af" }}>
-                                    {log.environment ? formatEnvironment(log.environment) : "-"}
-                                </Td>
-                                <Td>
-                                    <MessageCell>{log.message}</MessageCell>
-                                </Td>
-                                <Td>
-                                    {log.store ? (
-                                        <StoreBadge>{log.store}</StoreBadge>
-                                    ) : (
-                                        <span style={{ color: "#6b7280" }}>-</span>
-                                    )}
-                                </Td>
-                            </Tr>
-                        );
-                    })}
-                </tbody>
-            </Table>
+            <Scroll>
+                <Table>
+                    <Thead>
+                        <tr>
+                            <Th>Time</Th>
+                            <Th>Severity</Th>
+                            <Th>Source</Th>
+                            <Th>Environment</Th>
+                            <Th>Message</Th>
+                            <Th>Store</Th>
+                        </tr>
+                    </Thead>
+                    <tbody>
+                        {logs.map((log) => {
+                            const severity = String(log.severity || "info").toLowerCase();
+                            return (
+                                <Tr key={log.id} $severity={severity}>
+                                    <Td style={{ fontSize: 11, color: "#64748b" }}>
+                                        {formatTimestamp(log.timestamp)}
+                                    </Td>
+                                    <Td>
+                                        <SeverityBadge severity={severity} />
+                                    </Td>
+                                    <Td>
+                                        <SourceCell>
+                                            <span>{getSourceIcon(log.source)}</span>
+                                            <span>{formatSource(log.source)}</span>
+                                        </SourceCell>
+                                    </Td>
+                                    <Td style={{ fontSize: 11, color: "#64748b" }}>
+                                        {log.environment ? formatEnvironment(log.environment) : "-"}
+                                    </Td>
+                                    <Td>
+                                        <MessageCell>{log.message}</MessageCell>
+                                    </Td>
+                                    <Td>
+                                        {log.store ? (
+                                            <StoreBadge>{log.store}</StoreBadge>
+                                        ) : (
+                                            <span style={{ color: "#64748b" }}>-</span>
+                                        )}
+                                    </Td>
+                                </Tr>
+                            );
+                        })}
+                    </tbody>
+                </Table>
+            </Scroll>
         </Shell>
     );
 }

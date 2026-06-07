@@ -73,45 +73,11 @@ WHERE w.name LIKE 'Demo %' OR s.slug LIKE 'demo-%';
 INSERT INTO demo_user_ids
 SELECT id FROM users WHERE email LIKE 'demo.%@inventory.local';
 
-DELETE FROM notifications
-WHERE type LIKE 'DEMO_%'
-   OR payload ->> 'seed' = 'demo'
-   OR user_id IN (SELECT id FROM demo_user_ids);
-
-DELETE FROM sale_items
-WHERE sale_id IN (
-    SELECT id FROM sales
-    WHERE cashier_id IN (SELECT id FROM demo_user_ids)
-       OR warehouse_id IN (SELECT id FROM demo_warehouse_ids)
-       OR store_id IN (SELECT id FROM demo_warehouse_ids)
-);
-
-DELETE FROM movements
-WHERE product_id IN (SELECT id FROM demo_product_ids)
-   OR warehouse_id IN (SELECT id FROM demo_warehouse_ids)
-   OR warehouse_from IN (SELECT id FROM demo_warehouse_ids)
-   OR warehouse_to IN (SELECT id FROM demo_warehouse_ids)
-   OR created_by IN (SELECT id FROM demo_user_ids)
-   OR reason LIKE 'Demo %'
-   OR comment LIKE 'Demo %';
-
-DELETE FROM stock
-WHERE product_id IN (SELECT id FROM demo_product_ids)
-   OR warehouse_id IN (SELECT id FROM demo_warehouse_ids);
-
-DELETE FROM sales
-WHERE cashier_id IN (SELECT id FROM demo_user_ids)
-   OR warehouse_id IN (SELECT id FROM demo_warehouse_ids)
-   OR store_id IN (SELECT id FROM demo_warehouse_ids);
-
-DELETE FROM products WHERE sku LIKE 'DEMO-%';
-DELETE FROM warehouses
-WHERE id IN (SELECT id FROM demo_warehouse_ids)
-   OR name LIKE 'Demo %';
-DELETE FROM stores WHERE slug LIKE 'demo-%';
-DELETE FROM users WHERE id IN (SELECT id FROM demo_user_ids);
+-- Demo seed is append/update only. Do not physically delete tenant data here:
+-- sales, movements, notifications and users are historical business data.
 
 INSERT INTO users (
+    store_id,
     email,
     phone,
     first_name,
@@ -123,6 +89,7 @@ INSERT INTO users (
     updated_at
 )
 SELECT
+    (SELECT id FROM stores WHERE slug LIKE 'demo-store-%' ORDER BY id OFFSET ((n - 1) % 5) LIMIT 1),
     'demo.user' || n || '@inventory.local',
     '+7700100' || lpad(n::text, 4, '0'),
     (ARRAY['Aidar','Dana','Timur','Aigerim','Murat','Saule','Arman','Aliya','Nursultan','Madina','Erik','Zarina'])[n],
@@ -136,7 +103,16 @@ SELECT
     now() - (n * interval '18 days'),
     now() - (n * interval '2 days')
 FROM generate_series(1, 12) AS n
-JOIN seed_roles r ON r.idx = n;
+JOIN seed_roles r ON r.idx = n
+ON CONFLICT (email) DO UPDATE SET
+    store_id = EXCLUDED.store_id,
+    phone = EXCLUDED.phone,
+    first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name,
+    store_name = EXCLUDED.store_name,
+    password_hash = EXCLUDED.password_hash,
+    role = EXCLUDED.role,
+    updated_at = EXCLUDED.updated_at;
 
 INSERT INTO seed_summary
 VALUES ('users', 12);
@@ -156,7 +132,7 @@ SELECT
     'Demo Store ' || n,
     'demo-store-' || n,
     'demo.owner' || n || '@inventory.local',
-    (ARRAY['active','active','active','suspended','provisioning'])[n],
+    (ARRAY['active','active','active','suspended','inactive'])[n],
     (ARRAY['standard','premium','standard','standard','enterprise'])[n],
     (ARRAY['Almaty','Astana','Shymkent','Aktobe','Karaganda'])[n],
     (ARRAY[
@@ -168,7 +144,15 @@ SELECT
     ])[n],
     now() - (n * interval '45 days'),
     now() - (n * interval '5 days')
-FROM generate_series(1, 5) AS n;
+FROM generate_series(1, 5) AS n
+ON CONFLICT (slug) DO UPDATE SET
+    name = EXCLUDED.name,
+    owner_email = EXCLUDED.owner_email,
+    status = EXCLUDED.status,
+    plan = EXCLUDED.plan,
+    region = EXCLUDED.region,
+    address = EXCLUDED.address,
+    updated_at = EXCLUDED.updated_at;
 
 INSERT INTO seed_summary
 VALUES ('stores', 5);
@@ -193,9 +177,9 @@ WHERE s.slug LIKE 'demo-store-%';
 
 INSERT INTO warehouses (name, type, store_id, address, created_at, updated_at)
 VALUES
-    ('Demo Central Distribution Center', 'central', NULL, 'Industrial Zone 7, Almaty', now() - interval '360 days', now() - interval '1 day'),
-    ('Demo Returns Hub', 'returns', NULL, 'Logistics Park 4, Astana', now() - interval '300 days', now() - interval '1 day'),
-    ('Demo Seasonal Overflow Warehouse', 'overflow', NULL, 'Warehouse Block C, Karaganda', now() - interval '240 days', now() - interval '1 day');
+    ('Demo Central Distribution Center', 'central', (SELECT id FROM stores WHERE slug = 'demo-store-1'), 'Industrial Zone 7, Almaty', now() - interval '360 days', now() - interval '1 day'),
+    ('Demo Returns Hub', 'returns', (SELECT id FROM stores WHERE slug = 'demo-store-2'), 'Logistics Park 4, Astana', now() - interval '300 days', now() - interval '1 day'),
+    ('Demo Seasonal Overflow Warehouse', 'overflow', (SELECT id FROM stores WHERE slug = 'demo-store-3'), 'Warehouse Block C, Karaganda', now() - interval '240 days', now() - interval '1 day');
 
 UPDATE stores s
 SET primary_warehouse_id = w.id,
@@ -209,6 +193,7 @@ INSERT INTO seed_summary
 VALUES ('warehouses', 8);
 
 INSERT INTO products (
+    store_id,
     name,
     sku,
     barcode,
@@ -221,6 +206,7 @@ INSERT INTO products (
     updated_at
 )
 SELECT
+    (SELECT id FROM stores WHERE slug LIKE 'demo-store-%' ORDER BY id OFFSET ((n - 1) % 5) LIMIT 1),
     w.brand || ' ' || w.item || ' ' || ((n % 6) + 1) || ' pack',
     'DEMO-' || lpad(n::text, 5, '0'),
     '4870000' || lpad(n::text, 6, '0'),
@@ -237,7 +223,17 @@ SELECT
     now() - ((n % 28) * interval '1 day')
 FROM generate_series(1, 360) AS n
 JOIN seed_product_words w ON w.idx = n
-JOIN seed_categories c ON c.idx = ((n - 1) % 12) + 1;
+JOIN seed_categories c ON c.idx = ((n - 1) % 12) + 1
+ON CONFLICT (store_id, sku) WHERE sku IS NOT NULL
+DO UPDATE SET
+    name = EXCLUDED.name,
+    barcode = EXCLUDED.barcode,
+    category = EXCLUDED.category,
+    purchase_price = EXCLUDED.purchase_price,
+    sale_price = EXCLUDED.sale_price,
+    min_stock = EXCLUDED.min_stock,
+    is_active = EXCLUDED.is_active,
+    updated_at = EXCLUDED.updated_at;
 
 INSERT INTO seed_summary
 VALUES ('products', 360);
@@ -254,7 +250,7 @@ SELECT
     END,
     now() - (((p.id + w.id) % 20) * interval '1 day')
 FROM products p
-CROSS JOIN warehouses w
+JOIN warehouses w ON w.store_id = p.store_id
 WHERE p.sku LIKE 'DEMO-%'
   AND w.name LIKE 'Demo %'
 ON CONFLICT (product_id, warehouse_id) DO UPDATE
@@ -271,6 +267,7 @@ WHERE p.sku LIKE 'DEMO-%'
 
 CREATE TEMP TABLE seed_sales_source (
     seed_no integer PRIMARY KEY,
+    store_id integer NOT NULL,
     cashier_id integer NOT NULL,
     warehouse_id integer NOT NULL,
     created_at timestamp NOT NULL,
@@ -282,8 +279,9 @@ CREATE TEMP TABLE seed_sales_source (
 INSERT INTO seed_sales_source
 SELECT
     n,
-    (SELECT id FROM users WHERE email LIKE 'demo.%@inventory.local' ORDER BY id OFFSET (n % 12) LIMIT 1),
-    (SELECT id FROM warehouses WHERE name LIKE 'Demo %Main Warehouse' ORDER BY id OFFSET (n % 5) LIMIT 1),
+    st.id,
+    (SELECT id FROM users WHERE store_id = st.id AND email LIKE 'demo.%@inventory.local' ORDER BY id LIMIT 1),
+    (SELECT id FROM warehouses WHERE store_id = st.id AND name LIKE 'Demo %Main Warehouse' ORDER BY id LIMIT 1),
     (current_date - interval '365 days' + (n * interval '9 hours 17 minutes'))::timestamp,
     CASE WHEN n % 9 = 0 THEN 300 ELSE 0 END,
     (ARRAY['CASH','CARD','QR','BANK_TRANSFER'])[(n % 4) + 1],
@@ -292,13 +290,13 @@ SELECT
         WHEN n % 31 = 0 THEN 'CANCELLED'
         ELSE 'COMPLETED'
     END
-FROM generate_series(1, 900) AS n;
+FROM generate_series(1, 900) AS n
+JOIN stores st ON st.slug = 'demo-store-' || (((n - 1) % 5) + 1);
 
 INSERT INTO sales (
     cashier_id,
     warehouse_id,
     store_id,
-    total,
     total_amount,
     discount,
     payment_type,
@@ -308,8 +306,7 @@ INSERT INTO sales (
 SELECT
     cashier_id,
     warehouse_id,
-    warehouse_id,
-    0,
+    store_id,
     0,
     discount,
     payment_type,
@@ -320,6 +317,7 @@ FROM seed_sales_source;
 CREATE TEMP TABLE seed_sales (
     seed_no integer PRIMARY KEY,
     sale_id integer NOT NULL,
+    store_id integer NOT NULL,
     warehouse_id integer NOT NULL,
     cashier_id integer NOT NULL,
     status text NOT NULL,
@@ -327,7 +325,7 @@ CREATE TEMP TABLE seed_sales (
 ) ON COMMIT DROP;
 
 INSERT INTO seed_sales
-SELECT src.seed_no, s.id, s.warehouse_id, s.cashier_id, s.status, s.created_at
+SELECT src.seed_no, s.id, s.store_id, s.warehouse_id, s.cashier_id, s.status, s.created_at
 FROM seed_sales_source src
 JOIN sales s
   ON s.created_at = src.created_at
@@ -338,14 +336,12 @@ INSERT INTO sale_items (
     sale_id,
     product_id,
     qty,
-    quantity,
     price,
     discount
 )
 SELECT
     ss.sale_id,
     p.id,
-    1 + ((ss.seed_no + line_no) % 5),
     1 + ((ss.seed_no + line_no) % 5),
     p.sale_price,
     CASE WHEN (ss.seed_no + line_no) % 11 = 0 THEN 50 ELSE 0 END
@@ -355,8 +351,7 @@ JOIN products p
   ON p.sku = 'DEMO-' || lpad((((ss.seed_no * 7 + line_no * 13) % 360) + 1)::text, 5, '0');
 
 UPDATE sales s
-SET total = totals.total_value,
-    total_amount = totals.total_value
+SET total_amount = totals.total_value
 FROM (
     SELECT
         si.sale_id,
@@ -377,6 +372,7 @@ FROM sale_items si
 JOIN seed_sales ss ON ss.sale_id = si.sale_id;
 
 INSERT INTO movements (
+    store_id,
     product_id,
     warehouse_id,
     direction,
@@ -389,10 +385,10 @@ INSERT INTO movements (
     warehouse_from,
     warehouse_to,
     type,
-    quantity,
     reason
 )
 SELECT
+    ss.store_id,
     si.product_id,
     ss.warehouse_id,
     -1,
@@ -405,13 +401,13 @@ SELECT
     ss.warehouse_id,
     NULL,
     'SALE',
-    si.qty,
     'Demo sale #' || ss.sale_id
 FROM sale_items si
 JOIN seed_sales ss ON ss.sale_id = si.sale_id
 WHERE ss.status IN ('COMPLETED', 'RETURNED');
 
 INSERT INTO movements (
+    store_id,
     product_id,
     warehouse_id,
     direction,
@@ -424,10 +420,10 @@ INSERT INTO movements (
     warehouse_from,
     warehouse_to,
     type,
-    quantity,
     reason
 )
 SELECT
+    w.store_id,
     p.id,
     w.id,
     1,
@@ -440,13 +436,20 @@ SELECT
     NULL,
     w.id,
     'IN',
-    30 + (n % 180),
     'Demo inbound purchase order'
 FROM generate_series(1, 520) AS n
 JOIN products p ON p.sku = 'DEMO-' || lpad((((n * 5) % 360) + 1)::text, 5, '0')
-JOIN warehouses w ON w.id = (SELECT id FROM warehouses WHERE name LIKE 'Demo %' ORDER BY id OFFSET (n % 8) LIMIT 1);
+JOIN warehouses w ON w.id = (
+    SELECT id
+    FROM warehouses
+    WHERE store_id = p.store_id
+      AND name LIKE 'Demo %'
+    ORDER BY id
+    LIMIT 1
+);
 
 INSERT INTO movements (
+    store_id,
     product_id,
     warehouse_id,
     direction,
@@ -459,10 +462,10 @@ INSERT INTO movements (
     warehouse_from,
     warehouse_to,
     type,
-    quantity,
     reason
 )
 SELECT
+    wf.store_id,
     p.id,
     wf.id,
     -1,
@@ -475,15 +478,29 @@ SELECT
     wf.id,
     wt.id,
     'TRANSFER',
-    5 + (n % 45),
     'Demo stock transfer'
 FROM generate_series(1, 320) AS n
 JOIN products p ON p.sku = 'DEMO-' || lpad((((n * 11) % 360) + 1)::text, 5, '0')
-JOIN warehouses wf ON wf.id = (SELECT id FROM warehouses WHERE name LIKE 'Demo %' ORDER BY id OFFSET (n % 8) LIMIT 1)
-JOIN warehouses wt ON wt.id = (SELECT id FROM warehouses WHERE name LIKE 'Demo %' ORDER BY id OFFSET ((n + 3) % 8) LIMIT 1)
+JOIN warehouses wf ON wf.id = (
+    SELECT id
+    FROM warehouses
+    WHERE store_id = p.store_id
+      AND name LIKE 'Demo %'
+    ORDER BY id
+    LIMIT 1
+)
+JOIN warehouses wt ON wt.id = (
+    SELECT id
+    FROM warehouses
+    WHERE store_id = p.store_id
+      AND name LIKE 'Demo %'
+    ORDER BY id DESC
+    LIMIT 1
+)
 WHERE wf.id <> wt.id;
 
 INSERT INTO movements (
+    store_id,
     product_id,
     warehouse_id,
     direction,
@@ -496,10 +513,10 @@ INSERT INTO movements (
     warehouse_from,
     warehouse_to,
     type,
-    quantity,
     reason
 )
 SELECT
+    ss.store_id,
     si.product_id,
     ss.warehouse_id,
     1,
@@ -512,7 +529,6 @@ SELECT
     NULL,
     ss.warehouse_id,
     'RETURN',
-    si.qty,
     'Demo return for sale #' || ss.sale_id
 FROM sale_items si
 JOIN seed_sales ss ON ss.sale_id = si.sale_id
@@ -525,6 +541,7 @@ WHERE reason LIKE 'Demo %'
    OR comment LIKE 'Demo %';
 
 INSERT INTO notifications (
+    store_id,
     type,
     user_id,
     payload,
@@ -534,6 +551,7 @@ INSERT INTO notifications (
     is_read
 )
 SELECT
+    (SELECT store_id FROM users WHERE email LIKE 'demo.%@inventory.local' ORDER BY id OFFSET (n % 12) LIMIT 1),
     CASE
         WHEN n % 3 = 0 THEN 'DEMO_LOW_STOCK'
         WHEN n % 3 = 1 THEN 'DEMO_REPORT_READY'

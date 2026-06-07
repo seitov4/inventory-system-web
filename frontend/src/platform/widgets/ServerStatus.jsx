@@ -8,7 +8,7 @@ const Row = styled.div`
     justify-content: space-between;
     align-items: center;
     font-size: 12px;
-    color: #cbd5f5;
+    color: #0f172a;
     margin-bottom: 4px;
 `;
 
@@ -17,7 +17,7 @@ const Env = styled.span`
 `;
 
 const Meta = styled.span`
-    color: #9ca3af;
+    color: #64748b;
 `;
 
 /**
@@ -35,7 +35,7 @@ export default function ServerStatus({ servers = [] }) {
     return (
         <Card title="Server status" description="Runtime environments & edge nodes">
             {servers.length === 0 ? (
-                <div style={{ fontSize: 12, color: "#9ca3af", padding: "8px 0" }}>
+                <div style={{ fontSize: 12, color: "#64748b", padding: "8px 0" }}>
                     No server data available
                 </div>
             ) : (

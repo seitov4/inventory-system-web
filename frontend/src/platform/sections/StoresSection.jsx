@@ -26,21 +26,21 @@ const TitleBlock = styled.div`
 
 const Title = styled.div`
     font-size: 18px;
-    font-weight: 600;
-    color: #e5e7eb;
+    font-weight: 700;
+    color: #0f172a;
 `;
 
 const Subtitle = styled.div`
     font-size: 13px;
-    color: #9ca3af;
+    color: #64748b;
 `;
 
 const ErrorMessage = styled.div`
     padding: 12px 14px;
     border-radius: 8px;
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #fca5a5;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
     font-size: 12px;
     margin-bottom: 14px;
 `;
@@ -48,7 +48,7 @@ const ErrorMessage = styled.div`
 const LoadingMessage = styled.div`
     padding: 20px;
     text-align: center;
-    color: #9ca3af;
+    color: #64748b;
     font-size: 13px;
 `;
 
@@ -98,12 +98,12 @@ export default function StoresSection({ onNavigate, onStoreSelect }) {
 
             <div style={{ marginBottom: 14 }}>
                 <Card title="Store lifecycle" description="Manage tenant stores through their lifecycle states.">
-                    <div style={{ fontSize: 12, color: "#9ca3af", lineHeight: 1.6 }}>
+                    <div style={{ fontSize: 13, color: "#64748b", lineHeight: 1.7 }}>
                         <strong>Active:</strong> Store is fully operational and users can log in.
                         <br />
                         <strong>Suspended:</strong> Store is disabled temporarily. Users lose access until resumed.
                         <br />
-                        <strong>Inactive:</strong> Store is disabled permanently and cannot be reactivated through the UI.
+                        <strong>Inactive/deleted:</strong> Store access is disabled while all related data is preserved.
                     </div>
                 </Card>
             </div>

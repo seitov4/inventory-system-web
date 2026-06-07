@@ -445,7 +445,6 @@ export default function POSPage() {
             }));
 
             const result = await salesApi.create({
-                store_id: selectedWarehouseId,
                 warehouse_id: selectedWarehouseId,
                 items,
                 discount: discountValue,
@@ -455,8 +454,6 @@ export default function POSPage() {
             const successMessage = `Sale created successfully! ID: ${result.sale_id}`;
             setSuccess(successMessage);
             setCart([]);
-            // Show alert for demo purposes
-            alert(successMessage);
             // Return focus to barcode input after successful sale
             setTimeout(() => {
                 if (barcodeInputRef.current) {

@@ -4,9 +4,9 @@ import styled from "styled-components";
 const Container = styled.div`
     padding: 60px 20px;
     text-align: center;
-    border-radius: 16px;
-    border: 1px solid rgba(31, 41, 55, 0.9);
-    background: rgba(15, 23, 42, 0.98);
+    border-radius: 8px;
+    border: 1px solid #dbe3ef;
+    background: #ffffff;
 `;
 
 const Icon = styled.div`
@@ -18,13 +18,13 @@ const Icon = styled.div`
 const Title = styled.div`
     font-size: 16px;
     font-weight: 600;
-    color: #e5e7eb;
+    color: #0f172a;
     margin-bottom: 8px;
 `;
 
 const Description = styled.div`
     font-size: 13px;
-    color: #9ca3af;
+    color: #64748b;
     line-height: 1.5;
 `;
 
@@ -41,7 +41,7 @@ export default function EmptyLogsState({ filters = {} }) {
 
     return (
         <Container>
-            <Icon>📋</Icon>
+            <Icon>Logs</Icon>
             <Title>No logs found</Title>
             <Description>
                 {hasActiveFilters

@@ -131,22 +131,22 @@ export async function createSale({
         for (const item of normalizedItems) {
             totalWithoutGlobalDiscount += (item.price - item.discount) * item.qty;
         }
-        const total = Math.max(0, totalWithoutGlobalDiscount - normalizedDiscount);
+        const totalAmount = Math.max(0, totalWithoutGlobalDiscount - normalizedDiscount);
 
         const saleRes = await client.query(
             `INSERT INTO sales
-                 (store_id, cashier_id, warehouse_id, total, total_amount, discount, payment_type, status)
-             VALUES ($1, $2, $3, $4, $4, $5, $6, 'COMPLETED')
-             RETURNING id, cashier_id, warehouse_id, store_id, total, total_amount, discount, payment_type, status, created_at`,
-            [store_id, cashier_id, effectiveWarehouseId, total, normalizedDiscount, payment_type]
+                 (store_id, cashier_id, warehouse_id, total_amount, discount, payment_type, status)
+             VALUES ($1, $2, $3, $4, $5, $6, 'completed')
+             RETURNING id, cashier_id, warehouse_id, store_id, total_amount, discount, payment_type, status, created_at`,
+            [store_id, cashier_id, effectiveWarehouseId, totalAmount, normalizedDiscount, payment_type]
         );
         const sale = saleRes.rows[0];
 
         for (const item of normalizedItems) {
             await client.query(
                 `INSERT INTO sale_items
-                     (sale_id, product_id, qty, quantity, price, discount)
-                 VALUES ($1, $2, $3, $3, $4, $5)`,
+                     (sale_id, product_id, qty, price, discount)
+                 VALUES ($1, $2, $3, $4, $5)`,
                 [sale.id, item.product_id, item.qty, item.price, item.discount]
             );
 
@@ -164,7 +164,7 @@ export async function createSale({
         }
 
         await client.query("COMMIT");
-        return { sale_id: sale.id, total: sale.total };
+        return { sale_id: sale.id, total_amount: sale.total_amount, total: sale.total_amount };
     } catch (err) {
         console.error("[Sales Service] Failed to create sale:", {
             message: err.message,
@@ -186,7 +186,7 @@ export async function getSaleById(storeId, id) {
         `SELECT s.id,
                 s.status,
                 s.payment_type,
-                s.total,
+                s.total_amount,
                 s.discount,
                 s.created_at,
                 s.cashier_id,
@@ -201,7 +201,7 @@ export async function getSaleById(storeId, id) {
 
     const itemsRes = await pool.query(
         `SELECT si.product_id,
-                si.quantity AS qty,
+                si.qty,
                 si.price,
                 si.discount,
                 p.name,
@@ -218,7 +218,8 @@ export async function getSaleById(storeId, id) {
         id: sale.id,
         status: sale.status,
         payment_type: sale.payment_type,
-        total: sale.total,
+        total_amount: sale.total_amount,
+        total: sale.total_amount,
         discount: sale.discount,
         created_at: sale.created_at,
         items: itemsRes.rows.map((item) => ({
@@ -253,10 +254,12 @@ export async function returnSale({ store_id, sale_id, user_id, warehouse_id }) {
 
         const sale = saleRes.rows[0];
         if (!sale) {throw createAppError(ERROR_CODES.SALES_NOT_FOUND, 404);}
-        if (sale.status === "RETURNED") {throw createAppError(ERROR_CODES.SALES_ALREADY_RETURNED, 409);}
+        if (String(sale.status).toLowerCase() === "returned") {
+            throw createAppError(ERROR_CODES.SALES_ALREADY_RETURNED, 409);
+        }
 
         const itemsRes = await client.query(
-            `SELECT si.product_id, si.quantity
+            `SELECT si.product_id, si.qty
              FROM sale_items si
              JOIN products p ON p.id = si.product_id AND p.store_id = $2
              WHERE si.sale_id = $1`,
@@ -272,7 +275,7 @@ export async function returnSale({ store_id, sale_id, user_id, warehouse_id }) {
                 type: "RETURN",
                 product_id: item.product_id,
                 warehouse_to: warehouse_id,
-                qty: item.quantity,
+                qty: item.qty,
                 reason: `Return of sale #${sale_id}`,
                 user_id: user_id || null,
                 related_entity_id: sale_id,
@@ -282,13 +285,13 @@ export async function returnSale({ store_id, sale_id, user_id, warehouse_id }) {
 
         await client.query(
             `UPDATE sales
-             SET status = 'RETURNED'
+             SET status = 'returned'
              WHERE id = $1 AND store_id = $2`,
             [sale_id, store_id]
         );
 
         await client.query("COMMIT");
-        return { sale_id: sale.id, status: "RETURNED" };
+        return { sale_id: sale.id, status: "returned" };
     } catch (err) {
         await client.query("ROLLBACK");
         throw err;

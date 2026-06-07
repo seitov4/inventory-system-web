@@ -53,6 +53,7 @@ function originMatchesPattern(origin, pattern) {
 }
 
 const allowedOrigins = parseAllowedOrigins();
+const isProduction = process.env.NODE_ENV === "production";
 
 // CORS - allow frontend origins
 app.use(
@@ -80,24 +81,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Request logging
-app.use(morgan("dev"));
+if (!isProduction) {
+    app.use(morgan("dev"));
+}
 
-// Debug middleware - log all incoming requests
-app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-    if (req.body && Object.keys(req.body).length > 0) {
-        // Don't log passwords
-        const safeBody = { ...req.body };
-        if (safeBody.password) {
-            safeBody.password = "[HIDDEN]";
-        }
-        if (safeBody.passwordConfirm) {
-            safeBody.passwordConfirm = "[HIDDEN]";
-        }
-        console.log("Request body:", safeBody);
-    }
-    next();
-});
+if (!isProduction) {
+    app.use((req, res, next) => {
+        console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+        next();
+    });
+}
 
 // health-check
 app.get("/api/health", (req, res) => {
@@ -117,7 +110,9 @@ app.use("/api/platform", platformRouter);
 
 // 404 handler for unknown API routes
 app.use("/api/*", (req, res, next) => {
-    console.log(`[404] Route not found: ${req.method} ${req.originalUrl}`);
+    if (!isProduction) {
+        console.log(`[404] Route not found: ${req.method} ${req.originalUrl}`);
+    }
     return next(createAppError(ERROR_CODES.API_ENDPOINT_NOT_FOUND, 404));
 });
 

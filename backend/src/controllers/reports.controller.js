@@ -9,15 +9,8 @@ import { parseSalesReportDateRange } from "../validation/reports.validation.js";
 export async function getSalesReportController(req, res, next) {
     try {
         const { fromDate, toDate } = parseSalesReportDateRange(req.query);
-        const { from, to } = req.query;
-
-        // Log the request
-        console.log(`[Reports] Sales report requested: ${from} to ${to}`);
 
         const data = await getSalesReportData(req.user.store_id, fromDate, toDate);
-
-        // Log the result
-        console.log(`[Reports] Sales report returned ${data.length} rows`);
 
         return success(res, data);
     } catch (err) {

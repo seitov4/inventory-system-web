@@ -3,29 +3,20 @@ import pool from "../utils/db.js";
 /**
  * Sales Analytics Service
  * Provides aggregated sales data for analytics and dashboards
- * Only includes COMPLETED sales (excludes RETURNED)
+ * Only includes completed sales (excludes returned/cancelled sales)
  */
 
 function toIsoDateString(value) {
     return new Date(value).toISOString().split("T")[0];
 }
 
-function getStartOfDay(date = new Date()) {
+function getStartOfWeek(date = new Date()) {
     const value = new Date(date);
     value.setUTCHours(0, 0, 0, 0);
-    return value;
-}
-
-function getStartOfWeek(date = new Date()) {
-    const value = getStartOfDay(date);
     const day = value.getUTCDay();
     const diff = day === 0 ? -6 : 1 - day;
     value.setUTCDate(value.getUTCDate() + diff);
     return value;
-}
-
-function getStartOfMonth(date = new Date()) {
-    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
 }
 
 function addDays(date, days) {
@@ -39,26 +30,22 @@ function addDays(date, days) {
  * @returns {Promise<Object>} { date, totalRevenue, salesCount }
  */
 export async function getDailySales(storeId) {
-    const fromDate = getStartOfDay();
-    const toDate = addDays(fromDate, 1);
-
     const result = await pool.query(
         `SELECT 
             DATE(created_at) as date,
-            COALESCE(SUM(total), 0) as total_revenue,
+            COALESCE(SUM(total_amount), 0) as total_revenue,
             CAST(COUNT(*) AS INTEGER) as sales_count
          FROM sales
          WHERE store_id = $1
-           AND created_at >= $2
-           AND created_at < $3
-           AND status = 'COMPLETED'
+           AND created_at::date = CURRENT_DATE
+           AND LOWER(status) = 'completed'
          GROUP BY DATE(created_at)`,
-        [storeId, fromDate, toDate]
+        [storeId]
     );
 
     if (result.rows.length === 0) {
         return {
-            date: toIsoDateString(fromDate),
+            date: toIsoDateString(new Date()),
             totalRevenue: 0,
             salesCount: 0,
         };
@@ -83,12 +70,12 @@ export async function getWeeklySales(storeId) {
     const result = await pool.query(
         `SELECT 
             DATE(created_at) as date,
-            COALESCE(SUM(total), 0) as total
+            COALESCE(SUM(total_amount), 0) as total
          FROM sales
          WHERE store_id = $1
            AND created_at >= $2
            AND created_at < $3
-           AND status = 'COMPLETED'
+           AND LOWER(status) = 'completed'
          GROUP BY DATE(created_at)
          ORDER BY DATE(created_at) ASC`,
         [storeId, fromDate, toDate]
@@ -105,23 +92,17 @@ export async function getWeeklySales(storeId) {
  * @returns {Promise<Array>} [{ date, total }, ...]
  */
 export async function getMonthlySales(storeId) {
-    const fromDate = getStartOfMonth();
-    const toDate = new Date(
-        Date.UTC(fromDate.getUTCFullYear(), fromDate.getUTCMonth() + 1, 1)
-    );
-
     const result = await pool.query(
         `SELECT 
             DATE(created_at) as date,
-            COALESCE(SUM(total), 0) as total
+            COALESCE(SUM(total_amount), 0) as total
          FROM sales
          WHERE store_id = $1
-           AND created_at >= $2
-           AND created_at < $3
-           AND status = 'COMPLETED'
+           AND created_at >= date_trunc('month', NOW())
+           AND LOWER(status) = 'completed'
          GROUP BY DATE(created_at)
          ORDER BY DATE(created_at) ASC`,
-        [storeId, fromDate, toDate]
+        [storeId]
     );
 
     return result.rows.map((row) => ({
@@ -135,20 +116,17 @@ export async function getMonthlySales(storeId) {
  * @returns {Promise<Object>} { labels: [...], data: [...] }
  */
 export async function getSalesChart(storeId) {
-    // Get last 30 days of sales data
-    const fromDate = addDays(getStartOfDay(), -30);
-
     const result = await pool.query(
         `SELECT 
             DATE(created_at) as date,
-            COALESCE(SUM(total), 0) as total
+            COALESCE(SUM(total_amount), 0) as total
          FROM sales
          WHERE store_id = $1
-           AND created_at >= $2
-           AND status = 'COMPLETED'
+           AND created_at >= date_trunc('month', NOW())
+           AND LOWER(status) = 'completed'
          GROUP BY DATE(created_at)
          ORDER BY DATE(created_at) ASC`,
-        [storeId, fromDate]
+        [storeId]
     );
 
     const labels = [];

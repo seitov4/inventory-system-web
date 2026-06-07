@@ -10,6 +10,8 @@ function getStatusTone(status) {
             return "yellow";
         case "inactive":
             return "gray";
+        case "deleted":
+            return "gray";
         default:
             return "gray";
     }
@@ -24,6 +26,8 @@ function getStatusLabel(status) {
             return "Suspended";
         case "inactive":
             return "Inactive";
+        case "deleted":
+            return "Deleted";
         default:
             return status;
     }

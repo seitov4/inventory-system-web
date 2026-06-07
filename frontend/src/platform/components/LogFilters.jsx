@@ -7,9 +7,9 @@ const Container = styled.div`
     flex-direction: column;
     gap: 12px;
     padding: 14px;
-    border-radius: 12px;
-    border: 1px solid rgba(31, 41, 55, 0.9);
-    background: rgba(15, 23, 42, 0.98);
+    border-radius: 8px;
+    border: 1px solid #dbe3ef;
+    background: #ffffff;
     margin-bottom: 14px;
 `;
 
@@ -22,7 +22,7 @@ const FilterGroup = styled.div`
 const Label = styled.label`
     font-size: 12px;
     font-weight: 600;
-    color: #9ca3af;
+    color: #475569;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 `;
@@ -34,22 +34,19 @@ const Options = styled.div`
 `;
 
 const FilterButton = styled.button`
-    border-radius: 6px;
-    border: 1px solid
-        ${(props) =>
-            props.$active ? "rgba(59, 130, 246, 0.8)" : "rgba(55, 65, 81, 0.9)"};
-    background: ${(props) =>
-        props.$active ? "rgba(30, 64, 175, 0.7)" : "rgba(15, 23, 42, 0.9)"};
-    color: ${(props) => (props.$active ? "#e5e7eb" : "#9ca3af")};
+    border-radius: 8px;
+    border: 1px solid ${(props) => (props.$active ? "#2563eb" : "#cbd5e1")};
+    background: ${(props) => (props.$active ? "#2563eb" : "#ffffff")};
+    color: ${(props) => (props.$active ? "#ffffff" : "#334155")};
     font-size: 12px;
     padding: 6px 12px;
     cursor: pointer;
     transition: all 0.15s ease;
 
     &:hover {
-        background: rgba(30, 64, 175, 0.8);
-        color: #e5e7eb;
-        border-color: rgba(59, 130, 246, 0.9);
+        background: ${(props) => (props.$active ? "#1d4ed8" : "#eff6ff")};
+        color: ${(props) => (props.$active ? "#ffffff" : "#1d4ed8")};
+        border-color: #93c5fd;
     }
 `;
 
@@ -58,7 +55,7 @@ const Actions = styled.div`
     gap: 8px;
     justify-content: flex-end;
     padding-top: 8px;
-    border-top: 1px solid rgba(31, 41, 55, 0.5);
+    border-top: 1px solid #e2e8f0;
 `;
 
 /**

@@ -14,20 +14,20 @@ const ValueRow = styled.div`
 const Value = styled.div`
     font-size: 28px;
     font-weight: 700;
-    color: #e5e7eb;
+    color: #0f172a;
     line-height: 1;
 `;
 
 const Subtitle = styled.div`
     font-size: 12px;
-    color: #9ca3af;
+    color: #64748b;
     margin-top: 8px;
     line-height: 1.4;
 `;
 
 const Comparison = styled.div`
     font-size: 11px;
-    color: #9ca3af;
+    color: #64748b;
 `;
 
 /**

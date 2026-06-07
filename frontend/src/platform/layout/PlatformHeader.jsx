@@ -5,8 +5,8 @@ import { usePlatformAuth } from "../context/PlatformAuthContext.jsx";
 import { useNavigate } from "react-router-dom";
 
 const Wrapper = styled.header`
-    height: 60px;
-    border-bottom: 1px solid #e5e7eb;
+    min-height: 68px;
+    border-bottom: 1px solid #e2e8f0;
     background: rgba(255, 255, 255, 0.96);
     backdrop-filter: blur(10px);
 `;
@@ -16,8 +16,13 @@ const Inner = styled.div`
     display: grid;
     grid-template-columns: 1fr auto;
     align-items: center;
-    padding: 0 20px;
+    padding: 12px 24px;
     gap: 16px;
+
+    @media (max-width: 860px) {
+        grid-template-columns: 1fr;
+        align-items: flex-start;
+    }
 `;
 
 const TitleBlock = styled.div`
@@ -27,13 +32,13 @@ const TitleBlock = styled.div`
 `;
 
 const Title = styled.div`
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 18px;
+    font-weight: 700;
     color: #111827;
 `;
 
 const Subtitle = styled.div`
-    font-size: 12px;
+    font-size: 13px;
     color: #6b7280;
 `;
 
@@ -42,6 +47,7 @@ const RightBlock = styled.div`
     align-items: center;
     justify-content: flex-end;
     gap: 8px;
+    flex-wrap: wrap;
 `;
 
 const Avatar = styled.div`
@@ -66,15 +72,21 @@ const OwnerInfo = styled.div`
 `;
 
 const OwnerEmail = styled.div`
-    font-size: 12px;
+    font-size: 13px;
     color: #111827;
     font-weight: 500;
 `;
 
 const OwnerRole = styled.div`
-    font-size: 11px;
+    font-size: 12px;
     color: #6b7280;
 `;
+
+function formatRole(role) {
+    return String(role || "platform")
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+}
 
 function getSectionTitle(section) {
     switch (section) {
@@ -121,7 +133,7 @@ export default function PlatformHeader({ activeSection, onNavigate }) {
             <Inner>
                 <TitleBlock>
                     <Title>{title}</Title>
-                    <Subtitle>Platform owner panel · state-based SPA</Subtitle>
+                    <Subtitle>Platform owner panel - state-based SPA</Subtitle>
                 </TitleBlock>
                 <RightBlock>
                     {activeSection !== "stores" && (
@@ -142,7 +154,7 @@ export default function PlatformHeader({ activeSection, onNavigate }) {
                         <>
                             <OwnerInfo>
                                 <OwnerEmail>{user.email}</OwnerEmail>
-                                <OwnerRole>{user.role || "platform"}</OwnerRole>
+                                <OwnerRole>{formatRole(user.role)}</OwnerRole>
                             </OwnerInfo>
                             <Button tone="ghost" size="small" onClick={handleLogout}>
                                 Logout

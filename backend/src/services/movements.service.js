@@ -211,8 +211,8 @@ export async function applyMovement({
 
         const movementResult = await client.query(
             `INSERT INTO movements
-                 (store_id, product_id, type, warehouse_id, direction, source_type, warehouse_from, warehouse_to, quantity, qty, reason, related_entity_id, created_by)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9, $10, $11, $12)
+                 (store_id, product_id, type, warehouse_id, direction, source_type, warehouse_from, warehouse_to, qty, reason, related_entity_id, created_by)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
              RETURNING *`,
             [
                 store_id,
@@ -326,7 +326,8 @@ export async function getMovements({
                         wf.name AS warehouse_from_name,
                         m.warehouse_to,
                         wt.name AS warehouse_to_name,
-                        m.quantity,
+                        m.qty,
+                        m.qty AS quantity,
                         m.reason,
                         m.created_by,
                         u.email AS created_by_email,

@@ -5,13 +5,13 @@ import Card from "../ui/Card.jsx";
 const Value = styled.div`
     font-size: 24px;
     font-weight: 700;
-    color: #e5e7eb;
+    color: #0f172a;
     margin-bottom: 4px;
 `;
 
 const Hint = styled.div`
     font-size: 12px;
-    color: #9ca3af;
+    color: #64748b;
 `;
 
 export default function StatCard({ label, value, hint, onClick }) {

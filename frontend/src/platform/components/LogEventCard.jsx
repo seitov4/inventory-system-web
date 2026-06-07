@@ -13,19 +13,19 @@ const Card = styled.div`
             return "#3b82f6";
         }};
     background: ${(props) => {
-        if (props.$severity === "error") return "rgba(239, 68, 68, 0.08)";
-        if (props.$severity === "warn") return "rgba(234, 179, 8, 0.08)";
-        return "rgba(15, 23, 42, 0.98)";
+        if (props.$severity === "error") return "#fef2f2";
+        if (props.$severity === "warn") return "#fffbeb";
+        return "#ffffff";
     }};
-    border: 1px solid rgba(31, 41, 55, 0.9);
+    border: 1px solid #dbe3ef;
     margin-bottom: 8px;
     transition: all 0.15s ease;
 
     &:hover {
         background: ${(props) => {
-            if (props.$severity === "error") return "rgba(239, 68, 68, 0.12)";
-            if (props.$severity === "warn") return "rgba(234, 179, 8, 0.12)";
-            return "rgba(30, 64, 175, 0.18)";
+            if (props.$severity === "error") return "#fee2e2";
+            if (props.$severity === "warn") return "#fef3c7";
+            return "#eff6ff";
         }};
     }
 `;
@@ -53,7 +53,7 @@ const Icon = styled.span`
 const Message = styled.div`
     flex: 1;
     font-size: 13px;
-    color: #e5e7eb;
+    color: #0f172a;
     line-height: 1.4;
     font-weight: ${(props) => (props.$severity === "error" ? 500 : 400)};
 `;
@@ -71,7 +71,7 @@ const Meta = styled.div`
     align-items: center;
     flex-wrap: wrap;
     font-size: 11px;
-    color: #9ca3af;
+    color: #64748b;
     margin-top: 6px;
 `;
 
@@ -83,9 +83,9 @@ const MetaItem = styled.span`
 
 const StoreBadge = styled.span`
     padding: 2px 6px;
-    background: rgba(59, 130, 246, 0.2);
+    background: #dbeafe;
     border-radius: 4px;
-    color: #93c5fd;
+    color: #1d4ed8;
     font-size: 10px;
 `;
 
@@ -107,7 +107,7 @@ export default function LogEventCard({ event }) {
                 </Left>
                 <Right>
                     <SeverityBadge severity={severity} />
-                    <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>
+                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>
                         {calculateTimeAgo(event.timestamp)}
                     </div>
                 </Right>
@@ -119,17 +119,17 @@ export default function LogEventCard({ event }) {
                 </MetaItem>
                 {event.environment && (
                     <>
-                        <span>·</span>
+                        <span>-</span>
                         <MetaItem>{formatEnvironment(event.environment)}</MetaItem>
                     </>
                 )}
                 {event.store && (
                     <>
-                        <span>·</span>
+                        <span>-</span>
                         <StoreBadge>Store: {event.store}</StoreBadge>
                     </>
                 )}
-                <span>·</span>
+                <span>-</span>
                 <MetaItem>{formatTimestamp(event.timestamp)}</MetaItem>
             </Meta>
         </Card>

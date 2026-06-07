@@ -27,6 +27,7 @@ router.post("/stores", platformController.createStore);
 router.post("/stores/:id/suspend", platformController.suspendStore);
 router.post("/stores/:id/resume", platformController.resumeStore);
 router.post("/stores/:id/archive", platformController.archiveStore);
+router.delete("/stores/:id", platformController.deleteStore);
 router.get("/stores/:id", platformController.getStoreDetails);
 router.get("/stores/:id/health", platformController.getStoreHealth);
 router.get("/stores/:id/activity", platformController.getStoreActivity);

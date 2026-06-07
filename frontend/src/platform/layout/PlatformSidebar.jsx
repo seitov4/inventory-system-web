@@ -6,19 +6,19 @@ const SidebarInner = styled.div`
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 18px 14px 14px;
+    padding: 24px 18px 16px;
 `;
 
 const Brand = styled.div`
     display: flex;
     align-items: center;
-    margin-bottom: 18px;
+    margin-bottom: 28px;
 `;
 
 const BrandMark = styled.div`
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
     background: #eff6ff;
     display: flex;
     align-items: center;
@@ -30,26 +30,26 @@ const BrandMark = styled.div`
 `;
 
 const BrandTitle = styled.div`
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 700;
     color: #111827;
 `;
 
 const BrandSubtitle = styled.div`
-    font-size: 11px;
+    font-size: 12px;
     color: #6b7280;
 `;
 
 const Nav = styled.nav`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
     margin-top: 8px;
 `;
 
 const NavGroupLabel = styled.div`
-    margin: 10px 0 4px;
-    font-size: 11px;
+    margin: 16px 0 4px;
+    font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: #6b7280;
@@ -59,11 +59,11 @@ const NavItem = styled.button`
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 9px 10px;
-    border-radius: 8px;
-    font-size: 13px;
-    color: ${(props) => (props.$active ? "#2563EB" : "#4B5563")};
-    background: ${(props) => (props.$active ? "#EFF6FF" : "transparent")};
+    padding: 11px 12px;
+    border-radius: 10px;
+    font-size: 15px;
+    color: ${(props) => (props.$active ? "#0f4fe6" : "#334155")};
+    background: ${(props) => (props.$active ? "#eff6ff" : "transparent")};
     border: none;
     cursor: pointer;
     transition: 0.15s ease;
@@ -72,7 +72,7 @@ const NavItem = styled.button`
     text-align: left;
 
     &:hover {
-        background: ${(props) => (props.$active ? "#EFF6FF" : "#F1F5F9")};
+        background: ${(props) => (props.$active ? "#eff6ff" : "#f1f5f9")};
     }
 `;
 
@@ -82,8 +82,8 @@ const NavIcon = styled.span`
     width: 24px;
     height: 24px;
     border-radius: 6px;
-    background: #f1f5f9;
-    color: #6b7280;
+    background: ${(props) => (props.$active ? "#dbeafe" : "#f1f5f9")};
+    color: ${(props) => (props.$active ? "#1d4ed8" : "#64748b")};
     display: flex;
     align-items: center;
     justify-content: center;
@@ -97,8 +97,8 @@ const Footer = styled.div`
     margin-top: auto;
     padding-top: 12px;
     border-top: 1px solid #e5e7eb;
-    font-size: 11px;
-    color: #6b7280;
+    font-size: 12px;
+    color: #64748b;
 `;
 
 const Version = styled.div`
@@ -175,7 +175,7 @@ export default function PlatformSidebar({ activeSection, onNavigate }) {
                         $active={activeSection === item.key}
                         onClick={() => onNavigate(item.key)}
                     >
-                        <NavIcon>{item.icon}</NavIcon>
+                        <NavIcon $active={activeSection === item.key}>{item.icon}</NavIcon>
                         <NavText>{item.label}</NavText>
                     </NavItem>
                 ))}
@@ -187,7 +187,7 @@ export default function PlatformSidebar({ activeSection, onNavigate }) {
                         $active={activeSection === item.key}
                         onClick={() => onNavigate(item.key)}
                     >
-                        <NavIcon>{item.icon}</NavIcon>
+                        <NavIcon $active={activeSection === item.key}>{item.icon}</NavIcon>
                         <NavText>{item.label}</NavText>
                         {item.key === "stores" && (
                             <Badge tone="blue" size="small">
@@ -204,14 +204,14 @@ export default function PlatformSidebar({ activeSection, onNavigate }) {
                         $active={activeSection === item.key}
                         onClick={() => onNavigate(item.key)}
                     >
-                        <NavIcon>{item.icon}</NavIcon>
+                        <NavIcon $active={activeSection === item.key}>{item.icon}</NavIcon>
                         <NavText>{item.label}</NavText>
                     </NavItem>
                 ))}
             </Nav>
 
             <Footer>
-                <div>Inventory Platform · SaaS</div>
+                <div>Inventory Platform - SaaS</div>
                 <Version>v0.1</Version>
             </Footer>
         </SidebarInner>

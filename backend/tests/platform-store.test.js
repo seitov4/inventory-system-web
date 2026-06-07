@@ -102,6 +102,72 @@ test(
             () => platformService.updateStoreStatus(store.id, "active"),
             (err) => err?.code === ERROR_CODES.PLATFORM_STORE_STATUS_TRANSITION_INVALID
         );
+
+        const deleted = await platformService.updateStoreStatus(store.id, "deleted");
+        assert.equal(deleted.status, "deleted");
+    }
+);
+
+test(
+    "store delete is soft and keeps related tenant data",
+    { concurrency: false },
+    async (t) => {
+        if (skipWhenDatabaseUnavailable(t)) return;
+        const timestamp = Date.now();
+        const store = await platformService.createStore({
+            name: `Soft Delete Store ${timestamp}`,
+            slug: `soft-delete-store-${timestamp}`,
+            ownerEmail: `owner-${timestamp}@soft-delete.test`,
+        });
+
+        const userResult = await safeQuery(
+            `INSERT INTO users (store_id, email, first_name, last_name, store_name, password_hash, role)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
+             RETURNING id`,
+            [
+                store.id,
+                `cashier-${timestamp}@soft-delete.test`,
+                "Cashier",
+                "User",
+                store.name,
+                "test-hash",
+                "cashier",
+            ]
+        );
+        const userId = Number(userResult.rows[0].id);
+
+        const productResult = await safeQuery(
+            `INSERT INTO products (store_id, name, sku, purchase_price, sale_price, min_stock)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING id`,
+            [store.id, `Product ${timestamp}`, `SOFT-${timestamp}`, 10, 20, 1]
+        );
+        const productId = Number(productResult.rows[0].id);
+
+        await safeQuery(
+            `INSERT INTO sales (cashier_id, warehouse_id, store_id, total, total_amount, discount, payment_type, status)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [userId, store.primaryWarehouseId, store.id, 50, 50, 0, "CASH", "COMPLETED"]
+        );
+
+        const deleted = await platformService.updateStoreStatus(store.id, "deleted");
+        assert.equal(deleted.status, "deleted");
+
+        const counts = await safeQuery(
+            `SELECT
+                (SELECT COUNT(*)::int FROM stores WHERE id = $1 AND status = 'deleted') AS stores,
+                (SELECT COUNT(*)::int FROM warehouses WHERE store_id = $1) AS warehouses,
+                (SELECT COUNT(*)::int FROM users WHERE store_id = $1) AS users,
+                (SELECT COUNT(*)::int FROM products WHERE id = $2 AND store_id = $1) AS products,
+                (SELECT COUNT(*)::int FROM sales WHERE store_id = $1) AS sales`,
+            [store.id, productId]
+        );
+
+        assert.equal(counts.rows[0].stores, 1);
+        assert.equal(counts.rows[0].warehouses, 1);
+        assert.equal(counts.rows[0].users, 1);
+        assert.equal(counts.rows[0].products, 1);
+        assert.equal(counts.rows[0].sales, 1);
     }
 );
 

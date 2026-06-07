@@ -45,15 +45,15 @@ const RightStack = styled.div`
 const ErrorCard = styled.div`
     padding: 12px 14px;
     border-radius: 8px;
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #fca5a5;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
     font-size: 13px;
     margin-bottom: 14px;
 `;
 
 const LoadingPlaceholder = styled.div`
-    color: #9ca3af;
+    color: #64748b;
     font-size: 13px;
     padding: 20px;
     text-align: center;
@@ -62,9 +62,9 @@ const LoadingPlaceholder = styled.div`
 const MetricsWarning = styled.div`
     padding: 10px 12px;
     border-radius: 8px;
-    background: rgba(234, 179, 8, 0.1);
-    border: 1px solid rgba(234, 179, 8, 0.3);
-    color: #facc15;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #a16207;
     font-size: 12px;
     margin-bottom: 14px;
 `;
@@ -105,7 +105,7 @@ export default function DashboardSection({ onNavigate }) {
 
     return (
         <>
-            {healthError && <ErrorCard>⚠️ Health monitoring: {healthError}</ErrorCard>}
+            {healthError && <ErrorCard>Warning: Health monitoring: {healthError}</ErrorCard>}
             <Grid>
                 <StatCard
                     label="Total stores"
@@ -145,7 +145,7 @@ export default function DashboardSection({ onNavigate }) {
             </Columns>
 
             {/* Platform Metrics Section */}
-            {metricsError && <MetricsWarning>⚠️ {metricsError}</MetricsWarning>}
+            {metricsError && <MetricsWarning>Warning: {metricsError}</MetricsWarning>}
 
             <MetricGroup
                 title="Platform Metrics"

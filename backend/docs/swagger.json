@@ -1219,6 +1219,30 @@
             }
           }
         }
+      },
+      "delete": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Soft delete store",
+        "description": "Marks the store as deleted without removing the store row or related tenant data.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Store marked as deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/platform/stores/{id}/suspend": {

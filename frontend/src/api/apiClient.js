@@ -2,9 +2,6 @@ import axios from "axios";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "/api";
 
-// Always log the API URL to help debugging
-console.log("[API Client] Connecting to:", API_BASE_URL);
-
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
     withCredentials: false,
@@ -44,12 +41,6 @@ apiClient.interceptors.request.use(
             config.headers.Authorization = `Bearer ${token}`;
         }
 
-        // Log all requests
-        console.log(
-            `[API Request] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`,
-            config.data || ""
-        );
-
         return config;
     },
     (error) => {
@@ -61,8 +52,6 @@ apiClient.interceptors.request.use(
 // Response interceptor - handle errors
 apiClient.interceptors.response.use(
     (response) => {
-        console.log(`[API Response] ${response.status}`, response.data);
-
         // Check if response has unified format with success field
         if (response.data && typeof response.data === "object" && "success" in response.data) {
             if (!response.data.success && response.data.error) {

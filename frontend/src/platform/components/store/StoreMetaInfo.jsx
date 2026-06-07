@@ -18,7 +18,7 @@ const InfoRow = styled.div`
     justify-content: space-between;
     align-items: center;
     padding: 8px 0;
-    border-bottom: 1px solid rgba(55, 65, 81, 0.5);
+    border-bottom: 1px solid #e2e8f0;
 
     &:last-child {
         border-bottom: none;
@@ -27,13 +27,13 @@ const InfoRow = styled.div`
 
 const InfoLabel = styled.div`
     font-size: 12px;
-    color: #9ca3af;
+    color: #64748b;
     font-weight: 500;
 `;
 
 const InfoValue = styled.div`
     font-size: 12px;
-    color: #e5e7eb;
+    color: #0f172a;
     font-family: monospace;
 `;
 

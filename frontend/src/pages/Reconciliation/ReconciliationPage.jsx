@@ -311,27 +311,6 @@ const ConfirmButton = styled.button`
     }
 `;
 
-// ===== MOCK DATA (for development) =====
-const MOCK_PRODUCTS_WITH_DUPLICATES = [
-    // Duplicate group 1: Same barcode
-    { id: 1, name: "Milk 2.5%", sku: "MLK-001", barcode: "4607025391234", quantity: 15, purchase_price: 180, sale_price: 250 },
-    { id: 2, name: "Milk 2.5% (duplicate)", sku: "MLK-002", barcode: "4607025391234", quantity: 10, purchase_price: 190, sale_price: 260 },
-    
-    // Duplicate group 2: Same SKU
-    { id: 3, name: "White Bread", sku: "BRD-WHT-001", barcode: "4607025391235", quantity: 20, purchase_price: 45, sale_price: 65 },
-    { id: 4, name: "Bread White", sku: "BRD-WHT-001", barcode: "4607025391299", quantity: 8, purchase_price: 50, sale_price: 70 },
-    
-    // Duplicate group 3: Same barcode (3 items)
-    { id: 5, name: "Sugar 1kg", sku: "SGR-001", barcode: "4607025391236", quantity: 30, purchase_price: 120, sale_price: 180 },
-    { id: 6, name: "Sugar 1 kg", sku: "SGR-002", barcode: "4607025391236", quantity: 15, purchase_price: 115, sale_price: 175 },
-    { id: 7, name: "Sugar (1kg)", sku: "SGR-003", barcode: "4607025391236", quantity: 5, purchase_price: 125, sale_price: 185 },
-    
-    // Non-duplicate products
-    { id: 8, name: "Rice 1kg", sku: "RCE-001", barcode: "4607025391237", quantity: 25, purchase_price: 280, sale_price: 420 },
-    { id: 9, name: "Pasta 500g", sku: "PST-001", barcode: "4607025391238", quantity: 40, purchase_price: 140, sale_price: 210 },
-    { id: 10, name: "Coffee 250g", sku: "COF-001", barcode: "4607025391239", quantity: 12, purchase_price: 450, sale_price: 680 },
-];
-
 // ===== HELPER FUNCTIONS =====
 
 /**
@@ -453,22 +432,14 @@ export default function ReconciliationPage() {
 
     async function loadProducts() {
         setLoading(true);
+        setMessage("");
         try {
-            const data = await productsApi.getAll();
-            if (Array.isArray(data) && data.length > 0) {
-                // Add mock quantity data for demo
-                const withQuantity = data.map(p => ({
-                    ...p,
-                    quantity: Math.floor(Math.random() * 50) + 5
-                }));
-                setProducts(withQuantity);
-            } else {
-                // Use mock data for development
-                setProducts(MOCK_PRODUCTS_WITH_DUPLICATES);
-            }
+            const data = await productsApi.getProductsLeft();
+            setProducts(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Failed to load products:", error);
-            setProducts(MOCK_PRODUCTS_WITH_DUPLICATES);
+            setProducts([]);
+            setMessage("Failed to load product data for reconciliation.");
         } finally {
             setLoading(false);
         }
@@ -533,14 +504,6 @@ export default function ReconciliationPage() {
                     id: Date.now() + Math.random() // Temporary ID
                 });
 
-                // Log the reconciliation movement (mock)
-                console.log("Movement log:", {
-                    type: "reconciliation",
-                    description: `Merged duplicate products: ${group.products.map(p => p.name).join(", ")}`,
-                    merged_ids: group.products.map(p => p.id),
-                    result_quantity: result.quantity,
-                    timestamp: new Date().toISOString()
-                });
             });
 
             // Update products state

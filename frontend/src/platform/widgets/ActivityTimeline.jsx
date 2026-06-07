@@ -15,7 +15,7 @@ const Timeline = styled.div`
         top: 6px;
         bottom: 6px;
         width: 2px;
-        background: rgba(55, 65, 81, 1);
+        background: #e2e8f0;
     }
 `;
 
@@ -41,7 +41,7 @@ const Dot = styled.div`
 const ItemBody = styled.div`
     margin-left: 12px;
     font-size: 12px;
-    color: #e5e7eb;
+    color: #0f172a;
 `;
 
 const Message = styled.div`
@@ -50,7 +50,7 @@ const Message = styled.div`
 
 const Meta = styled.div`
     font-size: 11px;
-    color: #9ca3af;
+    color: #64748b;
     display: flex;
     gap: 8px;
     align-items: center;
@@ -114,7 +114,7 @@ export default function ActivityTimeline({ events }) {
                                 <Message>{event.message}</Message>
                                 <Meta>
                                     <span>{event.timeAgo}</span>
-                                    <span>·</span>
+                                    <span>-</span>
                                     <span>{event.source}</span>
                                     <EventType>{eventType}</EventType>
                                     <Badge tone={toneForSeverity(severity)} size="small">
@@ -126,7 +126,7 @@ export default function ActivityTimeline({ events }) {
                     );
                 })}
                 {events.length === 0 && (
-                    <ItemBody>No activity · platform is waiting for traffic.</ItemBody>
+                    <ItemBody>No activity - platform is waiting for traffic.</ItemBody>
                 )}
             </Timeline>
         </Card>

@@ -7,14 +7,14 @@ const Container = styled.div`
 
 const Title = styled.div`
     font-size: 16px;
-    font-weight: 600;
-    color: #e5e7eb;
+    font-weight: 700;
+    color: #0f172a;
     margin-bottom: 8px;
 `;
 
 const Description = styled.div`
     font-size: 12px;
-    color: #9ca3af;
+    color: #64748b;
     margin-bottom: 14px;
 `;
 

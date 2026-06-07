@@ -9,9 +9,9 @@ const Header = styled.div`
     align-items: flex-start;
     gap: 16px;
     padding: 20px;
-    border-radius: 12px;
-    background: rgba(15, 23, 42, 0.98);
-    border: 1px solid rgba(31, 41, 55, 0.9);
+    border-radius: 8px;
+    background: #ffffff;
+    border: 1px solid #dbe3ef;
     margin-bottom: 14px;
 
     @media (max-width: 768px) {
@@ -29,7 +29,7 @@ const Left = styled.div`
 const Title = styled.div`
     font-size: 22px;
     font-weight: 700;
-    color: #e5e7eb;
+    color: #0f172a;
 `;
 
 const Meta = styled.div`
@@ -38,7 +38,7 @@ const Meta = styled.div`
     align-items: center;
     flex-wrap: wrap;
     font-size: 13px;
-    color: #9ca3af;
+    color: #64748b;
 `;
 
 const Right = styled.div`
@@ -76,13 +76,13 @@ export default function StoreHeader({ store, health }) {
                     <span>Slug: {store.slug}</span>
                     {store.region && (
                         <>
-                            <span>·</span>
+                            <span>-</span>
                             <span>Region: {store.region}</span>
                         </>
                     )}
                     {store.environment && (
                         <>
-                            <span>·</span>
+                            <span>-</span>
                             <span>Env: {store.environment}</span>
                         </>
                     )}

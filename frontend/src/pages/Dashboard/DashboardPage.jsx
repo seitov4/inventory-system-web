@@ -344,7 +344,6 @@ export default function DashboardPage() {
             });
 
         if (layoutChanged) {
-            console.log("Updating layout:", newLayout);
             setLayout(newLayout);
             saveLayout(role, newLayout);
         }

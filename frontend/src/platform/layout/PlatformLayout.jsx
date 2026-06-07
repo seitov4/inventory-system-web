@@ -7,15 +7,15 @@ import PlatformContent from "./PlatformContent.jsx";
 const Root = styled.div`
     display: flex;
     min-height: 100vh;
-    background: #F6F7F9;
+    background: #f4f7fb;
     color: #111827;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 `;
 
 const SidebarWrapper = styled.div`
     width: 260px;
-    background: #FFFFFF;
-    border-right: 1px solid #E5E7EB;
+    background: #ffffff;
+    border-right: 1px solid #e2e8f0;
 
     @media (max-width: 900px) {
         display: none;
@@ -26,7 +26,8 @@ const Main = styled.div`
     flex: 1;
     display: flex;
     flex-direction: column;
-    background: #F6F7F9;
+    background: #f4f7fb;
+    min-width: 0;
 `;
 
 const HeaderWrapper = styled.div`
@@ -35,9 +36,13 @@ const HeaderWrapper = styled.div`
 
 const ContentWrapper = styled.div`
     flex: 1;
-    padding: 16px 20px 20px;
-    background: #F6F7F9;
+    padding: 20px 24px 28px;
+    background: #f4f7fb;
     overflow: auto;
+
+    @media (max-width: 720px) {
+        padding: 16px;
+    }
 `;
 
 export default function PlatformLayout({ activeSection, onNavigate, children }) {

@@ -9,22 +9,23 @@ const Menu = styled.div`
 `;
 
 const MenuButton = styled.button`
-    background: rgba(15, 23, 42, 0.9);
-    border: 1px solid rgba(55, 65, 81, 0.9);
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
     border-radius: 6px;
     padding: 4px 10px;
     font-size: 12px;
-    color: #e5e7eb;
+    color: #334155;
     cursor: pointer;
     transition: all 0.15s ease;
 
     &:hover:not(:disabled) {
-        background: rgba(30, 64, 175, 0.7);
-        border-color: rgba(59, 130, 246, 0.8);
+        background: #eff6ff;
+        border-color: #93c5fd;
+        color: #1d4ed8;
     }
 
     &:disabled {
-        opacity: 0.4;
+        opacity: 0.55;
         cursor: not-allowed;
     }
 `;
@@ -65,6 +66,7 @@ export default function StoreActionsMenu({
                     },
                 ];
             case "inactive":
+            case "deleted":
                 return [];
             default:
                 return [];
@@ -97,8 +99,8 @@ export default function StoreActionsMenu({
 
     if (availableActions.length === 0) {
         return (
-            <span style={{ fontSize: 12, color: "#6b7280", fontStyle: "italic" }}>
-                {store.status === "inactive" ? "Read-only" : "No actions"}
+            <span style={{ fontSize: 12, color: "#64748b", fontStyle: "italic" }}>
+                {["inactive", "deleted"].includes(store.status) ? "Read-only" : "No actions"}
             </span>
         );
     }

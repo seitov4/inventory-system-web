@@ -11,12 +11,14 @@ const STORE_STATUSES = {
     ACTIVE: "active",
     SUSPENDED: "suspended",
     INACTIVE: "inactive",
+    DELETED: "deleted",
 };
 
 const ALLOWED_TRANSITIONS = {
     [STORE_STATUSES.ACTIVE]: [STORE_STATUSES.SUSPENDED, STORE_STATUSES.INACTIVE],
     [STORE_STATUSES.SUSPENDED]: [STORE_STATUSES.ACTIVE, STORE_STATUSES.INACTIVE],
     [STORE_STATUSES.INACTIVE]: [],
+    [STORE_STATUSES.DELETED]: [],
 };
 
 function isTransitionAllowed(currentStatus, targetStatus) {

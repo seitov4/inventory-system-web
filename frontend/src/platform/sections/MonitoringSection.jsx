@@ -22,29 +22,29 @@ const Stack = styled.div`
 
 const Title = styled.div`
     font-size: 18px;
-    font-weight: 600;
-    color: #e5e7eb;
+    font-weight: 700;
+    color: #0f172a;
     margin-bottom: 6px;
 `;
 
 const Subtitle = styled.div`
     font-size: 13px;
-    color: #9ca3af;
+    color: #64748b;
     margin-bottom: 14px;
 `;
 
 const ErrorCard = styled.div`
     padding: 12px 14px;
     border-radius: 8px;
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #fca5a5;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
     font-size: 13px;
     margin-bottom: 14px;
 `;
 
 const LoadingPlaceholder = styled.div`
-    color: #9ca3af;
+    color: #64748b;
     font-size: 13px;
     padding: 20px;
     text-align: center;
@@ -61,7 +61,7 @@ export default function MonitoringSection() {
             </Subtitle>
             {error && (
                 <ErrorCard>
-                    ⚠️ {error}
+                    Warning: {error}
                 </ErrorCard>
             )}
             {loading && !health.backend.statusLabel && (

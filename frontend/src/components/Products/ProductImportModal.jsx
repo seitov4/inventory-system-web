@@ -366,7 +366,6 @@ export default function ProductImportModal({ isOpen, onClose, onSuccess }) {
         try {
             const result = await parseProductFile(selectedFile);
             setParseResult(result);
-            console.log('[Import] Parsed file:', result);
         } catch (err) {
             console.error('[Import] Parse error:', err);
             setError(err.message);
@@ -408,12 +407,8 @@ export default function ProductImportModal({ isOpen, onClose, onSuccess }) {
         setSuccess('');
 
         try {
-            console.log('[Import] Sending products to API:', parseResult.products.length);
-            
             const result = await productsApi.importProducts(parseResult.products);
-            
-            console.log('[Import] API response:', result);
-            
+
             const createdCount = result.created || result.createdCount || parseResult.products.length;
             const skippedCount = result.skipped || result.skippedCount || 0;
             

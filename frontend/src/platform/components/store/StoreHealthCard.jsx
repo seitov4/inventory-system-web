@@ -24,12 +24,12 @@ const Row = styled.div`
 
 const Label = styled.div`
     font-size: 13px;
-    color: #e5e7eb;
+    color: #334155;
 `;
 
 const Value = styled.div`
     font-size: 12px;
-    color: #9ca3af;
+    color: #64748b;
 `;
 
 const StatusRow = styled.div`
@@ -124,7 +124,7 @@ export default function StoreHealthCard({ health }) {
             </Grid>
 
             {/* Last Sync */}
-            <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid rgba(55, 65, 81, 0.5)" }}>
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}>
                 <Row>
                     <Label>Last Sync</Label>
                     <Value>{formatLastSync(health.lastSync)}</Value>

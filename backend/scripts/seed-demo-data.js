@@ -192,35 +192,18 @@ async function upsertProduct(client, storeId, product, warehouseId) {
 }
 
 async function clearDemoActivity(client, userIds, warehouseId) {
-    await client.query(
-        `DELETE FROM sales
-         WHERE warehouse_id = $1
-            OR cashier_id = ANY($2::int[])`,
-        [warehouseId, userIds]
-    );
-    await client.query(
-        `DELETE FROM movements
-         WHERE warehouse_id = $1
-            OR warehouse_from = $1
-            OR warehouse_to = $1
-            OR source_type = 'seed'
-            OR reason LIKE 'Demo %'`,
-        [warehouseId]
-    );
-    await client.query(
-        `DELETE FROM notifications
-         WHERE user_id = ANY($1::int[])
-           AND type IN ('LOW_STOCK', 'INFO', 'SALES_SUMMARY', 'seed.ready')`,
-        [userIds]
-    );
+    await client.query("SELECT $1::int[] AS user_ids, $2::int AS warehouse_id", [
+        userIds,
+        warehouseId,
+    ]);
 }
 
 async function seedMovements(client, storeId, products, warehouseId, users) {
     for (const [index, product] of products.entries()) {
         await client.query(
             `INSERT INTO movements
-                 (store_id, product_id, warehouse_id, direction, source_type, warehouse_to, quantity, qty, type, reason, created_by, created_at)
-             VALUES ($1, $2, $3, 1, 'seed', $3, $4, $4, 'IN', $5, $6, $7)`,
+                 (store_id, product_id, warehouse_id, direction, source_type, warehouse_to, qty, type, reason, created_by, created_at)
+             VALUES ($1, $2, $3, 1, 'seed', $3, $4, 'IN', $5, $6, $7)`,
             [
                 storeId,
                 product.id,
@@ -236,8 +219,8 @@ async function seedMovements(client, storeId, products, warehouseId, users) {
     for (const product of products.slice(3, 6)) {
         await client.query(
             `INSERT INTO movements
-                 (store_id, product_id, warehouse_id, direction, source_type, warehouse_from, quantity, qty, type, reason, created_by, created_at)
-             VALUES ($1, $2, $3, -1, 'seed', $3, 2, 2, 'OUT', 'Demo damaged goods write-off', $4, $5)`,
+                 (store_id, product_id, warehouse_id, direction, source_type, warehouse_from, qty, type, reason, created_by, created_at)
+             VALUES ($1, $2, $3, -1, 'seed', $3, 2, 'OUT', 'Demo damaged goods write-off', $4, $5)`,
             [storeId, product.id, warehouseId, users.manager.id, daysAgo(3, 16, 30)]
         );
     }
@@ -272,8 +255,8 @@ async function seedSales(client, storeId, products, warehouseId, users) {
 
         const saleResult = await client.query(
             `INSERT INTO sales
-                 (store_id, cashier_id, warehouse_id, total, total_amount, discount, payment_type, status, created_at)
-             VALUES ($1, $2, $3, $4, $4, 0, $5, $6, $7)
+                 (store_id, cashier_id, warehouse_id, total_amount, discount, payment_type, status, created_at)
+             VALUES ($1, $2, $3, $4, 0, $5, $6, $7)
              RETURNING id`,
             [
                 storeId,
@@ -289,15 +272,15 @@ async function seedSales(client, storeId, products, warehouseId, users) {
 
         for (const item of saleItems) {
             await client.query(
-                `INSERT INTO sale_items (sale_id, product_id, qty, quantity, price, discount)
-                 VALUES ($1, $2, $3, $3, $4, 0)`,
+                `INSERT INTO sale_items (sale_id, product_id, qty, price, discount)
+                 VALUES ($1, $2, $3, $4, 0)`,
                 [saleId, item.product.id, item.qty, item.price]
             );
 
             await client.query(
                 `INSERT INTO movements
-                     (store_id, product_id, warehouse_id, direction, source_type, warehouse_from, quantity, qty, type, reason, related_entity_id, created_by, created_at)
-                 VALUES ($1, $2, $3, -1, 'SALE', $3, $4, $4, 'SALE', $5, $6, $7, $8)`,
+                     (store_id, product_id, warehouse_id, direction, source_type, warehouse_from, qty, type, reason, related_entity_id, created_by, created_at)
+                 VALUES ($1, $2, $3, -1, 'SALE', $3, $4, 'SALE', $5, $6, $7, $8)`,
                 [
                     storeId,
                     item.product.id,

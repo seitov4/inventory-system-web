@@ -8,7 +8,7 @@ const Overlay = styled.div`
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(15, 23, 42, 0.45);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -17,37 +17,37 @@ const Overlay = styled.div`
 `;
 
 const Dialog = styled.div`
-    background: rgba(15, 23, 42, 0.98);
-    border-radius: 16px;
+    background: #ffffff;
+    border-radius: 8px;
     padding: 24px;
     max-width: 480px;
     width: 100%;
-    border: 1px solid rgba(31, 41, 55, 0.9);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+    border: 1px solid #dbe3ef;
+    box-shadow: 0 24px 56px rgba(15, 23, 42, 0.24);
 `;
 
 const Title = styled.h3`
     margin: 0 0 8px;
     font-size: 18px;
     font-weight: 600;
-    color: #e5e7eb;
+    color: #0f172a;
 `;
 
 const Message = styled.p`
     margin: 0 0 20px;
     font-size: 14px;
-    color: #9ca3af;
+    color: #64748b;
     line-height: 1.5;
 `;
 
 const Warning = styled.div`
     padding: 12px;
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: #fef2f2;
+    border: 1px solid #fecaca;
     border-radius: 8px;
     margin-bottom: 20px;
     font-size: 13px;
-    color: #fca5a5;
+    color: #b91c1c;
 `;
 
 const Actions = styled.div`
@@ -84,7 +84,7 @@ export default function ConfirmLifecycleAction({
             case "resume":
                 return "Users will regain access to this store.";
             case "deactivate":
-                return "This action cannot be undone. The store will become inactive and cannot be reactivated.";
+                return "The store will be marked inactive/deleted. Users lose access, but all store data stays in the database.";
             default:
                 return customMessage || "This action will affect the store availability.";
         }
@@ -96,7 +96,7 @@ export default function ConfirmLifecycleAction({
                 <Title>{getActionText()}</Title>
                 <Message>{getConsequenceText()}</Message>
                 {irreversible && (
-                    <Warning>This action is irreversible. Please confirm you want to proceed.</Warning>
+                    <Warning>This is a soft delete: related store data will be preserved.</Warning>
                 )}
                 <Actions>
                     <Button tone="ghost" size="medium" onClick={onCancel}>

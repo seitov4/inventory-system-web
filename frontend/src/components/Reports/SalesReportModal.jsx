@@ -272,14 +272,8 @@ export default function SalesReportModal({ isOpen, onClose }) {
         setWarning('');
 
         try {
-            // Log the API call
-            console.log(`[Reports] Fetching sales data: ${startDate} to ${endDate}`);
-
             // Fetch real data from API - NO FALLBACK TO MOCK DATA
             const salesData = await reportsApi.getSalesReport(startDate, endDate);
-
-            // Log the result
-            console.log(`[Reports] API returned ${Array.isArray(salesData) ? salesData.length : 0} rows`);
 
             // Check if we have data
             if (!Array.isArray(salesData) || salesData.length === 0) {

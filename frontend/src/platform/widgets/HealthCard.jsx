@@ -13,18 +13,18 @@ const Row = styled.div`
 
 const Label = styled.div`
     font-size: 13px;
-    color: #e5e7eb;
+    color: #334155;
 `;
 
 const Meta = styled.div`
     font-size: 11px;
-    color: #9ca3af;
+    color: #64748b;
 `;
 
 const ErrorSection = styled.div`
     margin-top: 12px;
     padding-top: 12px;
-    border-top: 1px solid rgba(55, 65, 81, 0.5);
+    border-top: 1px solid #e2e8f0;
 `;
 
 const ErrorHeader = styled.div`
@@ -40,29 +40,29 @@ const ErrorCounts = styled.div`
     display: flex;
     gap: 8px;
     font-size: 11px;
-    color: #9ca3af;
+    color: #64748b;
 `;
 
 const ErrorCount = styled.span`
-    color: ${(props) => (props.$hasErrors ? "#fca5a5" : "#9ca3af")};
+    color: ${(props) => (props.$hasErrors ? "#dc2626" : "#64748b")};
 `;
 
 const LastError = styled.div`
     margin-top: 8px;
     padding: 8px;
-    background: rgba(239, 68, 68, 0.1);
-    border-left: 3px solid rgba(239, 68, 68, 0.5);
+    background: #fef2f2;
+    border-left: 3px solid #ef4444;
     border-radius: 4px;
     font-size: 11px;
 `;
 
 const ErrorMessage = styled.div`
-    color: #fca5a5;
+    color: #b91c1c;
     margin-bottom: 4px;
 `;
 
 const ErrorMeta = styled.div`
-    color: #9ca3af;
+    color: #64748b;
     font-size: 10px;
     display: flex;
     gap: 8px;
@@ -71,7 +71,7 @@ const ErrorMeta = styled.div`
 
 const ReasonText = styled.div`
     font-size: 12px;
-    color: #9ca3af;
+    color: #64748b;
     margin-top: 8px;
     font-style: italic;
 `;
@@ -152,7 +152,7 @@ export default function HealthCard({ title, item }) {
                                 <span>{errors.lastError.source}</span>
                                 {errors.lastError.timestamp && (
                                     <>
-                                        <span>·</span>
+                                        <span>-</span>
                                         <span>
                                             {new Date(errors.lastError.timestamp).toLocaleString()}
                                         </span>
@@ -172,7 +172,7 @@ export default function HealthCard({ title, item }) {
 
             {/* Show reason text if status is not OK */}
             {item.status !== "OK" && item.reason && (
-                <ReasonText>⚠️ {item.reason}</ReasonText>
+                <ReasonText>Warning: {item.reason}</ReasonText>
             )}
         </Card>
     );
