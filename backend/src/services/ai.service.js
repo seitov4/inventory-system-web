@@ -3,105 +3,25 @@ import { resolveAiIntent } from "./aiIntent.service.js";
 import {
     getAiSystemPrompt,
     getBusinessContextPrompt,
-    getMissingDataMessage,
 } from "./aiPrompt.service.js";
 import {
     sanitizeBusinessContext,
     validateContextForOpenAI,
 } from "./aiContextSanitizer.service.js";
-import { buildBasicChatAnswer, buildRuleBasedAnswer } from "./aiResponder.service.js";
-import { AI_SAFE_TOOLS, AI_TOOL_NAMES } from "./aiTools.service.js";
+import { AI_SAFE_TOOLS } from "./aiTools.service.js";
 import { generateAiAnswer } from "./openai.service.js";
 
-const TOOL_FAILURE_ANSWER =
-    "Some business data is temporarily unavailable. Please try again later.";
+const PROVIDER_UNAVAILABLE_MESSAGES = Object.freeze({
+    en: "AI assistant is temporarily unavailable. Please try again later.",
+    ru: "\u0418\u0418-\u043f\u043e\u043c\u043e\u0449\u043d\u0438\u043a \u0432\u0440\u0435\u043c\u0435\u043d\u043d\u043e \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u043f\u043e\u0437\u0436\u0435.",
+});
 
 function generateConversationId() {
     return `ai-chat-${Date.now()}-${randomBytes(4).toString("hex")}`;
 }
 
-function toMoney(value) {
-    return Number(value || 0).toLocaleString("en-US", {
-        maximumFractionDigits: 2,
-    });
-}
-
-function isToolUnavailable(value) {
-    return value && typeof value === "object" && value.unavailable === true;
-}
-
-function summarizeToolResult(toolName, result) {
-    if (isToolUnavailable(result)) {
-        return TOOL_FAILURE_ANSWER;
-    }
-
-    if (toolName === AI_TOOL_NAMES.SALES_SUMMARY) {
-        return `Sales ${result.period}: revenue ${toMoney(result.total_revenue)}, ${result.orders_count} orders, ${result.items_sold} items sold.`;
-    }
-
-    if (toolName === AI_TOOL_NAMES.SALES_BY_PERIOD) {
-        return `Sales trend has ${result.series.length} day(s) with completed sales and total revenue ${toMoney(result.summary.total_revenue)}.`;
-    }
-
-    if (toolName === AI_TOOL_NAMES.LOW_STOCK_ITEMS) {
-        if (!result.items.length) {
-            return "There are no low-stock products in the returned data.";
-        }
-        const topItem = result.items[0];
-        return `${result.count} low-stock item(s) found. Most urgent: ${topItem.name}, recommended restock ${topItem.recommended_restock} unit(s).`;
-    }
-
-    if (toolName === AI_TOOL_NAMES.TOP_PRODUCTS) {
-        if (!result.items.length) {
-            return "No top-selling products were found for this period.";
-        }
-        const topItem = result.items[0];
-        return `Top product ${result.period}: ${topItem.product_name}, ${topItem.quantity_sold} sold, revenue ${toMoney(topItem.revenue)}.`;
-    }
-
-    if (toolName === AI_TOOL_NAMES.PRODUCT_STOCK) {
-        if (!result.matches.length) {
-            return "No matching products were found in this store.";
-        }
-        const match = result.matches[0];
-        return `${match.name}: stock ${match.stock ?? match.current_stock}, minimum stock ${match.min_stock}, status ${match.status}.`;
-    }
-
-    if (toolName === AI_TOOL_NAMES.CATEGORY_PERFORMANCE) {
-        if (!result.categories.length) {
-            return "No category sales were found for this period.";
-        }
-        const category = result.categories[0];
-        return `Top category ${result.period}: ${category.category}, revenue ${toMoney(category.revenue)}, ${category.share_percent}% share.`;
-    }
-
-    if (toolName === AI_TOOL_NAMES.RECENT_TRANSACTIONS) {
-        return `${result.transactions.length} recent completed sale transaction(s) found.`;
-    }
-
-    if (toolName === AI_TOOL_NAMES.RESTOCK_RECOMMENDATIONS) {
-        if (!result.recommendations.length) {
-            return "No restock recommendations were found in the returned data.";
-        }
-        const item = result.recommendations[0];
-        return `Restock recommendation: ${item.product_name}, recommended quantity ${item.recommended_quantity}.`;
-    }
-
-    return "Business data is available for this question.";
-}
-
-function buildAnswer({ toolResults }) {
-    const results = Object.entries(toolResults);
-
-    if (results.length === 0) {
-        return null;
-    }
-
-    if (results.some(([, result]) => isToolUnavailable(result))) {
-        return TOOL_FAILURE_ANSWER;
-    }
-
-    return results.map(([toolName, result]) => summarizeToolResult(toolName, result)).join(" ");
+export function getProviderUnavailableMessage(language = "en") {
+    return PROVIDER_UNAVAILABLE_MESSAGES[language] || PROVIDER_UNAVAILABLE_MESSAGES.en;
 }
 
 function buildSanitizedBusinessContext({ message, toolResults }) {
@@ -202,49 +122,12 @@ export async function handleChatMessage({
     storeId,
     language = "en",
 }) {
-    const basicAnswer = buildBasicChatAnswer({ message, language });
-
-    if (basicAnswer.handled) {
-        if (process.env.NODE_ENV === "development") {
-            console.log("[AI Chat] Basic responder used", {
-                type: basicAnswer.type,
-            });
-        }
-
-        return {
-            answer: basicAnswer.answer,
-            conversation_id: conversationId || generateConversationId(),
-            used_tools: [],
-        };
-    }
-
     const resolvedIntent = resolveAiIntent(message);
     const { usedTools, toolResults } = await executeResolvedTools({
         tools: resolvedIntent.tools,
         storeId,
         user,
     });
-    const ruleBased = buildRuleBasedAnswer({
-        intent: resolvedIntent.intent,
-        toolResults,
-        language,
-        message,
-    });
-
-    if (ruleBased.handled) {
-        if (process.env.NODE_ENV === "development") {
-            console.log("[AI Chat] Rule-based answer used", {
-                intent: resolvedIntent.intent,
-                usedTools,
-            });
-        }
-
-        return {
-            answer: ruleBased.answer,
-            conversation_id: conversationId || generateConversationId(),
-            used_tools: usedTools,
-        };
-    }
 
     const openAiPromptPayload = buildOpenAiPromptPayload({
         message,
@@ -254,23 +137,28 @@ export async function handleChatMessage({
 
     if (!openAiPromptPayload.valid) {
         return {
-            answer: TOOL_FAILURE_ANSWER,
+            answer: getProviderUnavailableMessage(language),
             conversation_id: conversationId || generateConversationId(),
             used_tools: usedTools,
         };
     }
 
     try {
+        if (process.env.NODE_ENV === "development") {
+            console.log("[AI Chat] Calling AI provider");
+        }
+
         const aiAnswer = await generateAiAnswer({
             systemPrompt: openAiPromptPayload.system,
             businessContextPrompt: openAiPromptPayload.business_context_prompt,
         });
 
+        if (process.env.NODE_ENV === "development") {
+            console.log("[AI Chat] AI provider answer returned");
+        }
+
         return {
-            answer:
-                aiAnswer ||
-                buildAnswer({ intent: resolvedIntent.intent, toolResults }) ||
-                getMissingDataMessage(language),
+            answer: aiAnswer || getProviderUnavailableMessage(language),
             conversation_id: conversationId || generateConversationId(),
             used_tools: usedTools,
         };
@@ -283,9 +171,7 @@ export async function handleChatMessage({
         });
 
         return {
-            answer:
-                buildAnswer({ intent: resolvedIntent.intent, toolResults }) ||
-                TOOL_FAILURE_ANSWER,
+            answer: getProviderUnavailableMessage(language),
             conversation_id: conversationId || generateConversationId(),
             used_tools: usedTools,
         };

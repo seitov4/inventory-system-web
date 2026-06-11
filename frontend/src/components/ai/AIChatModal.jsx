@@ -246,6 +246,7 @@ function getSafeErrorMessage(error) {
 
     if (status === 401) return "Your session has expired. Please log in again.";
     if (status === 403) return "You do not have permission to use AI assistant.";
+    if (status === 429) return "AI chat limit reached. Please try again later.";
     if (status === 400) {
         return (
             error?.response?.data?.message ||

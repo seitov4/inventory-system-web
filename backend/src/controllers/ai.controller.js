@@ -2,13 +2,11 @@ import { randomBytes } from "node:crypto";
 import { handleChatMessage } from "../services/ai.service.js";
 import {
     evaluateMessageScope,
-    getSafeClarificationMessage,
     getSafeRefusalMessage,
     getStoreIsolationMessage,
     validateAiMessage,
 } from "../services/aiGuard.service.js";
 import { checkAndIncrementAiRateLimit } from "../services/aiRateLimit.service.js";
-import { buildBasicChatAnswer } from "../services/aiResponder.service.js";
 import { success } from "../utils/response.js";
 
 const ALLOWED_AI_ROLES = new Set(["owner", "manager", "admin"]);
@@ -159,19 +157,6 @@ export async function chatWithAiController(req, res, _next) {
         if (scope.blocked) {
             return success(res, {
                 answer: getSafeRefusalMessage(scope.language),
-                conversation_id: conversationId,
-                used_tools: [],
-            });
-        }
-
-        const basicAnswer = buildBasicChatAnswer({
-            message: trimmedMessage,
-            language: scope.language,
-        });
-
-        if (!scope.allowedBusiness && !basicAnswer.handled) {
-            return success(res, {
-                answer: getSafeClarificationMessage(scope.language),
                 conversation_id: conversationId,
                 used_tools: [],
             });

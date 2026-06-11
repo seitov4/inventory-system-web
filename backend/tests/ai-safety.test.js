@@ -244,8 +244,8 @@ test("ai rate limit config uses documented defaults", () => {
         delete process.env.AI_CHAT_STORE_DAILY_LIMIT;
 
         assert.deepEqual(getAiRateLimitConfig(), {
-            userHourlyLimit: 20,
-            storeDailyLimit: 100,
+            userHourlyLimit: 200,
+            storeDailyLimit: 1000,
         });
     } finally {
         if (originalUserLimit === undefined) {
@@ -262,7 +262,7 @@ test("ai rate limit config uses documented defaults", () => {
     }
 });
 
-test("ai rule-based responder formats simple sales answers without OpenAI", () => {
+test("ai rule-based responder is disabled for simple sales answers", () => {
     const result = buildRuleBasedAnswer({
         intent: "sales_summary",
         language: "en",
@@ -278,51 +278,22 @@ test("ai rule-based responder formats simple sales answers without OpenAI", () =
         },
     });
 
-    assert.equal(result.handled, true);
-    assert.equal(
-        result.answer,
-        "Completed sales for today are 66,942.94 KZT from 8 orders. A total of 31 items were sold, with an average order value of 8,367.87 KZT."
-    );
+    assert.deepEqual(result, { handled: false, answer: null });
 });
 
-test("ai basic responder answers greetings, thanks, confirmations, and goodbyes", () => {
+test("ai basic responder is disabled for greetings, thanks, confirmations, and goodbyes", () => {
     const cases = [
-        [
-            "hello?",
-            "en",
-            "Hello. I can help you analyze your store data, including sales, stock levels, products, reports, and restocking recommendations.",
-        ],
-        [
-            "thank you!",
-            "en",
-            "You are welcome. You can ask me about sales, stock levels, top products, reports, or restocking.",
-        ],
-        [
-            "ok!",
-            "en",
-            "Good. Ask me anytime about your store's sales, stock, products, reports, or restocking needs.",
-        ],
-        [
-            "goodbye.",
-            "en",
-            "Goodbye. I will be ready to help with your store data whenever you need.",
-        ],
-        [
-            "\u043f\u0440\u0438\u0432\u0435\u0442!",
-            "ru",
-            "\u0417\u0434\u0440\u0430\u0432\u0441\u0442\u0432\u0443\u0439\u0442\u0435. \u042f \u043c\u043e\u0433\u0443 \u043f\u043e\u043c\u043e\u0447\u044c \u0441 \u0430\u043d\u0430\u043b\u0438\u0437\u043e\u043c \u0434\u0430\u043d\u043d\u044b\u0445 \u043c\u0430\u0433\u0430\u0437\u0438\u043d\u0430: \u043f\u0440\u043e\u0434\u0430\u0436\u0430\u043c\u0438, \u043e\u0441\u0442\u0430\u0442\u043a\u0430\u043c\u0438, \u0442\u043e\u0432\u0430\u0440\u0430\u043c\u0438, \u043e\u0442\u0447\u0435\u0442\u0430\u043c\u0438 \u0438 \u0440\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0430\u0446\u0438\u044f\u043c\u0438 \u043f\u043e \u0437\u0430\u043a\u0443\u043f\u043a\u0435.",
-        ],
-        [
-            "\u0441\u043f\u0430\u0441\u0438\u0431\u043e.",
-            "ru",
-            "\u041f\u043e\u0436\u0430\u043b\u0443\u0439\u0441\u0442\u0430. \u0412\u044b \u043c\u043e\u0436\u0435\u0442\u0435 \u0441\u043f\u0440\u043e\u0441\u0438\u0442\u044c \u043c\u0435\u043d\u044f \u043e \u043f\u0440\u043e\u0434\u0430\u0436\u0430\u0445, \u043e\u0441\u0442\u0430\u0442\u043a\u0430\u0445, \u043f\u043e\u043f\u0443\u043b\u044f\u0440\u043d\u044b\u0445 \u0442\u043e\u0432\u0430\u0440\u0430\u0445, \u043e\u0442\u0447\u0435\u0442\u0430\u0445 \u0438\u043b\u0438 \u0437\u0430\u043a\u0443\u043f\u043a\u0435.",
-        ],
+        ["hello?", "en"],
+        ["thank you!", "en"],
+        ["ok!", "en"],
+        ["goodbye.", "en"],
+        ["\u043f\u0440\u0438\u0432\u0435\u0442!", "ru"],
+        ["\u0441\u043f\u0430\u0441\u0438\u0431\u043e.", "ru"],
     ];
 
-    for (const [message, language, answer] of cases) {
+    for (const [message, language] of cases) {
         const result = buildBasicChatAnswer({ message, language });
-        assert.equal(result.handled, true);
-        assert.equal(result.answer, answer);
+        assert.deepEqual(result, { handled: false, answer: null });
     }
 });
 
@@ -344,15 +315,13 @@ test("ai basic responder does not catch business or blocked mixed messages", () 
     );
 });
 
-test("ai service returns basic answer before intent tools or OpenAI", async () => {
+test("ai service sends greetings through provider path", async () => {
     const originalQuery = pool.query;
     const originalEnabled = process.env.AI_CHAT_ENABLED;
 
     try {
         process.env.AI_CHAT_ENABLED = "false";
-        pool.query = async () => {
-            throw new Error("DB tools should not run for basic responder");
-        };
+        pool.query = async () => ({ rows: [] });
 
         const result = await handleChatMessage({
             message: "hello",
@@ -363,11 +332,12 @@ test("ai service returns basic answer before intent tools or OpenAI", async () =
         });
 
         assert.equal(result.conversation_id, "basic-conversation");
-        assert.deepEqual(result.used_tools, []);
-        assert.equal(
-            result.answer,
-            "Hello. I can help you analyze your store data, including sales, stock levels, products, reports, and restocking recommendations."
-        );
+        assert.deepEqual(result.used_tools, [
+            "get_sales_summary",
+            "get_low_stock_items",
+            "get_top_products",
+        ]);
+        assert.equal(result.answer, "AI assistant is temporarily unavailable. Please try again later.");
     } finally {
         pool.query = originalQuery;
 
@@ -379,7 +349,7 @@ test("ai service returns basic answer before intent tools or OpenAI", async () =
     }
 });
 
-test("ai business question with greeting still uses normal intent flow", async () => {
+test("ai business question with greeting calls tools and returns unavailable when provider is off", async () => {
     const originalQuery = pool.query;
     const originalEnabled = process.env.AI_CHAT_ENABLED;
 
@@ -404,7 +374,7 @@ test("ai business question with greeting still uses normal intent flow", async (
         });
 
         assert.deepEqual(result.used_tools, ["get_sales_summary"]);
-        assert.match(result.answer, /Completed sales for today are 12,000 KZT/);
+        assert.equal(result.answer, "AI assistant is temporarily unavailable. Please try again later.");
     } finally {
         pool.query = originalQuery;
 
@@ -425,7 +395,7 @@ test("ai guard blocks technical question with greeting before basic responder", 
     assert.equal(scope.reason, "blocked_technical_scope");
 });
 
-test("ai rule-based responder answers simple Russian stock questions", () => {
+test("ai rule-based responder is disabled for simple Russian stock questions", () => {
     const result = buildRuleBasedAnswer({
         intent: "low_stock",
         message:
@@ -442,12 +412,7 @@ test("ai rule-based responder answers simple Russian stock questions", () => {
         },
     });
 
-    assert.equal(result.handled, true);
-    assert.match(
-        result.answer,
-        /\u043d\u0438\u0437\u043a\u0438\u043c \u043e\u0441\u0442\u0430\u0442\u043a\u043e\u043c/
-    );
-    assert.match(result.answer, /Milk 1L, Bread \u0438 Rice/);
+    assert.deepEqual(result, { handled: false, answer: null });
 });
 
 test("ai rule-based responder leaves complex analytical questions to OpenAI path", () => {
@@ -481,7 +446,7 @@ test("ai responder number helpers use locale-specific formatting", () => {
     assert.equal(formatDate("2026-06-04T10:00:00.000Z", "en"), "2026-06-04");
 });
 
-test("ai service returns rule-based answer before OpenAI provider for simple questions", async () => {
+test("ai service does not return rule-based fallback for simple questions", async () => {
     const originalQuery = pool.query;
     const originalEnabled = process.env.AI_CHAT_ENABLED;
 
@@ -507,7 +472,7 @@ test("ai service returns rule-based answer before OpenAI provider for simple que
 
         assert.equal(result.conversation_id, "test-conversation");
         assert.deepEqual(result.used_tools, ["get_sales_summary"]);
-        assert.match(result.answer, /Completed sales for today are 66,942\.94 KZT/);
+        assert.equal(result.answer, "AI assistant is temporarily unavailable. Please try again later.");
         assert.doesNotMatch(result.answer, /Sales today: revenue/);
     } finally {
         pool.query = originalQuery;
@@ -520,7 +485,7 @@ test("ai service returns rule-based answer before OpenAI provider for simple que
     }
 });
 
-test("ai service keeps OpenAI fallback path for complex analytical questions", async () => {
+test("ai service returns unavailable instead of fake business fallback when provider fails", async () => {
     const originalQuery = pool.query;
     const originalEnabled = process.env.AI_CHAT_ENABLED;
     let queryCount = 0;
@@ -562,7 +527,7 @@ test("ai service keeps OpenAI fallback path for complex analytical questions", a
         });
 
         assert.deepEqual(result.used_tools, ["get_sales_summary", "get_sales_by_period"]);
-        assert.match(result.answer, /Sales week: revenue/);
+        assert.equal(result.answer, "AI assistant is temporarily unavailable. Please try again later.");
     } finally {
         pool.query = originalQuery;
 

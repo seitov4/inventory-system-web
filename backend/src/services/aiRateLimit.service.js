@@ -1,7 +1,7 @@
 import pool from "../utils/db.js";
 
-const DEFAULT_USER_HOURLY_LIMIT = 20;
-const DEFAULT_STORE_DAILY_LIMIT = 100;
+const DEFAULT_USER_HOURLY_LIMIT = 200;
+const DEFAULT_STORE_DAILY_LIMIT = 1000;
 
 const USER_LIMIT_MESSAGE = "AI chat limit reached. Please try again later.";
 const STORE_LIMIT_MESSAGE = "Daily AI chat limit for this store has been reached. Please try again tomorrow.";
