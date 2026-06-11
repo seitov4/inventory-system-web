@@ -661,3 +661,23 @@ SET store_id = COALESCE(
 WHERE n.store_id IS NULL;
 
 CREATE INDEX IF NOT EXISTS idx_notifications_store_id ON notifications(store_id);
+
+-- =====================================================
+-- 10. AI chat usage rate limits
+-- =====================================================
+CREATE TABLE IF NOT EXISTS ai_chat_usage (
+    id SERIAL PRIMARY KEY,
+    scope_type VARCHAR(20) NOT NULL,
+    scope_id INTEGER NOT NULL,
+    store_id INTEGER NOT NULL,
+    bucket_type VARCHAR(20) NOT NULL,
+    bucket_start TIMESTAMP NOT NULL,
+    message_count INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE (scope_type, scope_id, bucket_type, bucket_start)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_chat_usage_store_id ON ai_chat_usage(store_id);
+CREATE INDEX IF NOT EXISTS idx_ai_chat_usage_bucket
+    ON ai_chat_usage(scope_type, scope_id, bucket_type, bucket_start);

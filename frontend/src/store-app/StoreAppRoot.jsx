@@ -16,7 +16,6 @@ import RegisterPage from "../pages/Register/RegisterPage.jsx";
 import DashboardPage from "../pages/Dashboard/DashboardPageZoneBased.jsx";
 import ProductsPage from "../pages/Products/ProductsPage.jsx";
 import StockInPage from "../pages/StockIn/StockInPage.jsx";
-import SalesPage from "../pages/Sales/SalesPage.jsx";
 import ForecastPage from "../pages/Forecast/ForecastPage.jsx";
 import WarehousePage from "../pages/Warehouse/WarehousePage.jsx";
 import SettingsPage from "../pages/Settings/SettingsPage.jsx";
@@ -260,8 +259,6 @@ function PageRenderer() {
             return <ProductsPage />;
         case "stockIn":
             return <StockInPage />;
-        case "sales":
-            return <SalesPage />;
         case "forecast":
             return <ForecastPage />;
         case "warehouse":

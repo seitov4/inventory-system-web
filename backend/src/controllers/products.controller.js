@@ -1,7 +1,9 @@
 import {
     getAllProducts,
+    getPaginatedProducts,
     getProductById,
     getProductByBarcode,
+    lookupProducts,
     getProductsWithLeft,
     getLowStockProducts,
     createProduct,
@@ -15,6 +17,20 @@ import { success } from "../utils/response.js";
 
 export async function listProducts(req, res, next) {
     try {
+        const shouldPaginate = ["page", "limit", "search", "filter"].some((key) =>
+            Object.prototype.hasOwnProperty.call(req.query || {}, key)
+        );
+
+        if (shouldPaginate) {
+            const result = await getPaginatedProducts(req.user.store_id, {
+                page: req.query.page,
+                limit: req.query.limit,
+                search: req.query.search,
+                filter: req.query.filter,
+            });
+            return success(res, result);
+        }
+
         const products = await getAllProducts(req.user.store_id);
         return success(res, products);
     } catch (err) {
@@ -43,6 +59,20 @@ export async function getProductByBarcodeController(req, res, next) {
             return next(createAppError(ERROR_CODES.PRODUCT_NOT_FOUND, 404));
         }
         return success(res, product);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+export async function lookupProductsController(req, res, next) {
+    try {
+        const products = await lookupProducts(
+            req.user.store_id,
+            req.query.query || req.query.q || "",
+            req.query.limit || 10,
+            req.query.warehouse_id || null
+        );
+        return success(res, { products });
     } catch (err) {
         return next(err);
     }

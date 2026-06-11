@@ -33,7 +33,7 @@ const ForecastSurface = styled.div`
     --forecast-tooltip-bg: #ffffff;
     --forecast-tooltip-border: #dbe3ef;
     --forecast-tooltip-text: #0f172a;
-    --forecast-actual: #334155;
+    --forecast-actual: #2563eb;
     --forecast-ensemble: #c2410c;
     --forecast-lightgbm: #15803d;
     --forecast-xgboost: #2563eb;
@@ -45,7 +45,7 @@ const ForecastSurface = styled.div`
         --forecast-tooltip-bg: #111827;
         --forecast-tooltip-border: #334155;
         --forecast-tooltip-text: #e5e7eb;
-        --forecast-actual: #f8fafc;
+        --forecast-actual: #ffffff;
         --forecast-ensemble: #f59e0b;
         --forecast-lightgbm: #22c55e;
         --forecast-xgboost: #60a5fa;
@@ -59,11 +59,25 @@ const ForecastSurface = styled.div`
         --forecast-tooltip-bg: #111827;
         --forecast-tooltip-border: #334155;
         --forecast-tooltip-text: #e5e7eb;
-        --forecast-actual: #f8fafc;
+        --forecast-actual: #ffffff;
         --forecast-ensemble: #f59e0b;
         --forecast-lightgbm: #22c55e;
         --forecast-xgboost: #60a5fa;
         --forecast-fallback: #c084fc;
+    }
+
+    :root[data-theme="light"] &,
+    body[data-theme="light"] & {
+        --forecast-grid: rgba(100, 116, 139, 0.26);
+        --forecast-axis: #64748b;
+        --forecast-tooltip-bg: #ffffff;
+        --forecast-tooltip-border: #dbe3ef;
+        --forecast-tooltip-text: #0f172a;
+        --forecast-actual: #2563eb;
+        --forecast-ensemble: #c2410c;
+        --forecast-lightgbm: #15803d;
+        --forecast-xgboost: #2563eb;
+        --forecast-fallback: #7c3aed;
     }
 `;
 
@@ -609,7 +623,7 @@ export default function ForecastPage() {
             "--bg-secondary": styles.getPropertyValue("--bg-secondary").trim(),
         };
         const colors = {
-            actual: cssVars["--forecast-actual"] || "#334155",
+            actual: cssVars["--forecast-actual"] || "#2563eb",
             ensemble: cssVars["--forecast-ensemble"] || "#c2410c",
             lightgbm: cssVars["--forecast-lightgbm"] || "#15803d",
             xgboost: cssVars["--forecast-xgboost"] || "#2563eb",

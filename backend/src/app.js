@@ -17,6 +17,7 @@ import reportsRouter from "./routes/reports.routes.js";
 import warehousesRouter from "./routes/warehouses.routes.js";
 import { setupFrontend } from "./routes/frontend.js";
 import platformRouter from "./routes/platform.routes.js";
+import aiRouter from "./routes/ai.routes.js";
 
 const app = express();
 
@@ -107,6 +108,7 @@ app.use("/api/warehouses", warehousesRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/reports", reportsRouter);
 app.use("/api/platform", platformRouter);
+app.use("/api/ai", aiRouter);
 
 // 404 handler for unknown API routes
 app.use("/api/*", (req, res, next) => {

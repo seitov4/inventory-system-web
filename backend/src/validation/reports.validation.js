@@ -2,6 +2,7 @@ import { createAppError } from "../errors/app-error.js";
 import { ERROR_CODES } from "../errors/error-codes.js";
 
 export const REPORTS_OPERATION_TYPES = Object.freeze(["SALE", "RETURN", "WRITE_OFF"]);
+export const SALES_FORECAST_CSV_FORMATS = Object.freeze(["realistic", "simple", "extended"]);
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -137,5 +138,43 @@ export function parseReportsQuery(query = {}) {
         offset: offsetRaw
             ? parseNonNegativeInteger(offsetRaw, ERROR_CODES.REPORTS_OFFSET_INVALID)
             : 0,
+    };
+}
+
+export function parseSalesForecastCsvQuery(query = {}) {
+    const today = getUtcToday();
+    const monthStart = getUtcMonthStart(today);
+
+    let from = normalizeOptionalString(query.from);
+    let to = normalizeOptionalString(query.to);
+
+    if (!from && !to) {
+        from = toIsoDateString(monthStart);
+        to = toIsoDateString(today);
+    } else if (from && !to) {
+        to = toIsoDateString(today);
+    } else if (!from && to) {
+        from = toIsoDateString(monthStart);
+    }
+
+    const fromDate = parseIsoDate(from);
+    const toDate = parseIsoDate(to);
+
+    if (fromDate > toDate) {
+        throw createAppError(ERROR_CODES.REPORTS_DATE_RANGE_INVALID, 400);
+    }
+
+    const format = (normalizeOptionalString(query.format) || "realistic").toLowerCase();
+
+    if (!SALES_FORECAST_CSV_FORMATS.includes(format)) {
+        throw createAppError(ERROR_CODES.REPORTS_FORECAST_FORMAT_INVALID, 400);
+    }
+
+    return {
+        from,
+        to,
+        fromDate,
+        toDate,
+        format,
     };
 }

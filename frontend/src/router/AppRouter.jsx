@@ -69,6 +69,7 @@ export default function AppRouter() {
                 <Routes>
                     {/* ===== STORE ZONE ===== */}
                     <Route path="/login" element={<StoreLogin />} />
+                    <Route path="/analytics" element={<Navigate to="/app/dashboard" replace />} />
                     <Route
                         path="/app/*"
                         element={

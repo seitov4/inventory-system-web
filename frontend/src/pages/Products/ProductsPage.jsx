@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import Layout from "../../components/Layout/Layout";
 import productsApi from "../../api/productsApi";
-import movementsApi from "../../api/movementsApi";
 import { getApiErrorMessage } from "../../api/apiClient";
 import ProductImportModal from "../../components/Products/ProductImportModal";
 
@@ -289,6 +288,13 @@ function parseLocaleNumber(value, fallback = 0) {
     return Number(normalized);
 }
 
+const PRODUCTS_PER_PAGE = 30;
+const FILTER_OPTIONS = {
+    ALL: "all",
+    LOW_STOCK: "low_stock",
+    NO_MOVEMENTS_30: "no_movements_30_days",
+};
+
 // Table Section
 const SectionWrapper = styled.section`
     margin-bottom: 24px;
@@ -442,11 +448,128 @@ const EmptyState = styled.div`
     font-size: 14px;
 `;
 
+const PaginationBar = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+
+    @media (max-width: 640px) {
+        flex-direction: column;
+        align-items: stretch;
+    }
+`;
+
+const TopPaginationBar = styled(PaginationBar)`
+    margin-top: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px 12px 0 0;
+`;
+
+const PaginationMeta = styled.div`
+    color: var(--text-secondary);
+    font-size: 13px;
+`;
+
+const PaginationControls = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    flex-wrap: wrap;
+`;
+
+const PageButton = styled.button`
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid ${props => (props.$active ? "var(--primary-color)" : "var(--border-color)")};
+    background: ${props => (props.$active ? "var(--primary-color)" : "var(--bg-primary)")};
+    color: ${props => (props.$active ? "#ffffff" : "var(--text-secondary)")};
+    font-size: 13px;
+    font-weight: ${props => (props.$active ? 700 : 600)};
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+        border-color: var(--primary-color);
+        color: ${props => (props.$active ? "#ffffff" : "var(--text-primary)")};
+    }
+
+    &:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+`;
+
+const PageEllipsis = styled.span`
+    min-width: 22px;
+    text-align: center;
+    color: var(--text-tertiary);
+`;
+
+function ProductsPagination({
+    pagination,
+    loading,
+    page,
+    pageNumbers,
+    showingFrom,
+    showingTo,
+    onPageChange,
+    as = PaginationBar,
+}) {
+    const Wrapper = as;
+
+    if (pagination.total <= 0) {
+        return null;
+    }
+
+    return (
+        <Wrapper>
+            <PaginationMeta>
+                Showing {showingFrom}-{showingTo} of {pagination.total} products
+            </PaginationMeta>
+            <PaginationControls>
+                <PageButton
+                    type="button"
+                    disabled={!pagination.has_prev || loading}
+                    onClick={() => onPageChange(page - 1)}
+                >
+                    Previous
+                </PageButton>
+                {pageNumbers.map((pageNumber, index) => (
+                    <React.Fragment key={pageNumber}>
+                        {index > 0 && pageNumber - pageNumbers[index - 1] > 1 && (
+                            <PageEllipsis>...</PageEllipsis>
+                        )}
+                        <PageButton
+                            type="button"
+                            $active={pageNumber === pagination.page}
+                            disabled={loading}
+                            onClick={() => onPageChange(pageNumber)}
+                        >
+                            {pageNumber}
+                        </PageButton>
+                    </React.Fragment>
+                ))}
+                <PageButton
+                    type="button"
+                    disabled={!pagination.has_next || loading}
+                    onClick={() => onPageChange(page + 1)}
+                >
+                    Next
+                </PageButton>
+            </PaginationControls>
+        </Wrapper>
+    );
+}
+
 // ===== MAIN COMPONENT =====
 export default function ProductsPage() {
     const [products, setProducts] = useState([]);
-    const [stockRows, setStockRows] = useState([]);
-    const [recentMovementProductIds, setRecentMovementProductIds] = useState([]);
 
     const [form, setForm] = useState({
         name: "",
@@ -458,12 +581,38 @@ export default function ProductsPage() {
     });
     const [editingId, setEditingId] = useState(null);
 
-    const [q, setQ] = useState("");
+    const [q, setQ] = useState(() => {
+        const fromSearch = sessionStorage.getItem("globalSearchQuery");
+        const fromNotification = sessionStorage.getItem("lastNotificationProductId");
+        if (fromSearch) {
+            sessionStorage.removeItem("globalSearchQuery");
+            return fromSearch;
+        }
+        if (fromNotification) {
+            sessionStorage.removeItem("lastNotificationProductId");
+            return fromNotification;
+        }
+        return "";
+    });
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
     const [filter, setFilter] = useState("ALL"); // ALL | LOW_STOCK | NO_MOVEMENTS_30
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState({
+        page: 1,
+        limit: PRODUCTS_PER_PAGE,
+        total: 0,
+        total_pages: 1,
+        has_next: false,
+        has_prev: false,
+    });
+    const [counts, setCounts] = useState({
+        all: 0,
+        low_stock: 0,
+        no_movements_30: 0,
+    });
 
     const [inlineEdit, setInlineEdit] = useState({
         id: null,
@@ -474,63 +623,43 @@ export default function ProductsPage() {
     const [isPanelOpen, setIsPanelOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-    useEffect(() => {
-        // Initialize search string from global search/notifications
-        const fromSearch = sessionStorage.getItem("globalSearchQuery");
-        const fromNotification = sessionStorage.getItem("lastNotificationProductId");
-        if (fromSearch) {
-            setQ(fromSearch);
-            sessionStorage.removeItem("globalSearchQuery");
-        } else if (fromNotification) {
-            setQ(fromNotification);
-            sessionStorage.removeItem("lastNotificationProductId");
-        }
-        loadAll();
-    }, []);
-
-    async function loadAll() {
+    const loadProducts = useCallback(async (nextPage = page, nextSearch = q, nextFilter = filter) => {
         try {
             setLoading(true);
             setError("");
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const result = await productsApi.getPage({
+                page: nextPage,
+                limit: PRODUCTS_PER_PAGE,
+                search: nextSearch,
+                filter: FILTER_OPTIONS[nextFilter] || "all",
+            });
+            const loadedProducts = Array.isArray(result?.products) ? result.products : [];
 
-            const [allProducts, left, recentMovements] = await Promise.all([
-                productsApi.getAll().catch(() => []),
-                productsApi.getProductsLeft().catch(() => []),
-                movementsApi
-                    .getMovements({
-                        date_from: thirtyDaysAgo.toISOString(),
-                        limit: 1000,
-                    })
-                    .catch(() => []),
-            ]);
-            const loadedProducts = Array.isArray(allProducts) ? allProducts : [];
-            const loadedStock = Array.isArray(left) ? left : [];
-            
             setProducts(loadedProducts);
-            setStockRows(loadedStock);
 
-            // remember which products had movements in the last 30 days
-            if (Array.isArray(recentMovements)) {
-                const ids = Array.from(
-                    new Set(
-                        recentMovements
-                            .map((m) => m.product_id)
-                            .filter((id) => typeof id === "number")
-                    )
-                );
-                setRecentMovementProductIds(ids);
-            } else {
-                setRecentMovementProductIds([]);
+            if (result?.pagination) {
+                setPagination(result.pagination);
+                if (result.pagination.page !== nextPage) {
+                    setPage(result.pagination.page);
+                }
             }
+
+            setCounts({
+                all: Number(result?.counts?.all || 0),
+                low_stock: Number(result?.counts?.low_stock || 0),
+                no_movements_30: Number(result?.counts?.no_movements_30 || 0),
+            });
         } catch (e) {
             console.error(e);
             setError("Failed to load product data.");
         } finally {
             setLoading(false);
         }
-    }
+    }, [filter, page, q]);
+
+    useEffect(() => {
+        loadProducts(page, q, filter);
+    }, [page, q, filter, loadProducts]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -630,7 +759,7 @@ export default function ProductsPage() {
             await productsApi.update(product.id, payload);
             setMessage("Product updated.");
             setInlineEdit({ id: null, field: null, value: "" });
-            await loadAll();
+            await loadProducts();
         } catch (e) {
             console.error(e);
             setError(getApiErrorMessage(e, "Failed to update product."));
@@ -660,7 +789,11 @@ export default function ProductsPage() {
             setMessage("");
             const result = await productsApi.remove(id);
             setMessage(result?.message || "Product deleted.");
-            await loadAll();
+            if (products.length === 1 && page > 1) {
+                setPage((current) => Math.max(1, current - 1));
+            } else {
+                await loadProducts();
+            }
         } catch (e) {
             console.error(e);
             setError(getApiErrorMessage(e, "Failed to delete product."));
@@ -712,13 +845,14 @@ export default function ProductsPage() {
             } else {
                 await productsApi.create(payload);
                 setMessage("Product created.");
+                setPage(1);
                 // Close panel after successful creation
                 setTimeout(() => {
                     setIsPanelOpen(false);
                     resetForm();
                 }, 1000);
             }
-            await loadAll();
+            await loadProducts(editingId ? page : 1, q, filter);
         } catch (e) {
             console.error(e);
             setError(getApiErrorMessage(e, "Failed to save product."));
@@ -729,58 +863,53 @@ export default function ProductsPage() {
 
     const productQuantityMap = useMemo(() => {
         const map = new Map();
-        stockRows.forEach((row) => {
-            const qty = row.quantity ?? row.qty ?? 0;
-            map.set(row.id, qty);
+        products.forEach((product) => {
+            map.set(product.id, product.quantity ?? product.qty ?? 0);
         });
         return map;
-    }, [stockRows]);
+    }, [products]);
 
-    const lowStockSet = useMemo(() => {
-        const set = new Set();
-        stockRows.forEach((row) => {
-            const qty = row.quantity ?? row.qty ?? 0;
-            const min = row.min_stock ?? 0;
-            if (min > 0 && qty <= min) {
-                set.add(row.id);
-            }
-        });
-        return set;
-    }, [stockRows]);
+    const pageNumbers = useMemo(() => {
+        const totalPages = pagination.total_pages || 1;
+        const current = pagination.page || page;
+        const pages = new Set([1, totalPages]);
 
-    const recentMovementSet = useMemo(
-        () => new Set(recentMovementProductIds),
-        [recentMovementProductIds]
-    );
-
-    const noMovementsCount = useMemo(() => {
-        if (!products.length) return 0;
-        if (!recentMovementProductIds.length) return 0;
-        return products.filter((p) => !recentMovementSet.has(p.id)).length;
-    }, [products, recentMovementProductIds, recentMovementSet]);
-
-    const filteredProducts = useMemo(() => {
-        const search = q.toLowerCase().trim();
-
-        let list = products;
-        if (search) {
-            list = list.filter((p) =>
-                ((p.name || "") + " " + (p.sku || "") + " " + (p.barcode || ""))
-                    .toLowerCase()
-                    .includes(search)
-            );
-        }
-
-        if (filter === "LOW_STOCK") {
-            list = list.filter((p) => lowStockSet.has(p.id));
-        } else if (filter === "NO_MOVEMENTS_30") {
-            if (recentMovementProductIds.length) {
-                list = list.filter((p) => !recentMovementSet.has(p.id));
+        for (let value = current - 1; value <= current + 1; value++) {
+            if (value >= 1 && value <= totalPages) {
+                pages.add(value);
             }
         }
 
-        return list;
-    }, [q, products, filter, lowStockSet, recentMovementProductIds, recentMovementSet]);
+        return Array.from(pages).sort((a, b) => a - b);
+    }, [page, pagination.page, pagination.total_pages]);
+
+    const showingFrom = pagination.total === 0
+        ? 0
+        : (pagination.page - 1) * pagination.limit + 1;
+    const showingTo = Math.min(pagination.page * pagination.limit, pagination.total);
+
+    const emptyMessage = q.trim()
+        ? "No products match your search."
+        : filter === "LOW_STOCK"
+            ? "No low-stock products found."
+            : filter === "NO_MOVEMENTS_30"
+                ? "No products without movements found."
+                : "No products found.";
+
+    const handleSearchChange = (e) => {
+        setQ(e.target.value);
+        setPage(1);
+    };
+
+    const handleFilterChange = (nextFilter) => {
+        setFilter(nextFilter);
+        setPage(1);
+    };
+
+    const goToPage = (nextPage) => {
+        const totalPages = pagination.total_pages || 1;
+        setPage(Math.min(Math.max(1, nextPage), totalPages));
+    };
 
     return (
         <Layout title="Products & stock">
@@ -915,33 +1044,44 @@ export default function ProductsPage() {
                         type="text"
                         placeholder="Search products..."
                         value={q}
-                        onChange={(e) => setQ(e.target.value)}
+                        onChange={handleSearchChange}
                     />
                 </SectionHeader>
                 <FilterChipsRow>
                     <FilterChip
                         type="button"
                         $active={filter === "ALL"}
-                        onClick={() => setFilter("ALL")}
+                        onClick={() => handleFilterChange("ALL")}
                     >
-                        All
+                        All ({counts.all})
                     </FilterChip>
                     <FilterChip
                         type="button"
                         $active={filter === "LOW_STOCK"}
-                        onClick={() => setFilter("LOW_STOCK")}
+                        onClick={() => handleFilterChange("LOW_STOCK")}
                     >
-                        Low stock ({lowStockSet.size})
+                        Low stock ({counts.low_stock})
                     </FilterChip>
                     <FilterChip
                         type="button"
                         $active={filter === "NO_MOVEMENTS_30"}
-                        onClick={() => setFilter("NO_MOVEMENTS_30")}
+                        onClick={() => handleFilterChange("NO_MOVEMENTS_30")}
                     >
                         No movements 30 days
-                        {noMovementsCount > 0 ? ` (${noMovementsCount})` : ""}
+                        {counts.no_movements_30 > 0 ? ` (${counts.no_movements_30})` : ""}
                     </FilterChip>
                 </FilterChipsRow>
+
+                <ProductsPagination
+                    pagination={pagination}
+                    loading={loading}
+                    page={page}
+                    pageNumbers={pageNumbers}
+                    showingFrom={showingFrom}
+                    showingTo={showingTo}
+                    onPageChange={goToPage}
+                    as={TopPaginationBar}
+                />
 
                 <TableContainer>
                     <Table>
@@ -957,7 +1097,7 @@ export default function ProductsPage() {
                             </tr>
                         </TableHead>
                         <tbody>
-                            {filteredProducts.map((p) => (
+                            {products.map((p) => (
                                 <tr key={p.id} style={{ transition: 'background-color 0.2s' }}>
                                     <Td>{p.name}</Td>
                                     <Td>{p.sku}</Td>
@@ -1063,32 +1203,42 @@ export default function ProductsPage() {
                         </tbody>
                     </Table>
 
-                    {filteredProducts.length === 0 && !loading && (
-                        <EmptyState>No products found</EmptyState>
+                    {products.length === 0 && !loading && (
+                        <EmptyState>{emptyMessage}</EmptyState>
                     )}
+
+                    <ProductsPagination
+                        pagination={pagination}
+                        loading={loading}
+                        page={page}
+                        pageNumbers={pageNumbers}
+                        showingFrom={showingFrom}
+                        showingTo={showingTo}
+                        onPageChange={goToPage}
+                    />
                 </TableContainer>
             </SectionWrapper>
 
             {/* Stock Table */}
             <SectionWrapper>
                 <SectionTitle style={{ marginBottom: 10 }}>
-                    Stock by warehouse (data from /products/left)
+                    Stock summary for current page
                 </SectionTitle>
 
                 <TableContainer>
                     <Table>
                         <TableHead>
                             <tr>
-                                <Th>Warehouse / store</Th>
+                                <Th>Category</Th>
                                 <Th>Product</Th>
                                 <Th>SKU</Th>
                                 <Th>Quantity</Th>
                             </tr>
                         </TableHead>
                         <tbody>
-                            {stockRows.map((r, i) => (
-                                <tr key={i}>
-                                    <Td>{r.warehouse_name || r.store_name || "—"}</Td>
+                            {products.map((r) => (
+                                <tr key={r.id}>
+                                    <Td>{r.category || "-"}</Td>
                                     <Td>{r.name}</Td>
                                     <Td>{r.sku}</Td>
                                     <Td>{r.quantity ?? r.qty ?? 0}</Td>
@@ -1097,7 +1247,7 @@ export default function ProductsPage() {
                         </tbody>
                     </Table>
 
-                    {stockRows.length === 0 && (
+                    {products.length === 0 && (
                         <EmptyState>No stock data available</EmptyState>
                     )}
                 </TableContainer>
@@ -1109,7 +1259,8 @@ export default function ProductsPage() {
                 onClose={() => setIsImportModalOpen(false)}
                 onSuccess={() => {
                     setIsImportModalOpen(false);
-                    loadAll(); // Refresh product list after import
+                    setPage(1);
+                    loadProducts(1, q, filter);
                 }}
             />
         </Layout>

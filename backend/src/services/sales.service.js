@@ -3,6 +3,8 @@ import { createAppError } from "../errors/app-error.js";
 import { ERROR_CODES } from "../errors/error-codes.js";
 import { applyMovement } from "./movements.service.js";
 
+const ALLOWED_PAYMENT_TYPES = new Set(["CASH", "CARD", "KASPI"]);
+
 function parseDecimal(value, fallback = 0) {
     if (value === null || value === undefined || value === "") {return fallback;}
     if (typeof value === "number") {return Number.isFinite(value) ? value : NaN;}
@@ -46,7 +48,7 @@ async function ensureWarehouseBelongsToStore(client, warehouseId, storeId) {
 
 async function ensureProductBelongsToStore(client, productId, storeId) {
     const result = await client.query(
-        `SELECT id
+        `SELECT id, name, sale_price
          FROM products
          WHERE id = $1 AND store_id = $2 AND is_active IS TRUE`,
         [productId, storeId]
@@ -54,6 +56,7 @@ async function ensureProductBelongsToStore(client, productId, storeId) {
     if (!result.rows.length) {
         throw createAppError(ERROR_CODES.MOVEMENT_PRODUCT_NOT_FOUND, 400);
     }
+    return result.rows[0];
 }
 
 export async function createSale({
@@ -75,14 +78,12 @@ export async function createSale({
     const normalizedItems = items.map((item) => ({
         product_id: parsePositiveInteger(item.product_id),
         qty: parsePositiveInteger(item.qty ?? item.quantity),
-        price: parseDecimal(item.price),
         discount: parseDecimal(item.discount, 0),
     }));
 
     for (const item of normalizedItems) {
         if (!item.product_id) {throw createAppError(ERROR_CODES.SALES_ITEM_PRODUCT_ID_REQUIRED, 400);}
         if (!item.qty || item.qty <= 0) {throw createAppError(ERROR_CODES.SALES_ITEM_QTY_INVALID, 400);}
-        if (!Number.isFinite(item.price) || item.price < 0) {throw createAppError(ERROR_CODES.SALES_ITEM_PRICE_INVALID, 400);}
         if (!Number.isFinite(item.discount) || item.discount < 0) {throw createAppError(ERROR_CODES.SALES_ITEM_PRICE_INVALID, 400);}
     }
 
@@ -96,13 +97,25 @@ export async function createSale({
         throw createAppError(ERROR_CODES.SALES_ITEM_PRICE_INVALID, 400);
     }
 
+    const normalizedPaymentType = String(payment_type || "CASH").trim().toUpperCase();
+    if (!ALLOWED_PAYMENT_TYPES.has(normalizedPaymentType)) {
+        throw createAppError(ERROR_CODES.SALES_PAYMENT_TYPE_INVALID, 400, {
+            paymentType: payment_type,
+        });
+    }
+
     const client = await pool.connect();
     try {
         await client.query("BEGIN");
         await ensureWarehouseBelongsToStore(client, effectiveWarehouseId, store_id);
 
+        const productDetails = new Map();
         for (const item of normalizedItems) {
-            await ensureProductBelongsToStore(client, item.product_id, store_id);
+            const product = await ensureProductBelongsToStore(client, item.product_id, store_id);
+            productDetails.set(item.product_id, {
+                ...product,
+                sale_price: parseDecimal(product.sale_price, 0),
+            });
 
             const stockRes = await client.query(
                 `SELECT st.quantity
@@ -129,18 +142,32 @@ export async function createSale({
 
         let totalWithoutGlobalDiscount = 0;
         for (const item of normalizedItems) {
+            const product = productDetails.get(item.product_id);
+            const price = product?.sale_price ?? 0;
+            if (!Number.isFinite(price) || price < 0) {
+                throw createAppError(ERROR_CODES.SALES_ITEM_PRICE_INVALID, 400);
+            }
+            if (item.discount > price) {
+                throw createAppError(ERROR_CODES.SALES_ITEM_PRICE_INVALID, 400);
+            }
+            item.price = price;
             totalWithoutGlobalDiscount += (item.price - item.discount) * item.qty;
         }
-        const totalAmount = Math.max(0, totalWithoutGlobalDiscount - normalizedDiscount);
+
+        if (normalizedDiscount > totalWithoutGlobalDiscount) {
+            throw createAppError(ERROR_CODES.SALES_DISCOUNT_INVALID, 400);
+        }
+        const totalAmount = totalWithoutGlobalDiscount - normalizedDiscount;
 
         const saleRes = await client.query(
             `INSERT INTO sales
                  (store_id, cashier_id, warehouse_id, total_amount, discount, payment_type, status)
              VALUES ($1, $2, $3, $4, $5, $6, 'completed')
              RETURNING id, cashier_id, warehouse_id, store_id, total_amount, discount, payment_type, status, created_at`,
-            [store_id, cashier_id, effectiveWarehouseId, totalAmount, normalizedDiscount, payment_type]
+            [store_id, cashier_id, effectiveWarehouseId, totalAmount, normalizedDiscount, normalizedPaymentType]
         );
         const sale = saleRes.rows[0];
+        const responseItems = [];
 
         for (const item of normalizedItems) {
             await client.query(
@@ -161,10 +188,34 @@ export async function createSale({
                 related_entity_id: sale.id,
                 client,
             });
+
+            const product = productDetails.get(item.product_id);
+            responseItems.push({
+                product_id: item.product_id,
+                name: product?.name || "Product",
+                qty: item.qty,
+                price: item.price,
+                discount: item.discount,
+                line_total: (item.price - item.discount) * item.qty,
+            });
         }
 
         await client.query("COMMIT");
-        return { sale_id: sale.id, total_amount: sale.total_amount, total: sale.total_amount };
+        return {
+            sale: {
+                id: sale.id,
+                total_amount: sale.total_amount,
+                total: sale.total_amount,
+                payment_type: sale.payment_type,
+                status: sale.status,
+                created_at: sale.created_at,
+            },
+            sale_id: sale.id,
+            total_amount: sale.total_amount,
+            total: sale.total_amount,
+            items: responseItems,
+            message: "Sale completed successfully.",
+        };
     } catch (err) {
         console.error("[Sales Service] Failed to create sale:", {
             message: err.message,

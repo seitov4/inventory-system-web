@@ -4,6 +4,7 @@ import styled from "styled-components";
 import Layout from "../../components/Layout/Layout";
 import salesApi from "../../api/salesApi";
 import productsApi from "../../api/productsApi";
+import AIChatButton from "../../components/ai/AIChatButton";
 import { useAuth } from "../../context/AuthContext";
 import { usePage } from "../../context/PageContext";
 import { getWidgetConfig, ZONES } from "./dashboardWidgets";
@@ -419,6 +420,7 @@ export default function DashboardPage() {
                     </DashboardContainer>
                 </DndContext>
             )}
+            <AIChatButton />
         </Layout>
     );
 }

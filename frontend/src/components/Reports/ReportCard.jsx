@@ -115,6 +115,34 @@ const FormatBadge = styled.span`
     opacity: ${props => props.$enabled ? 1 : 0.6};
 `;
 
+const CardActions = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 18px;
+`;
+
+const ActionButton = styled.button`
+    border: 1px solid var(--primary-color);
+    background: var(--primary-color);
+    color: white;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    min-height: 34px;
+
+    &:hover:not(:disabled) {
+        background: var(--primary-hover);
+    }
+
+    &:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+`;
+
 // ===== COMPONENT =====
 export default function ReportCard({ 
     icon, 
@@ -122,7 +150,8 @@ export default function ReportCard({
     description, 
     formats = [], 
     enabled = false,
-    onClick 
+    onClick,
+    actions = [],
 }) {
     const [showTooltip, setShowTooltip] = useState(false);
 
@@ -171,6 +200,23 @@ export default function ReportCard({
                     </FormatBadge>
                 ))}
             </ReportFormats>
+            {enabled && actions.length > 0 && (
+                <CardActions>
+                    {actions.map((action) => (
+                        <ActionButton
+                            key={action.label}
+                            type="button"
+                            disabled={action.disabled}
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                action.onClick?.();
+                            }}
+                        >
+                            {action.label}
+                        </ActionButton>
+                    ))}
+                </CardActions>
+            )}
         </CardWrapper>
     );
 }

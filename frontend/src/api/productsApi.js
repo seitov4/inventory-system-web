@@ -3,10 +3,25 @@ import apiClient from "./apiClient";
 const productsApi = {
     getAll: () =>
         apiClient.get("/products").then((r) => r.data?.data || r.data || []),
+    getPage: ({ page = 1, limit = 30, search = "", filter = "all" } = {}) =>
+        apiClient
+            .get("/products", {
+                params: {
+                    page,
+                    limit,
+                    search,
+                    filter,
+                },
+            })
+            .then((r) => r.data?.data || r.data),
     getLowStock: () =>
         apiClient.get("/products/low-stock").then((r) => r.data?.data || r.data || []),
     getProductsLeft: () =>
         apiClient.get("/products/left").then((r) => r.data?.data || r.data || []),
+    lookup: (query, limit = 10, warehouse_id = null) =>
+        apiClient
+            .get("/products/lookup", { params: { query, limit, warehouse_id } })
+            .then((r) => r.data?.data || r.data || { products: [] }),
     create: (data) =>
         apiClient.post("/products", data).then((r) => r.data?.data || r.data),
     update: (id, data) =>

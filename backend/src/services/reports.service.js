@@ -15,6 +15,27 @@ function toInteger(value, fallback = 0) {
     return Number.isInteger(parsed) ? parsed : fallback;
 }
 
+function formatCsvNumber(value) {
+    return toNumber(value).toFixed(2);
+}
+
+function escapeCsvValue(value) {
+    const stringValue = String(value ?? "");
+
+    if (/[",\r\n]/.test(stringValue)) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+    }
+
+    return stringValue;
+}
+
+function buildCsv(headers, rows) {
+    return [
+        headers.join(","),
+        ...rows.map((row) => headers.map((header) => escapeCsvValue(row[header])).join(",")),
+    ].join("\r\n");
+}
+
 function mapReportRow(row) {
     return {
         id: toInteger(row.id),
@@ -230,6 +251,119 @@ export async function getSalesReportData(storeId, fromDate, toDate) {
         sale_price: toNumber(row.sale_price),
         total: toNumber(row.total),
     }));
+}
+
+export async function getSalesForecastCsv({ storeId, from, to, fromDate, toDate, format }) {
+    const query = `
+        WITH date_series AS (
+            SELECT generate_series($2::date, $3::date, '1 day'::interval)::date AS date
+        ),
+        store_info AS (
+            SELECT COALESCE(NULLIF(BTRIM(slug), ''), CONCAT('store_', LPAD(id::text, 3, '0'))) AS export_store_id
+            FROM stores
+            WHERE id = $1
+        ),
+        daily_sales AS (
+            SELECT
+                DATE(s.created_at) AS date,
+                COALESCE(SUM(s.total_amount), 0) AS sales,
+                COUNT(DISTINCT s.id)::int AS orders_count
+            FROM sales s
+            WHERE s.store_id = $1
+              AND LOWER(s.status) = 'completed'
+              AND DATE(s.created_at) >= $2::date
+              AND DATE(s.created_at) <= $3::date
+            GROUP BY DATE(s.created_at)
+        ),
+        daily_items AS (
+            SELECT
+                DATE(s.created_at) AS date,
+                COALESCE(SUM(si.qty), 0)::int AS quantity_sold,
+                COALESCE(SUM(
+                    CASE
+                        WHEN p.purchase_price IS NOT NULL
+                            THEN (si.price - p.purchase_price) * si.qty
+                        ELSE GREATEST((si.price * si.qty) - COALESCE(si.discount, 0), 0) * 0.25
+                    END
+                ), 0) AS item_profit
+            FROM sales s
+            JOIN sale_items si ON si.sale_id = s.id
+            LEFT JOIN products p ON p.id = si.product_id AND p.store_id = s.store_id
+            WHERE s.store_id = $1
+              AND LOWER(s.status) = 'completed'
+              AND DATE(s.created_at) >= $2::date
+              AND DATE(s.created_at) <= $3::date
+            GROUP BY DATE(s.created_at)
+        )
+        SELECT
+            ds.date,
+            COALESCE(si.export_store_id, CONCAT('store_', LPAD($1::text, 3, '0'))) AS store_id,
+            COALESCE(s.sales, 0) AS sales,
+            COALESCE(i.quantity_sold, 0)::int AS quantity_sold,
+            CASE
+                WHEN COALESCE(i.quantity_sold, 0) > 0 THEN COALESCE(i.item_profit, 0)
+                ELSE COALESCE(s.sales, 0) * 0.25
+            END AS profit,
+            GREATEST(COALESCE(s.orders_count, 0) * 5, COALESCE(i.quantity_sold, 0) * 3)::int AS customer_traffic,
+            0::int AS has_promotion,
+            0::int AS is_holiday
+        FROM date_series ds
+        CROSS JOIN store_info si
+        LEFT JOIN daily_sales s ON s.date = ds.date
+        LEFT JOIN daily_items i ON i.date = ds.date
+        ORDER BY ds.date ASC
+    `;
+
+    const result = await pool.query(query, [storeId, fromDate, toDate]);
+
+    const baseRows = result.rows.map((row) => {
+        const sales = toNumber(row.sales);
+        return {
+            date: toIsoDateString(row.date),
+            store_id: row.store_id,
+            sales: formatCsvNumber(sales),
+            quantity_sold: toInteger(row.quantity_sold),
+            profit: formatCsvNumber(row.profit),
+            customer_traffic: toInteger(row.customer_traffic),
+            has_promotion: toInteger(row.has_promotion),
+            is_holiday: toInteger(row.is_holiday),
+            revenue: formatCsvNumber(sales),
+            total: formatCsvNumber(sales),
+        };
+    });
+
+    const headersByFormat = {
+        simple: ["date", "sales", "store_id"],
+        realistic: [
+            "date",
+            "store_id",
+            "sales",
+            "quantity_sold",
+            "profit",
+            "customer_traffic",
+            "has_promotion",
+            "is_holiday",
+        ],
+        extended: [
+            "date",
+            "store_id",
+            "sales",
+            "revenue",
+            "total",
+            "has_promotion",
+            "quantity_sold",
+            "profit",
+            "customer_traffic",
+            "is_holiday",
+        ],
+    };
+    const headers = headersByFormat[format] || headersByFormat.realistic;
+
+    return {
+        filename: `sales_forecast_${format}_${from}_to_${to}.csv`,
+        csv: `${buildCsv(headers, baseRows)}\r\n`,
+        rowCount: baseRows.length,
+    };
 }
 
 export async function getReportTransactions(storeId, filters) {

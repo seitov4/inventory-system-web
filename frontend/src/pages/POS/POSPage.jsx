@@ -193,6 +193,10 @@ const FormRow = styled.div`
     margin-bottom: 16px;
 `;
 
+const SingleFormRow = styled(FormRow)`
+    grid-template-columns: 1fr;
+`;
+
 const FormField = styled.div`
     display: flex;
     flex-direction: column;
@@ -208,6 +212,16 @@ const FormInput = styled.input`
     padding: 8px;
     border: 1px solid var(--border-color);
     border-radius: 6px;
+`;
+
+const EmptyHint = styled.div`
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 20px;
+`;
+
+const StockHint = styled.span`
+    color: var(--text-tertiary);
 `;
 
 function parseLocaleNumber(value, fallback = 0) {
@@ -244,7 +258,6 @@ export default function POSPage() {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [warehouseId, setWarehouseId] = useState("1");
-    const [storeId, setStoreId] = useState("1");
     const [warehouses, setWarehouses] = useState([]);
     const [paymentType, setPaymentType] = useState("CASH");
     const [discount, setDiscount] = useState("0");
@@ -273,7 +286,6 @@ export default function POSPage() {
                     const selected = firstWithStock || rows[0];
                     const selectedId = String(selected.id);
                     setWarehouseId(selectedId);
-                    setStoreId(selectedId);
                 }
             } catch (e) {
                 console.error(e);
@@ -316,58 +328,52 @@ export default function POSPage() {
 
     const handleAddProduct = async () => {
         if (!barcode.trim()) {
-            setError("Enter barcode or product ID");
+            setError("Enter barcode, SKU, product name, or product ID");
             return;
         }
 
         try {
             setError("");
+            setSuccess("");
             setLoading(true);
 
-            // Try to get product by ID, SKU, barcode or name
-            let product = null;
-            const allProducts = await productsApi.getAll();
-            product = allProducts.find(
-                (p) =>
-                    p.id === parseInt(barcode) ||
-                    p.sku === barcode ||
-                    p.barcode === barcode
-            );
-
-            // Fallback: search by name / SKU (partial match)
-            if (!product) {
-                const q = barcode.toLowerCase();
-                product = allProducts.find(
-                    (p) =>
-                        (p.name || "").toLowerCase().includes(q) ||
-                        (p.sku || "").toLowerCase().includes(q)
-                );
-            }
+            const lookupResult = await productsApi.lookup(barcode.trim(), 10, warehouseId);
+            const matches = Array.isArray(lookupResult?.products) ? lookupResult.products : [];
+            const product = matches[0] || null;
 
             if (!product) {
                 setError("Product not found");
                 return;
             }
 
-            // Check if product already in cart
+            const stock = Number(product.stock ?? product.quantity ?? 0);
+            if (stock <= 0) {
+                setError(`Product is out of stock: ${product.name}`);
+                return;
+            }
+
             const existingIndex = cart.findIndex((item) => item.product_id === product.id);
             if (existingIndex >= 0) {
                 const updatedCart = [...cart];
+                if (updatedCart[existingIndex].qty + 1 > updatedCart[existingIndex].stock) {
+                    setError(`Insufficient stock for product: ${product.name}`);
+                    return;
+                }
                 updatedCart[existingIndex].qty += 1;
                 setCart(updatedCart);
             } else {
-                // Get current stock to determine price
-                const productsWithStock = await productsApi.getProductsLeft();
-                const productWithStock = productsWithStock.find((p) => p.id === product.id);
-                const price = productWithStock?.sale_price || product.sale_price || 0;
+                const price = parseLocaleNumber(product.sale_price, 0);
 
                 setCart([
                     ...cart,
                     {
                         product_id: product.id,
                         name: product.name,
+                        sku: product.sku,
+                        barcode: product.barcode,
                         qty: 1,
-                        price: price,
+                        price,
+                        stock,
                         discount: 0,
                     },
                 ]);
@@ -409,13 +415,27 @@ export default function POSPage() {
     const handleUpdateQty = (index, newQty) => {
         const qty = Math.max(1, parseInt(newQty) || 1);
         const updatedCart = [...cart];
-        updatedCart[index].qty = qty;
+        const stock = Number(updatedCart[index].stock || 0);
+        if (stock > 0 && qty > stock) {
+            setError(`Only ${stock} item(s) available for ${updatedCart[index].name}.`);
+            updatedCart[index].qty = stock;
+        } else {
+            updatedCart[index].qty = qty;
+        }
         setCart(updatedCart);
+    };
+
+    const handleWarehouseChange = (value) => {
+        setWarehouseId(value);
+        if (cart.length > 0) {
+            setCart([]);
+            setError("Warehouse changed. Please scan products again.");
+        }
     };
 
     const handlePay = async () => {
         if (cart.length === 0) {
-            setError("Add products to the receipt first");
+            setError("Add at least one product to complete the sale.");
             return;
         }
 
@@ -437,10 +457,14 @@ export default function POSPage() {
                 return;
             }
 
+            if (discountValue > subtotal) {
+                setError("Discount cannot exceed receipt subtotal.");
+                return;
+            }
+
             const items = cart.map((item) => ({
                 product_id: item.product_id,
                 qty: parseInt(item.qty, 10),
-                price: parseLocaleNumber(item.price, 0),
                 discount: parseLocaleNumber(item.discount, 0),
             }));
 
@@ -451,9 +475,14 @@ export default function POSPage() {
                 payment_type: paymentType,
             });
 
-            const successMessage = `Sale created successfully! ID: ${result.sale_id}`;
+            const saleId = result.sale?.id || result.sale_id;
+            const successMessage = saleId
+                ? `Sale completed successfully. Receipt #${saleId}.`
+                : "Sale completed successfully.";
             setSuccess(successMessage);
             setCart([]);
+            setBarcode("");
+            setDiscount("0");
             // Return focus to barcode input after successful sale
             setTimeout(() => {
                 if (barcodeInputRef.current) {
@@ -473,11 +502,12 @@ export default function POSPage() {
         }
     };
 
-    const total = cart.reduce((sum, item) => {
+    const subtotal = cart.reduce((sum, item) => {
         const price = parseLocaleNumber(item.price, 0);
         const itemDiscount = parseLocaleNumber(item.discount, 0);
         return sum + (price - itemDiscount) * item.qty;
-    }, 0) - (parseLocaleNumber(discount, 0) || 0);
+    }, 0);
+    const total = Math.max(0, subtotal - (parseLocaleNumber(discount, 0) || 0));
 
     // Global hotkeys for POS: Enter is handled in the input, F2 triggers payment
     useEffect(() => {
@@ -532,11 +562,11 @@ export default function POSPage() {
                 )}
 
                 <Section>
-                    <SectionTitle>Add product (barcode, ID or name)</SectionTitle>
+                    <SectionTitle>Add product (barcode, SKU, ID or name)</SectionTitle>
                     <SearchInput
                         ref={barcodeInputRef}
                         type="text"
-                        placeholder="Scan barcode or enter ID / name and press Enter"
+                        placeholder="Scan barcode or enter SKU, ID or name and press Enter"
                         value={barcode}
                         onChange={(e) => setBarcode(e.target.value)}
                         onKeyDown={(e) => {
@@ -550,15 +580,6 @@ export default function POSPage() {
                             // Prevent form submission
                             if (e.key === "Enter") {
                                 e.stopPropagation();
-                            }
-                        }}
-                        onKeyPress={(e) => {
-                            // Additional Enter handling for scanner compatibility
-                            if (e.key === "Enter") {
-                                e.preventDefault();
-                                if (!loading && barcode.trim()) {
-                                    handleAddProduct();
-                                }
                             }
                         }}
                         disabled={loading}
@@ -577,9 +598,7 @@ export default function POSPage() {
                 <Section>
                     <SectionTitle>Sales receipt</SectionTitle>
                     {cart.length === 0 ? (
-                        <div style={{ color: "var(--text-secondary)", textAlign: "center", padding: "20px" }}>
-                            Receipt is empty. Add products.
-                        </div>
+                        <EmptyHint>Receipt is empty. Add products.</EmptyHint>
                     ) : (
                         <>
                             <CartList>
@@ -606,12 +625,14 @@ export default function POSPage() {
                                                 <QtyInput
                                                     type="number"
                                                     min="1"
+                                                    max={item.stock || undefined}
                                                     value={item.qty}
                                                     onChange={(e) => handleUpdateQty(index, e.target.value)}
                                                     style={{ width: "50px", display: "inline-block" }}
                                                 />{" "}
                                                 = {(item.price * item.qty).toFixed(2)} ₸
                                             </ItemDetails>
+                                            <StockHint>Stock: {item.stock}</StockHint>
                                         </ItemInfo>
                                         <ItemActions>
                                             <RemoveBtn onClick={() => handleRemoveItem(index)}>
@@ -622,17 +643,14 @@ export default function POSPage() {
                                 ))}
                             </CartList>
 
-                            <FormRow>
+                            <SingleFormRow>
                                 <FormField>
-                                    <FormLabel>Warehouse ID</FormLabel>
+                                    <FormLabel>Warehouse</FormLabel>
                                     {warehouses.length > 0 ? (
                                         <FormInput
                                             as="select"
                                             value={warehouseId}
-                                            onChange={(e) => {
-                                                setWarehouseId(e.target.value);
-                                                setStoreId(e.target.value);
-                                            }}
+                                            onChange={(e) => handleWarehouseChange(e.target.value)}
                                         >
                                             {warehouses.map((warehouse) => (
                                                 <option key={warehouse.id} value={warehouse.id}>
@@ -644,26 +662,10 @@ export default function POSPage() {
                                             ))}
                                         </FormInput>
                                     ) : (
-                                        <FormInput
-                                            type="number"
-                                            value={warehouseId}
-                                            onChange={(e) => {
-                                                setWarehouseId(e.target.value);
-                                                setStoreId(e.target.value);
-                                            }}
-                                        />
+                                        <EmptyHint>No warehouse available. Please create a warehouse first.</EmptyHint>
                                     )}
                                 </FormField>
-                                <FormField>
-                                    <FormLabel>Store ID</FormLabel>
-                                    <FormInput
-                                        type="number"
-                                        value={storeId}
-                                        onChange={(e) => setStoreId(e.target.value)}
-                                        disabled
-                                    />
-                                </FormField>
-                            </FormRow>
+                            </SingleFormRow>
 
                             <FormRow>
                                 <FormField>
@@ -675,6 +677,7 @@ export default function POSPage() {
                                     >
                                         <option value="CASH">Cash</option>
                                         <option value="CARD">Card</option>
+                                        <option value="KASPI">Kaspi</option>
                                     </FormInput>
                                 </FormField>
                                 <FormField>
@@ -693,7 +696,7 @@ export default function POSPage() {
                                 <TotalAmount>{total.toFixed(2)} ₸</TotalAmount>
                             </TotalSection>
 
-                            <PayButton onClick={handlePay} disabled={loading || cart.length === 0}>
+                            <PayButton onClick={handlePay} disabled={loading || cart.length === 0 || warehouses.length === 0}>
                                 {loading ? "Processing..." : "Pay (F2)"}
                             </PayButton>
                         </>

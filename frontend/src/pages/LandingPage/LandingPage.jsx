@@ -918,7 +918,7 @@ function AuthLanding({ user, role, setActivePage }) {
 
         if (canSeeAnalytics) {
             actions.splice(1, 0, { label: "Reports", text: "Exports and summaries", page: "reports", icon: AssessmentOutlinedIcon });
-            actions.push({ label: "Sales history", text: "Revenue and receipts", page: "sales", icon: ReceiptLongOutlinedIcon });
+            actions.push({ label: "Sales history", text: "Revenue and receipts", page: "reports", icon: ReceiptLongOutlinedIcon });
         }
 
         if (canManageStock) {
@@ -1310,8 +1310,8 @@ function AuthLanding({ user, role, setActivePage }) {
                                 <Panel>
                                     <PanelTitleRow>
                                         <PanelTitle>Top products</PanelTitle>
-                                        <LinkButton type="button" onClick={() => setActivePage("sales")}>
-                                            Sales
+                                        <LinkButton type="button" onClick={() => setActivePage("reports")}>
+                                            Reports
                                         </LinkButton>
                                     </PanelTitleRow>
                                     {derived.topBySales.length ? (

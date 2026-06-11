@@ -43,6 +43,11 @@ services:
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5000}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5000}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      AI_CHAT_ENABLED: ${AI_CHAT_ENABLED:-true}
+      AI_CHAT_USER_HOURLY_LIMIT: ${AI_CHAT_USER_HOURLY_LIMIT:-20}
+      AI_CHAT_STORE_DAILY_LIMIT: ${AI_CHAT_STORE_DAILY_LIMIT:-100}
     ports:
       - "${APP_PORT:-5000}:5000"
     depends_on:

@@ -126,6 +126,10 @@ export const RU_ERROR_MESSAGES = Object.freeze({
     [ERROR_CODES.SALES_ITEM_QTY_INVALID]: "qty должен быть положительным числом",
     [ERROR_CODES.SALES_ITEM_PRICE_INVALID]: "price обязателен и должен быть неотрицательным",
     [ERROR_CODES.SALES_WAREHOUSE_OR_STORE_REQUIRED]: "warehouse_id или store_id обязателен",
+    [ERROR_CODES.SALES_PAYMENT_TYPE_INVALID]:
+        "\u041d\u0435\u043a\u043e\u0440\u0440\u0435\u043a\u0442\u043d\u044b\u0439 payment_type. \u0414\u043e\u0441\u0442\u0443\u043f\u043d\u043e: CASH, CARD, KASPI",
+    [ERROR_CODES.SALES_DISCOUNT_INVALID]:
+        "\u0421\u043a\u0438\u0434\u043a\u0430 \u043d\u0435 \u043c\u043e\u0436\u0435\u0442 \u0431\u044b\u0442\u044c \u0431\u043e\u043b\u044c\u0448\u0435 \u0441\u0443\u043c\u043c\u044b \u0447\u0435\u043a\u0430",
     [ERROR_CODES.SALES_INSUFFICIENT_STOCK]: ({
         productId = "unknown",
         available = 0,
@@ -153,4 +157,8 @@ export const RU_ERROR_MESSAGES = Object.freeze({
     [ERROR_CODES.REPORTS_OPERATION_TYPE_INVALID]:
         "\u041d\u0435\u043a\u043e\u0440\u0440\u0435\u043a\u0442\u043d\u044b\u0439 operation_type. \u0414\u043e\u0441\u0442\u0443\u043f\u043d\u043e: SALE, RETURN, WRITE_OFF",
     [ERROR_CODES.API_ENDPOINT_NOT_FOUND]: "API-эндпоинт не найден",
+    [ERROR_CODES.REPORTS_FORECAST_FORMAT_INVALID]:
+        "\u041d\u0435\u043a\u043e\u0440\u0440\u0435\u043a\u0442\u043d\u044b\u0439 format. \u0414\u043e\u0441\u0442\u0443\u043f\u043d\u043e: realistic, simple, extended",
+    [ERROR_CODES.AI_MESSAGE_INVALID]:
+        "\u0421\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u0434\u043b\u044f AI-\u0430\u0441\u0441\u0438\u0441\u0442\u0435\u043d\u0442\u0430 \u0434\u043e\u043b\u0436\u043d\u043e \u0431\u044b\u0442\u044c \u0441\u0442\u0440\u043e\u043a\u043e\u0439 \u043e\u0442 1 \u0434\u043e 1000 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432",
 });

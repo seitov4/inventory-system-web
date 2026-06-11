@@ -133,6 +133,181 @@ export async function getAllProducts(storeId) {
     return result.rows;
 }
 
+function normalizeProductsPageOptions({
+    page = 1,
+    limit = 30,
+    search = "",
+    filter = "all",
+} = {}) {
+    const normalizedPage = Math.max(1, Number.parseInt(page, 10) || 1);
+    const normalizedLimit = Math.min(
+        100,
+        Math.max(1, Number.parseInt(limit, 10) || 30)
+    );
+    const normalizedSearch = typeof search === "string" ? search.trim().slice(0, 120) : "";
+    const normalizedFilter = String(filter || "all").toLowerCase();
+    const allowedFilters = new Set([
+        "all",
+        "low_stock",
+        "no_movements_30",
+        "no_movements_30_days",
+    ]);
+
+    return {
+        page: normalizedPage,
+        limit: normalizedLimit,
+        search: normalizedSearch,
+        filter: allowedFilters.has(normalizedFilter) ? normalizedFilter : "all",
+        offset: (normalizedPage - 1) * normalizedLimit,
+    };
+}
+
+function buildProductInventoryQuery(search) {
+    const params = [];
+    let paramIndex = 1;
+
+    params.push(null);
+    const storeParam = `$${paramIndex++}`;
+    const where = [`p.store_id = ${storeParam}`, "p.is_active IS TRUE"];
+
+    if (search) {
+        params.push(`%${search}%`);
+        const searchParam = `$${paramIndex++}`;
+        where.push(
+            `(p.name ILIKE ${searchParam} OR p.sku ILIKE ${searchParam} OR p.barcode ILIKE ${searchParam})`
+        );
+    }
+
+    return {
+        params,
+        paramIndex,
+        cte: `WITH product_inventory AS (
+            SELECT p.id,
+                   p.store_id,
+                   p.name,
+                   p.sku,
+                   p.category,
+                   p.barcode,
+                   p.purchase_price,
+                   p.sale_price,
+                   p.min_stock,
+                   p.created_at,
+                   p.updated_at,
+                   CAST(COALESCE(SUM(s.quantity), 0) AS INTEGER) AS quantity,
+                   EXISTS (
+                       SELECT 1
+                       FROM movements m
+                       WHERE m.store_id = p.store_id
+                         AND m.product_id = p.id
+                         AND m.created_at >= NOW() - INTERVAL '30 days'
+                   ) AS has_recent_movement
+            FROM products p
+            LEFT JOIN stock s ON s.product_id = p.id
+                AND s.warehouse_id IN (SELECT id FROM warehouses WHERE store_id = ${storeParam})
+            WHERE ${where.join(" AND ")}
+            GROUP BY p.id,
+                     p.store_id,
+                     p.name,
+                     p.sku,
+                     p.category,
+                     p.barcode,
+                     p.purchase_price,
+                     p.sale_price,
+                     p.min_stock,
+                     p.created_at,
+                     p.updated_at
+        )`,
+    };
+}
+
+function getProductsFilterClause(filter) {
+    if (filter === "low_stock") {
+        return "WHERE min_stock > 0 AND quantity <= min_stock";
+    }
+
+    if (filter === "no_movements_30" || filter === "no_movements_30_days") {
+        return "WHERE has_recent_movement IS FALSE";
+    }
+
+    return "";
+}
+
+export async function getPaginatedProducts(storeId, options = {}) {
+    const normalized = normalizeProductsPageOptions(options);
+    const { cte, params: baseParams, paramIndex } = buildProductInventoryQuery(normalized.search);
+    baseParams[0] = storeId;
+
+    const filterClause = getProductsFilterClause(normalized.filter);
+
+    const summaryResult = await pool.query(
+        `${cte}
+         SELECT COUNT(*)::int AS all_count,
+                COUNT(*) FILTER (WHERE min_stock > 0 AND quantity <= min_stock)::int AS low_stock_count,
+                COUNT(*) FILTER (WHERE has_recent_movement IS FALSE)::int AS no_movements_30_count
+         FROM product_inventory`,
+        baseParams
+    );
+
+    const countResult = await pool.query(
+        `${cte}
+         SELECT COUNT(*)::int AS total
+         FROM product_inventory
+         ${filterClause}`,
+        baseParams
+    );
+
+    const total = Number(countResult.rows[0]?.total || 0);
+    const totalPages = Math.max(1, Math.ceil(total / normalized.limit));
+    const safePage = Math.min(normalized.page, totalPages);
+    const offset = (safePage - 1) * normalized.limit;
+
+    const dataParams = [...baseParams, normalized.limit, offset];
+    const limitParam = `$${paramIndex}`;
+    const offsetParam = `$${paramIndex + 1}`;
+
+    const dataResult = await pool.query(
+        `${cte}
+         SELECT id,
+                store_id,
+                name,
+                sku,
+                category,
+                barcode,
+                purchase_price,
+                sale_price,
+                min_stock,
+                created_at,
+                updated_at,
+                quantity,
+                (min_stock > 0 AND quantity <= min_stock) AS is_low_stock,
+                has_recent_movement
+         FROM product_inventory
+         ${filterClause}
+         ORDER BY name, id
+         LIMIT ${limitParam} OFFSET ${offsetParam}`,
+        dataParams
+    );
+
+    const summary = summaryResult.rows[0] || {};
+
+    return {
+        products: dataResult.rows,
+        pagination: {
+            page: safePage,
+            limit: normalized.limit,
+            total,
+            total_pages: totalPages,
+            has_next: safePage < totalPages,
+            has_prev: safePage > 1,
+        },
+        counts: {
+            all: Number(summary.all_count || 0),
+            low_stock: Number(summary.low_stock_count || 0),
+            no_movements_30: Number(summary.no_movements_30_count || 0),
+        },
+    };
+}
+
 export async function getProductById(storeId, id) {
     const result = await pool.query(
         `SELECT ${productSelect()}
@@ -151,6 +326,72 @@ export async function getProductByBarcode(storeId, barcode) {
         [barcode, storeId]
     );
     return result.rows[0] || null;
+}
+
+export async function lookupProducts(storeId, query, limit = 10, warehouseId = null) {
+    const searchText = typeof query === "string" ? query.trim().slice(0, 120) : "";
+    const safeLimit = Math.min(20, Math.max(1, Number.parseInt(limit, 10) || 10));
+    const safeWarehouseId = Number.parseInt(warehouseId, 10) > 0
+        ? Number.parseInt(warehouseId, 10)
+        : null;
+
+    if (!searchText) {
+        return [];
+    }
+
+    const stockJoin = safeWarehouseId
+        ? `LEFT JOIN stock s ON s.product_id = p.id
+             AND s.warehouse_id = $6
+             AND EXISTS (
+                 SELECT 1 FROM warehouses w WHERE w.id = s.warehouse_id AND w.store_id = $1
+             )`
+        : `LEFT JOIN stock s ON s.product_id = p.id
+             AND s.warehouse_id IN (SELECT id FROM warehouses WHERE store_id = $1)`;
+    const params = [
+        storeId,
+        searchText,
+        `%${searchText}%`,
+        /^\d+$/.test(searchText) ? searchText : null,
+        safeLimit,
+    ];
+
+    if (safeWarehouseId) {
+        params.push(safeWarehouseId);
+    }
+
+    const result = await pool.query(
+        `SELECT p.id,
+                p.name,
+                p.sku,
+                p.category,
+                p.barcode,
+                p.sale_price,
+                p.min_stock,
+                CAST(COALESCE(SUM(s.quantity), 0) AS INTEGER) AS stock
+         FROM products p
+         ${stockJoin}
+         WHERE p.store_id = $1
+           AND p.is_active IS TRUE
+           AND (
+               p.barcode = $2
+               OR p.sku = $2
+               OR p.name ILIKE $3
+               OR ($4::text IS NOT NULL AND p.id::text = $4::text)
+           )
+         GROUP BY p.id
+         ORDER BY
+             CASE
+                 WHEN p.barcode = $2 THEN 0
+                 WHEN p.sku = $2 THEN 1
+                 WHEN $4::text IS NOT NULL AND p.id::text = $4::text THEN 2
+                 ELSE 3
+             END,
+             p.name
+         LIMIT $5`,
+        params
+    );
+
+    return result.rows;
 }
 
 export async function getProductsWithLeft(storeId) {

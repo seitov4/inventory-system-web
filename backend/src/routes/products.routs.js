@@ -3,6 +3,7 @@ import {
     listProducts,
     getProduct,
     getProductByBarcodeController,
+    lookupProductsController,
     getProductsLeftController,
     getLowStockController,
     createProductController,
@@ -15,6 +16,7 @@ import { authRequired, requireRole } from "../middleware/auth.middleware.js";
 const router = Router();
 
 router.get("/", authRequired, listProducts);
+router.get("/lookup", authRequired, lookupProductsController);
 router.get("/left", authRequired, getProductsLeftController);
 router.get(
     "/low-stock",
