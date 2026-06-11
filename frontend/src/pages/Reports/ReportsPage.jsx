@@ -2,15 +2,15 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import Layout from "../../components/Layout/Layout";
 import SalesReportModal from "../../components/Reports/SalesReportModal";
+import ForecastCsvExportModal from "../../components/Reports/ForecastCsvExportModal";
 import ReportCard from "../../components/Reports/ReportCard";
-import reportsApi from "../../api/reportsApi";
 
 // ===== REPORTS CONFIGURATION =====
 // Controls which reports are enabled/disabled
 // Set enabled: true when backend logic is ready
 const reportsConfig = {
     sales: { enabled: true },
-    inventory: { enabled: false },
+    inventory: { enabled: true },
     profit: { enabled: false },
     movement: { enabled: false }
 };
@@ -28,8 +28,12 @@ const reportsData = [
         key: 'inventory',
         icon: 'IN',
         title: 'Inventory Report',
-        description: 'Current stock levels, low stock alerts, and inventory valuation.',
-        formats: ['XLSX', 'PDF']
+        description: 'Export structured sales and inventory data for forecasting and stock analysis.',
+        formats: [
+            { label: 'XLSX', disabled: true },
+            { label: 'PDF', disabled: true },
+            'Forecast CSV'
+        ]
     },
     {
         key: 'profit',
@@ -78,47 +82,18 @@ const ReportsGrid = styled.div`
     gap: 20px;
 `;
 
-const ErrorMessage = styled.div`
-    padding: 12px 16px;
-    margin-bottom: 16px;
-    border: 1px solid var(--error-color);
-    border-radius: 8px;
-    background: var(--error-bg);
-    color: var(--error-color);
-    font-size: 13px;
-`;
-
 // ===== COMPONENT =====
 export default function ReportsPage() {
     const [showSalesModal, setShowSalesModal] = useState(false);
-    const [forecastLoading, setForecastLoading] = useState(false);
-    const [forecastError, setForecastError] = useState("");
+    const [showForecastModal, setShowForecastModal] = useState(false);
 
     const handleReportClick = (reportKey) => {
         if (reportKey === 'sales') {
             setShowSalesModal(true);
+        } else if (reportKey === 'inventory') {
+            setShowForecastModal(true);
         }
         // Future: Add handlers for other reports when enabled
-    };
-
-    const handleForecastCsvDownload = async () => {
-        setForecastLoading(true);
-        setForecastError("");
-
-        try {
-            await reportsApi.downloadSalesForecastCsv({ format: "realistic" });
-        } catch (err) {
-            console.error("[Reports] Forecast CSV download failed:", err);
-            if (err.response?.status === 403) {
-                setForecastError("You do not have permission to export forecast CSV files.");
-            } else if (err.response?.status === 401) {
-                setForecastError("Authentication required. Please log in again.");
-            } else {
-                setForecastError("Failed to download forecast CSV. Please try again.");
-            }
-        } finally {
-            setForecastLoading(false);
-        }
     };
 
     return (
@@ -131,7 +106,6 @@ export default function ReportsPage() {
             </PageHeader>
 
             <SectionTitle>Available Reports</SectionTitle>
-            {forecastError && <ErrorMessage>{forecastError}</ErrorMessage>}
             <ReportsGrid>
                 {reportsData.map(report => (
                     <ReportCard
@@ -143,12 +117,11 @@ export default function ReportsPage() {
                         enabled={reportsConfig[report.key]?.enabled || false}
                         onClick={() => handleReportClick(report.key)}
                         actions={
-                            report.key === "sales"
+                            report.key === "inventory"
                                 ? [
                                       {
-                                          label: forecastLoading ? "Downloading..." : "Forecast CSV",
-                                          disabled: forecastLoading,
-                                          onClick: handleForecastCsvDownload,
+                                          label: "Forecast CSV",
+                                          onClick: () => setShowForecastModal(true),
                                       },
                                   ]
                                 : []
@@ -161,6 +134,10 @@ export default function ReportsPage() {
             <SalesReportModal 
                 isOpen={showSalesModal} 
                 onClose={() => setShowSalesModal(false)} 
+            />
+            <ForecastCsvExportModal
+                isOpen={showForecastModal}
+                onClose={() => setShowForecastModal(false)}
             />
         </Layout>
     );

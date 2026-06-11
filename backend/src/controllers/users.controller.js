@@ -82,8 +82,7 @@ export async function updateUser(req, res, next) {
 
 export async function deleteUser(req, res, next) {
     try {
-        const { id } = req.params;
-        const userId = parseInt(id, 10);
+        const userId = parseInt(req.params.id, 10);
 
         const existingUser = await findUserById(userId, req.user.store_id);
         if (!existingUser) {
@@ -91,11 +90,23 @@ export async function deleteUser(req, res, next) {
         }
 
         if (existingUser.id === req.user.id) {
-            return next(createAppError(ERROR_CODES.USERS_CANNOT_DELETE_SELF, 400));
+            return next(createAppError(ERROR_CODES.USERS_CANNOT_DELETE_SELF, 403));
         }
 
-        await deleteUserService(userId, req.user.store_id);
-        return success(res, { message: "Сотрудник успешно отключен" });
+        if (existingUser.role === "owner") {
+            return next(createAppError(ERROR_CODES.USERS_CANNOT_DELETE_OWNER, 403));
+        }
+
+        const deletedUser = await deleteUserService(userId, req.user.store_id);
+        if (!deletedUser) {
+            return next(createAppError(ERROR_CODES.USERS_NOT_FOUND, 404));
+        }
+
+        return success(res, {
+            id: deletedUser.id,
+            is_active: deletedUser.is_active !== false,
+            message: "Employee deleted successfully.",
+        });
     } catch (err) {
         return next(err);
     }

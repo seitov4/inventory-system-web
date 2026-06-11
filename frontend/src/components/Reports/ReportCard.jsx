@@ -103,6 +103,7 @@ const ReportDescription = styled.p`
 const ReportFormats = styled.div`
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
 `;
 
 const FormatBadge = styled.span`
@@ -171,6 +172,12 @@ export default function ReportCard({
         setShowTooltip(false);
     };
 
+    const normalizedFormats = formats.map((format) => (
+        typeof format === "string"
+            ? { label: format, disabled: false }
+            : { label: format.label, disabled: Boolean(format.disabled) }
+    ));
+
     return (
         <CardWrapper 
             $enabled={enabled}
@@ -194,9 +201,9 @@ export default function ReportCard({
             <ReportTitle>{title}</ReportTitle>
             <ReportDescription>{description}</ReportDescription>
             <ReportFormats>
-                {formats.map(format => (
-                    <FormatBadge key={format} $enabled={enabled}>
-                        {format}
+                {normalizedFormats.map(format => (
+                    <FormatBadge key={format.label} $enabled={enabled && !format.disabled}>
+                        {format.label}
                     </FormatBadge>
                 ))}
             </ReportFormats>

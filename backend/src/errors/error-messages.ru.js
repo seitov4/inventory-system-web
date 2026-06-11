@@ -44,6 +44,7 @@ export const RU_ERROR_MESSAGES = Object.freeze({
         "Роль сотрудника должна быть одной из: owner, manager, cashier, staff",
     [ERROR_CODES.USERS_NOT_FOUND]: "Сотрудник не найден",
     [ERROR_CODES.USERS_CANNOT_DELETE_SELF]: "Нельзя удалить самого себя",
+    [ERROR_CODES.USERS_CANNOT_DELETE_OWNER]: "Владельца магазина нельзя удалить",
 
     [ERROR_CODES.MOVEMENT_REQUIRED_FIELDS_OUT]: "product_id, warehouse_id и qty обязательны",
     [ERROR_CODES.MOVEMENT_REQUIRED_FIELDS_TRANSFER]:

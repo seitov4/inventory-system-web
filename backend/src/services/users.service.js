@@ -197,6 +197,8 @@ export async function getAllUsers(storeId) {
         `SELECT id, store_id, name, email, phone, first_name, last_name, store_name, role, is_active, created_at, updated_at
          FROM users
          WHERE store_id = $1
+           AND is_active IS TRUE
+           AND role IN ('manager', 'cashier', 'staff')
          ORDER BY created_at DESC`,
         [storeId]
     );
@@ -270,8 +272,11 @@ export async function deleteUser(id, storeId) {
     const result = await pool.query(
         `UPDATE users
          SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP
-         WHERE id = $1 AND store_id = $2
-         RETURNING id`,
+         WHERE id = $1
+           AND store_id = $2
+           AND role IN ('manager', 'cashier', 'staff')
+           AND is_active IS TRUE
+         RETURNING id, store_id, role, is_active, updated_at`,
         [id, storeId]
     );
     return result.rows[0] || null;

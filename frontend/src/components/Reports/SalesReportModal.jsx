@@ -98,7 +98,8 @@ const DateInput = styled.input`
 `;
 
 const FormatSelector = styled.div`
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
 `;
 
@@ -377,6 +378,17 @@ export default function SalesReportModal({ isOpen, onClose }) {
                                 />
                                 <FormatIcon>📗</FormatIcon>
                                 <FormatLabel $selected={format === 'xlsx'}>Excel (.xlsx)</FormatLabel>
+                            </FormatOption>
+                            <FormatOption $selected={format === 'csv'}>
+                                <input
+                                    type="radio"
+                                    name="format"
+                                    value="csv"
+                                    checked={format === 'csv'}
+                                    onChange={() => setFormat('csv')}
+                                />
+                                <FormatIcon>CSV</FormatIcon>
+                                <FormatLabel $selected={format === 'csv'}>CSV (.csv)</FormatLabel>
                             </FormatOption>
                             <FormatOption $selected={format === 'txt'}>
                                 <input

@@ -318,6 +318,18 @@ const BtnDanger = styled.button`
     }
 `;
 
+const DeleteModalText = styled.p`
+    margin: 0 0 20px;
+    color: var(--text-secondary, #475569);
+    line-height: 1.5;
+`;
+
+const DeleteModalActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+`;
+
 // Theme Options
 const ThemeOptions = styled.div`
     display: grid;
@@ -786,8 +798,11 @@ function EmployeesTab() {
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
     const [showAddForm, setShowAddForm] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState(null);
+    const [deletingEmployee, setDeletingEmployee] = useState(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     useEffect(() => {
         loadEmployees();
@@ -824,14 +839,46 @@ function EmployeesTab() {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Delete this employee? This action cannot be undone.")) return;
+        if (!id) {
+            setError("Employee id is missing.");
+            return;
+        }
+
+        const employee = employees.find((item) => item.id === id);
+        if (!employee) {
+            setError("Employee not found.");
+            return;
+        }
+
+        setError("");
+        setSuccess("");
+        setDeletingEmployee(employee);
+    };
+
+    const confirmDelete = async () => {
+        if (!deletingEmployee?.id) {
+            setError("Employee id is missing.");
+            setDeletingEmployee(null);
+            return;
+        }
+
         try {
-            await usersApi.deleteUser(id);
-            await loadEmployees();
+            setDeleteLoading(true);
+            setError("");
+            setSuccess("");
+            await usersApi.deleteUser(deletingEmployee.id);
+            setEmployees((current) => current.filter((item) => item.id !== deletingEmployee.id));
+            setSuccess("Employee deleted successfully.");
+            setDeletingEmployee(null);
         } catch (e) {
             console.error(e);
-            const msg = e?.response?.data?.error || e?.response?.data?.message || e?.message || "Failed to delete employee";
-            alert(msg);
+            const msg =
+                e?.response?.data?.error ||
+                e?.response?.data?.message ||
+                "Failed to delete employee";
+            setError(msg);
+        } finally {
+            setDeleteLoading(false);
         }
     };
 
@@ -870,6 +917,8 @@ function EmployeesTab() {
                     }}
                 />
             )}
+
+            {success && <FormMessage>{success}</FormMessage>}
 
             {editingEmployee && (
                 <EmployeeEditModal
@@ -930,6 +979,41 @@ function EmployeesTab() {
                         </EmptyState>
                     )}
                 </SettingsCard>
+            )}
+
+            {deletingEmployee && (
+                <ModalOverlay onClick={() => !deleteLoading && setDeletingEmployee(null)}>
+                    <ModalContent onClick={(e) => e.stopPropagation()}>
+                        <ModalHeader>
+                            <ModalTitle>Delete employee</ModalTitle>
+                            <ModalClose
+                                onClick={() => setDeletingEmployee(null)}
+                                disabled={deleteLoading}
+                            >
+                                Г—
+                            </ModalClose>
+                        </ModalHeader>
+                        <DeleteModalText>
+                            Are you sure you want to remove this employee from the store?
+                        </DeleteModalText>
+                        <DeleteModalActions>
+                            <BtnSecondary
+                                type="button"
+                                onClick={() => setDeletingEmployee(null)}
+                                disabled={deleteLoading}
+                            >
+                                Cancel
+                            </BtnSecondary>
+                            <BtnDanger
+                                type="button"
+                                onClick={confirmDelete}
+                                disabled={deleteLoading}
+                            >
+                                {deleteLoading ? "Deleting..." : "Delete"}
+                            </BtnDanger>
+                        </DeleteModalActions>
+                    </ModalContent>
+                </ModalOverlay>
             )}
         </TabContent>
     );

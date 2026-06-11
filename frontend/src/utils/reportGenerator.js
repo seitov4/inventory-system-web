@@ -2,7 +2,7 @@
  * Report Generator Utilities
  * 
  * This module provides functions for generating sales reports in various formats.
- * Supports TXT (human-readable) and XLSX (Excel) formats.
+ * Supports TXT (human-readable), CSV, and XLSX (Excel) formats.
  * 
  * IMPORTANT: This module works ONLY with real data from the backend API.
  * No mock/demo data is generated.
@@ -171,6 +171,43 @@ export function generateTXTReport(reportData) {
     return content;
 }
 
+function escapeCsvValue(value) {
+    const stringValue = String(value ?? "");
+
+    if (/[",\r\n]/.test(stringValue)) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+    }
+
+    return stringValue;
+}
+
+/**
+ * Generate CSV sales report content.
+ *
+ * @param {Object} reportData - Aggregated report data from aggregateSalesData()
+ * @returns {string} CSV file content
+ */
+export function generateCSVReport(reportData) {
+    const { lines, isEmpty } = reportData;
+    const headers = ['Date', 'Product', 'SKU', 'Qty', 'Price', 'Total'];
+
+    if (isEmpty || lines.length === 0) {
+        return `${headers.join(',')}\r\n`;
+    }
+
+    return [
+        headers.join(','),
+        ...lines.map((line) => [
+            formatDate(line.date),
+            line.product_name,
+            line.sku || '',
+            line.quantity,
+            Number(line.sale_price || 0).toFixed(2),
+            Number(line.total || 0).toFixed(2),
+        ].map(escapeCsvValue).join(',')),
+    ].join('\r\n') + '\r\n';
+}
+
 /**
  * Generate XLSX (Excel) report
  * Professional spreadsheet with styling
@@ -280,7 +317,7 @@ export function downloadFile(content, filename, mimeType) {
  * @param {Array} salesData - Raw sales data from API (real data only, no mocks)
  * @param {Date} startDate - Start of date range
  * @param {Date} endDate - End of date range
- * @param {string} format - 'txt' or 'xlsx'
+ * @param {string} format - 'txt', 'csv', or 'xlsx'
  * @returns {Object} Report data with isEmpty flag
  */
 export function exportSalesReport(salesData, startDate, endDate, format = 'txt') {
@@ -296,6 +333,9 @@ export function exportSalesReport(salesData, startDate, endDate, format = 'txt')
         // Generate and download Excel file
         const excelBlob = generateXLSXReport(reportData);
         downloadFile(excelBlob, `${baseFilename}.xlsx`);
+    } else if (format === 'csv') {
+        const csvContent = generateCSVReport(reportData);
+        downloadFile(csvContent, `${baseFilename}.csv`, 'text/csv;charset=utf-8');
     } else {
         // Generate and download TXT file
         const txtContent = generateTXTReport(reportData);
